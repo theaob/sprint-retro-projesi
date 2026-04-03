@@ -95,7 +95,7 @@ router.put('/users/:id/password', requireAuth, (req, res) => {
 ══════════════════════════════════════════════════════════════ */
 
 // GET /api/retros
-router.get('/retros', (req, res) => {
+router.get('/retros', requireAuth, (req, res) => {
   const retros = db.prepare('SELECT * FROM retros ORDER BY created_at DESC').all();
   res.json(retros);
 });
