@@ -1,0 +1,9 @@
+node_modules
+dist
+.git
+.gitignore
+retro.db
+retro.db-shm
+retro.db-wal
+.env
+.DS_Store
