@@ -58,8 +58,20 @@ function renderBoard(appEl, retro, user) {
   const shareUrl = `${window.location.origin}${window.location.pathname}#/retro/${retro.id}`;
   const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(`Sprint Retro: ${retro.title}\n${shareUrl}`)}`;
 
+  let votedArray = [];
+  try {
+    const stored = localStorage.getItem(`retro_${retro.id}_votes_spent`);
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (Array.isArray(parsed)) votedArray = parsed;
+    }
+  } catch (e) {
+    localStorage.removeItem(`retro_${retro.id}_votes_spent`);
+  }
+
   const voteState = {
-    spent: parseInt(localStorage.getItem(`retro_${retro.id}_votes_spent`) || '0', 10),
+    votedEntryIds: votedArray,
+    get spent() { return this.votedEntryIds.length; },
     max: retro.max_votes !== undefined ? retro.max_votes : 3
   };
 
@@ -242,11 +254,15 @@ function createEntryCard(entry, retroId, voteState) {
   const card = document.createElement('div');
   card.className = 'entry-card';
   card.id = `entry-${entry.id}`;
+  
+  const isVoted = voteState && voteState.votedEntryIds.includes(entry.id);
+  const btnClass = isVoted ? 'btn btn-vote vote-btn voted-active' : 'btn btn-vote vote-btn';
+
   card.innerHTML = `
     <div class="entry-text">${escapeHtml(entry.text)}</div>
     <div class="entry-footer">
       <span class="entry-author">👤 ${escapeHtml(entry.author || 'Anonim')}</span>
-      <button class="btn btn-vote vote-btn" data-entry-id="${entry.id}">
+      <button class="${btnClass}" data-entry-id="${entry.id}">
         <span class="vote-badge">
           👍 <span class="vote-count" id="vote-count-${entry.id}">${entry.votes}</span>
         </span>
@@ -254,18 +270,29 @@ function createEntryCard(entry, retroId, voteState) {
     </div>
   `;
 
-  card.querySelector('.vote-btn').addEventListener('click', async () => {
-    if (voteState && voteState.spent >= voteState.max) {
+  const voteBtn = card.querySelector('.vote-btn');
+  voteBtn.addEventListener('click', async () => {
+    const currentlyVoted = voteState && voteState.votedEntryIds.includes(entry.id);
+
+    if (!currentlyVoted && voteState && voteState.spent >= voteState.max) {
       showToast('Tüm oy haklarınızı kullandınız!', 'error');
       return;
     }
 
+    voteBtn.classList.toggle('voted-active');
+
     try {
-      const updated = await api.voteEntry(retroId, entry.id);
+      let updated;
+      if (currentlyVoted) {
+        updated = await api.unvoteEntry(retroId, entry.id);
+        if (voteState) voteState.votedEntryIds = voteState.votedEntryIds.filter(id => id !== entry.id);
+      } else {
+        updated = await api.voteEntry(retroId, entry.id);
+        if (voteState) voteState.votedEntryIds.push(entry.id);
+      }
       
       if (voteState) {
-        voteState.spent++;
-        localStorage.setItem(`retro_${retroId}_votes_spent`, voteState.spent);
+        localStorage.setItem(`retro_${retroId}_votes_spent`, JSON.stringify(voteState.votedEntryIds));
         const limitBadge = document.getElementById('vote-limit-badge');
         if (limitBadge) {
           limitBadge.textContent = `Kalan Oy Hakkı: ${Math.max(0, voteState.max - voteState.spent)}`;
@@ -279,6 +306,7 @@ function createEntryCard(entry, retroId, voteState) {
         setTimeout(() => countEl.classList.remove('bump'), 400);
       }
     } catch (err) {
+      voteBtn.classList.toggle('voted-active');
       showToast(err.message, 'error');
     }
   });
