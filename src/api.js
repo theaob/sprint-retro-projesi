@@ -46,8 +46,8 @@ export const api = {
 
   // Retros
   listRetros: () => request('/retros'),
-  createRetro: (title, columns) => request('/retros', {
-    method: 'POST', body: JSON.stringify({ title, columns })
+  createRetro: (title, columns, maxVotes) => request('/retros', {
+    method: 'POST', body: JSON.stringify({ title, columns, max_votes: maxVotes })
   }),
   getRetro: (id) => request(`/retros/${id}`),
   deleteRetro: (id) => request(`/retros/${id}`, { method: 'DELETE' }),

@@ -7,6 +7,7 @@ Sprint Retro is a full-stack, real-time web application to help agile teams cond
 - **Real-Time Collaboration**: Built with WebSockets, allowing multiple team members to interact with the board simultaneously.
 - **Authentication**: Secure access via simple authentication.
 - **Vote & Feedback Gathering**: Add items to your retro board and allow the team to vote on priority.
+- **Configurable Vote Limits**: Admins can configure the maximum number of votes each participant is allowed to cast (locally enforced on devices).
 - **Export Data**: Easily export retro results to Excel (`.xlsx`) format.
 - **Responsive Design**: Clean and modern UI with modern typography (Inter).
 
@@ -56,7 +57,9 @@ Sprint Retro is a full-stack, real-time web application to help agile teams cond
 1. Run `npm run build` to generate the production frontend build. 
 2. The `dist` folder will be created. The Express server is configured to serve these static files in production.
 3. Start the application using `npm run start`.
-Alternatively, you can use the provided `Dockerfile` to build and run the application inside a container.
+
+### Docker
+You can also use the provided `Dockerfile` to build and run the application inside a container. The setup uses a lightweight Debian base (`node:20-bookworm-slim`) and seamlessly supports multi-architecture builds (including `linux/amd64` and `linux/arm64/v8`). An automated GitHub Actions workflow (`release-docker.yml`) is provided out-of-the-box to handle building and pushing these cross-platform images to Docker Hub.
 
 ## Project Structure
 

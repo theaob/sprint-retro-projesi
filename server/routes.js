@@ -102,17 +102,18 @@ router.get('/retros', requireAuth, (req, res) => {
 
 // POST /api/retros  — admin only
 router.post('/retros', requireAdmin, (req, res) => {
-  const { title, columns } = req.body;
+  const { title, columns, max_votes } = req.body;
   if (!title || !columns || !Array.isArray(columns) || columns.length === 0) {
     return res.status(400).json({ error: 'Başlık ve en az bir sütun gereklidir.' });
   }
 
   const retroId = uuidv4();
-  const insertRetro = db.prepare('INSERT INTO retros (id, title) VALUES (?, ?)');
+  const votes = parseInt(max_votes, 10) || 3;
+  const insertRetro = db.prepare('INSERT INTO retros (id, title, max_votes) VALUES (?, ?, ?)');
   const insertColumn = db.prepare('INSERT INTO columns (id, retro_id, name, sort_order) VALUES (?, ?, ?, ?)');
 
   db.transaction(() => {
-    insertRetro.run(retroId, title);
+    insertRetro.run(retroId, title, votes);
     columns.forEach((colName, idx) => insertColumn.run(uuidv4(), retroId, colName, idx));
   })();
 

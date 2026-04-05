@@ -36,6 +36,10 @@ export async function renderAdmin(appEl) {
             <input class="input" type="text" id="retro-title" placeholder="Örn: Sprint 14 Retro" required />
           </div>
           <div class="form-group">
+            <label for="retro-max-votes">Kişi Başı Oy Hakkı</label>
+            <input class="input" type="number" id="retro-max-votes" value="3" min="1" max="20" required />
+          </div>
+          <div class="form-group">
             <label>Sütunlar</label>
             <div class="columns-input-list" id="columns-list">
               <div class="column-input-row">
@@ -100,6 +104,7 @@ export async function renderAdmin(appEl) {
   document.getElementById('create-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const title = document.getElementById('retro-title').value.trim();
+    const maxVotes = parseInt(document.getElementById('retro-max-votes').value, 10) || 3;
     const columns = Array.from(columnsList.querySelectorAll('.column-name-input'))
       .map(inp => inp.value.trim()).filter(Boolean);
 
@@ -113,7 +118,7 @@ export async function renderAdmin(appEl) {
     btn.textContent = 'Oluşturuluyor…';
 
     try {
-      const result = await api.createRetro(title, columns);
+      const result = await api.createRetro(title, columns, maxVotes);
       showToast('Retro oluşturuldu! ✨', 'success');
       window.location.hash = `#/retro/${result.id}`;
     } catch (err) {

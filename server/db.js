@@ -18,6 +18,7 @@ db.exec(`
   CREATE TABLE IF NOT EXISTS retros (
     id TEXT PRIMARY KEY,
     title TEXT NOT NULL,
+    max_votes INTEGER DEFAULT 3,
     created_at TEXT DEFAULT (datetime('now'))
   );
 
@@ -60,6 +61,18 @@ if (!adminExists) {
   db.prepare('INSERT INTO users (id, username, password_hash, role) VALUES (?, ?, ?, ?)')
     .run(uuidv4(), 'admin', hash, 'admin');
   console.log('✅ Default admin created: admin / admin');
+}
+
+// Migration: add max_votes safely
+try {
+  const tableInfo = db.pragma('table_info(retros)');
+  const hasMaxVotes = tableInfo.some((col) => col.name === 'max_votes');
+  if (!hasMaxVotes) {
+    db.exec('ALTER TABLE retros ADD COLUMN max_votes INTEGER DEFAULT 3;');
+    console.log('✅ Migration applied: added max_votes to retros table.');
+  }
+} catch (err) {
+  console.error('Migration error:', err);
 }
 
 export default db;
