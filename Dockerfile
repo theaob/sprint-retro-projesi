@@ -1,4 +1,4 @@
-FROM node:20-alpine AS build
+FROM node:20-bookworm-slim AS build
 
 # Create app directory
 WORKDIR /app
@@ -15,7 +15,7 @@ RUN npm run build
 
 # ---
 # Production stage
-FROM node:20-alpine
+FROM node:20-bookworm-slim
 
 WORKDIR /app
 
