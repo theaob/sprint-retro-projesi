@@ -209,10 +209,12 @@ function bindColumnEvents(colEl, col, retroId, columnBodyMap, authorName) {
 
     try {
       const entry = await api.addEntry(retroId, col.id, text, author);
-      // Add to our own board immediately
-      const bodyEl = columnBodyMap[col.id];
-      bodyEl.appendChild(createEntryCard(entry, retroId));
-      updateColumnCount(col.id, +1);
+      // Add to our own board if websocket hasn't added it already
+      if (!document.getElementById(`entry-${entry.id}`)) {
+        const bodyEl = columnBodyMap[col.id];
+        bodyEl.appendChild(createEntryCard(entry, retroId));
+        updateColumnCount(col.id, +1);
+      }
       input.value = '';
       input.focus();
     } catch (err) {
