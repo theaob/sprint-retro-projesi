@@ -299,6 +299,14 @@ h3 { font-size: 1.125rem; font-weight: 600; }
   font-size: 0.8rem;
 }
 .btn-vote:hover { background: rgba(245, 158, 11, 0.1); border-color: var(--vote); transform: scale(1.05); }
+.btn-vote.voted-active {
+  background: var(--vote);
+  color: var(--bg-primary);
+  border-color: var(--vote);
+}
+.btn-vote.voted-active .vote-badge, .btn-vote.voted-active .vote-count {
+  color: var(--bg-primary);
+}
 
 .btn-sm { padding: 6px 14px; font-size: 0.8rem; }
 .btn-icon { padding: 8px; width: 36px; height: 36px; }

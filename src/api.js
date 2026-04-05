@@ -64,6 +64,9 @@ export const api = {
   voteEntry: (retroId, entryId) => request(`/retros/${retroId}/entries/${entryId}/vote`, {
     method: 'POST'
   }),
+  unvoteEntry: (retroId, entryId) => request(`/retros/${retroId}/entries/${entryId}/unvote`, {
+    method: 'POST'
+  }),
 
   // Auth helpers
   getUser: () => {

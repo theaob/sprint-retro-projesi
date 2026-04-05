@@ -192,4 +192,19 @@ router.post('/retros/:id/entries/:entryId/vote', (req, res) => {
   res.json(entry);
 });
 
+// POST /api/retros/:id/entries/:entryId/unvote
+router.post('/retros/:id/entries/:entryId/unvote', (req, res) => {
+  const result = db.prepare('UPDATE entries SET votes = MAX(0, votes - 1) WHERE id = ? AND retro_id = ?')
+    .run(req.params.entryId, req.params.id);
+
+  if (result.changes === 0) return res.status(404).json({ error: 'Girdi bulunamadı.' });
+
+  const entry = db.prepare('SELECT * FROM entries WHERE id = ?').get(req.params.entryId);
+
+  // Broadcast using entry:voted so frontend simply updates the count
+  broadcast(req.params.id, { type: 'entry:voted', entry });
+
+  res.json(entry);
+});
+
 export default router;
