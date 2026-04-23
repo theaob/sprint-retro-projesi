@@ -29,7 +29,7 @@ export async function renderAdmin(appEl) {
       <p class="subtitle">Sprint retrospektif toplantılarınızı oluşturun ve yönetin.</p>
 
       <div class="glass-card create-section" id="create-section">
-        <h2 style="margin-bottom: 20px;">✨ Yeni Retro Oluştur</h2>
+        <h2>✨ Yeni Retro Oluştur</h2>
         <form class="create-form" id="create-form">
           <div class="form-group">
             <label for="retro-title">Retro Başlığı</label>
@@ -61,7 +61,7 @@ export async function renderAdmin(appEl) {
         </form>
       </div>
 
-      <h2 style="margin-bottom: 20px;">📋 Geçmiş Retrolar</h2>
+      <h2>📋 Geçmiş Retrolar</h2>
       <div id="retro-list-container">
         <div class="spinner" id="retro-spinner"></div>
       </div>

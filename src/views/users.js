@@ -13,7 +13,7 @@ export async function renderUsers(appEl) {
       <p class="subtitle">Sisteme erişim yetkisi olan kullanıcıları yönetin.</p>
 
       <div class="glass-card create-section" id="create-user-section">
-        <h2 style="margin-bottom:20px;">➕ Yeni Kullanıcı Ekle</h2>
+        <h2>➕ Yeni Kullanıcı Ekle</h2>
         <form class="create-form" id="create-user-form">
           <div class="form-row">
             <div class="form-group">
@@ -36,7 +36,7 @@ export async function renderUsers(appEl) {
         </form>
       </div>
 
-      <h2 style="margin-bottom:20px;">📋 Kullanıcılar</h2>
+      <h2>📋 Kullanıcılar</h2>
       <div id="users-list-container">
         <div class="spinner" id="users-spinner"></div>
       </div>

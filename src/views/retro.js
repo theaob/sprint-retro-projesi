@@ -78,8 +78,8 @@ function renderBoard(appEl, retro, user) {
   mainEl.innerHTML = `
     <div class="retro-header">
       <div>
-        <h1 class="retro-title" style="margin-bottom: 5px;">${escapeHtml(retro.title)}</h1>
-        <span class="badge" id="vote-limit-badge" style="background:var(--primary);color:var(--bg);padding:4px 8px;border-radius:12px;font-size:12px;font-weight:600;">Kalan Oy Hakkı: ${Math.max(0, voteState.max - voteState.spent)}</span>
+        <h1 class="retro-title">${escapeHtml(retro.title)}</h1>
+        <span class="badge-vote-limit" id="vote-limit-badge">Kalan Oy Hakkı: ${Math.max(0, voteState.max - voteState.spent)}</span>
       </div>
       <div class="retro-actions">
         <a href="${whatsappUrl}" target="_blank" rel="noopener" class="btn btn-whatsapp" id="share-whatsapp-btn">
@@ -94,7 +94,7 @@ function renderBoard(appEl, retro, user) {
     ${!authorName ? `
       <div class="guest-name-bar glass-card">
         <span>👤 İsminizle not ekleyin:</span>
-        <input class="input" type="text" id="guest-name-input" placeholder="Adınız (opsiyonel)" maxlength="30" style="max-width:220px;" />
+        <input class="input guest-input-field" type="text" id="guest-name-input" placeholder="Adınız (opsiyonel)" maxlength="30" />
       </div>
     ` : ''}
 
