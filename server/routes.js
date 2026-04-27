@@ -179,15 +179,8 @@ router.post('/retros/:id/entries', (req, res) => {
 
 // POST /api/retros/:id/entries/:entryId/vote
 router.post('/retros/:id/entries/:entryId/vote', (req, res) => {
-  const { voterName } = req.body || {};
   const entry = db.prepare('SELECT * FROM entries WHERE id = ? AND retro_id = ?').get(req.params.entryId, req.params.id);
-  
   if (!entry) return res.status(404).json({ error: 'Girdi bulunamadı.' });
-
-  const currentVoter = req.user ? req.user.username : (voterName || 'Anonim');
-  if (entry.author === currentVoter) {
-    return res.status(403).json({ error: 'Kendi girdinize oy veremezsiniz.' });
-  }
 
   const result = db.prepare('UPDATE entries SET votes = votes + 1 WHERE id = ? AND retro_id = ?')
     .run(req.params.entryId, req.params.id);
