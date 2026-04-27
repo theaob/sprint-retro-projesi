@@ -591,22 +591,36 @@ select.input { cursor: pointer; }
 }
 
 .board {
-  display: grid;
+  display: flex;
   gap: 20px;
-  grid-template-columns: 1fr;
+  overflow-x: auto;
+  padding-bottom: 16px;
+  scroll-snap-type: x mandatory;
+  align-items: flex-start;
 }
 
+.board::-webkit-scrollbar { height: 8px; }
+.board::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); border-radius: 4px; }
+.board::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
+.board::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+
 .column {
+  flex: 0 0 85vw;
+  max-width: 380px;
+  max-height: calc(100vh - 200px);
+  min-height: 300px;
   display: flex;
   flex-direction: column;
   border-radius: var(--radius-lg);
   background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
   overflow: hidden;
+  scroll-snap-align: center;
   animation: fadeInUp 0.4s ease;
-  transition: box-shadow var(--transition-normal);
+  transition: all var(--transition-normal);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05);
 }
 
 /* Flash effect when new entry arrives from WS */
@@ -658,17 +672,29 @@ select.input { cursor: pointer; }
   gap: 12px;
   flex: 1;
   min-height: 120px;
+  overflow-y: auto;
 }
 
+.column-body::-webkit-scrollbar { width: 4px; }
+.column-body::-webkit-scrollbar-track { background: transparent; }
+.column-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
+.column-body::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+
 .entry-card {
-  background: rgba(255, 255, 255, 0.04);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
   border-radius: var(--radius-md);
   padding: 14px;
   transition: all var(--transition-fast);
   animation: slideIn 0.3s ease;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
 }
-.entry-card:hover { background: rgba(255, 255, 255, 0.07); border-color: rgba(255, 255, 255, 0.1); }
+.entry-card:hover { 
+  background: rgba(255, 255, 255, 0.06); 
+  border-color: rgba(255, 255, 255, 0.15); 
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  transform: translateY(-2px);
+}
 
 .entry-text { font-size: 0.9375rem; line-height: 1.5; margin-bottom: 10px; }
 
@@ -769,7 +795,7 @@ select.input { cursor: pointer; }
   h1 { font-size: 2rem; }
   h2 { font-size: 1.5rem; }
 
-  .board { grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+  .column { flex: 0 0 340px; scroll-snap-align: start; }
 
   .retro-header { flex-direction: row; align-items: center; justify-content: space-between; }
   .retro-actions { width: auto; }

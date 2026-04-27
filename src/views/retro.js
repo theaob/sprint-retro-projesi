@@ -1,6 +1,7 @@
 import { api } from '../api.js';
 import { exportRetroToExcel } from '../export.js';
 import { createRetroSocket } from '../ws.js';
+import { escapeHtml, showToast } from '../utils.js';
 
 /**
  * Retro Board — #/retro/:id
@@ -338,19 +339,4 @@ function createEntryCard(entry, retroId, voteState) {
   return card;
 }
 
-/* ── Helpers ── */
-function escapeHtml(text) {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
-}
 
-function showToast(message, type = 'success') {
-  const existing = document.querySelector('.toast');
-  if (existing) existing.remove();
-  const toast = document.createElement('div');
-  toast.className = `toast toast-${type}`;
-  toast.textContent = message;
-  document.body.appendChild(toast);
-  setTimeout(() => toast.remove(), 3000);
-}
