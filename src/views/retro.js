@@ -270,8 +270,10 @@ function createEntryCard(entry, retroId, voteState) {
 
   card.innerHTML = `
     <div class="entry-text">${escapeHtml(entry.text)}</div>
-    <div class="entry-footer">
-      <span></span>
+    <div class="entry-footer" style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
+      <button class="btn btn-ghost btn-sm read-btn" title="Sesli Oku" style="padding: 4px; display: flex; align-items: center;">
+        🔊
+      </button>
       <button class="${btnClass}" data-entry-id="${entry.id}">
         <span class="vote-badge">
           👍 <span class="vote-count" id="vote-count-${entry.id}">${entry.votes}</span>
@@ -305,7 +307,7 @@ function createEntryCard(entry, retroId, voteState) {
         localStorage.setItem(`retro_${retroId}_votes_spent`, JSON.stringify(voteState.votedEntryIds));
         const limitBadge = document.getElementById('vote-limit-badge');
         if (limitBadge) {
-          limitBadge.textContent = `Kalan Oy Hakkı: ${Math.max(0, voteState.max - voteState.spent)}`;
+           limitBadge.textContent = `Kalan Oy Hakkı: ${Math.max(0, voteState.max - voteState.spent)}`;
         }
       }
 
@@ -318,6 +320,18 @@ function createEntryCard(entry, retroId, voteState) {
     } catch (err) {
       voteBtn.classList.toggle('voted-active');
       showToast(err.message, 'error');
+    }
+  });
+
+  const readBtn = card.querySelector('.read-btn');
+  readBtn.addEventListener('click', () => {
+    if ('speechSynthesis' in window) {
+      window.speechSynthesis.cancel(); // Stop any ongoing speech
+      const utterance = new SpeechSynthesisUtterance(entry.text);
+      utterance.lang = 'tr-TR';
+      window.speechSynthesis.speak(utterance);
+    } else {
+      showToast('Tarayıcınız sesli okumayı desteklemiyor.', 'error');
     }
   });
 
