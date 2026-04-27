@@ -122,7 +122,7 @@ function renderBoard(appEl, retro, user) {
 
   // Render columns
   retro.columns.forEach(col => {
-    const colEl = buildColumnEl(col, retro.id);
+    const colEl = buildColumnEl(col, retro.id, user);
     boardEl.appendChild(colEl);
     columnBodyMap[col.id] = colEl.querySelector(`#col-body-${col.id}`);
 
@@ -181,14 +181,15 @@ function renderBoard(appEl, retro, user) {
   window.addEventListener('hashchange', () => socket.close(), { once: true });
 }
 
-function buildColumnEl(col, retroId) {
+function buildColumnEl(col, retroId, user) {
   const colEl = document.createElement('div');
+  const isAdmin = user?.role === 'admin';
   colEl.className = 'column';
   colEl.dataset.colId = col.id;
 
   colEl.innerHTML = `
     <div class="column-header">
-      <input class="column-name" value="${escapeHtml(col.name)}" data-col-id="${col.id}" id="col-name-${col.id}" />
+      <input class="column-name" value="${escapeHtml(col.name)}" data-col-id="${col.id}" id="col-name-${col.id}" ${isAdmin ? '' : 'readonly'} />
       <span class="column-count" id="col-count-${col.id}">${col.entries.length}</span>
     </div>
     <div class="column-body" id="col-body-${col.id}"></div>

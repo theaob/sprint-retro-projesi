@@ -144,7 +144,7 @@ router.delete('/retros/:id', requireAdmin, (req, res) => {
 });
 
 // PUT /api/retros/:id/columns/:colId  — rename column
-router.put('/retros/:id/columns/:colId', (req, res) => {
+router.put('/retros/:id/columns/:colId', requireAdmin, (req, res) => {
   const { name } = req.body;
   if (!name) return res.status(400).json({ error: 'Sütun adı gereklidir.' });
 
