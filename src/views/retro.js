@@ -92,12 +92,7 @@ function renderBoard(appEl, retro, user) {
       </div>
     </div>
 
-    ${!authorName ? `
-      <div class="guest-name-bar glass-card">
-        <span>👤 İsminizle not ekleyin:</span>
-        <input class="input guest-input-field" type="text" id="guest-name-input" placeholder="Adınız (opsiyonel)" maxlength="30" />
-      </div>
-    ` : ''}
+
 
     <div class="board" id="board"></div>
   `;
@@ -237,9 +232,7 @@ function bindColumnEvents(colEl, col, retroId, columnBodyMap, authorName, voteSt
     const text = input.value.trim();
     if (!text) return;
 
-    // Resolve author name
-    const guestInput = document.getElementById('guest-name-input');
-    const author = authorName || (guestInput?.value.trim()) || 'Anonim';
+    const author = 'Anonim';
 
     const submitBtn = entryForm.querySelector('button[type="submit"]');
     submitBtn.disabled = true;
@@ -278,7 +271,7 @@ function createEntryCard(entry, retroId, voteState) {
   card.innerHTML = `
     <div class="entry-text">${escapeHtml(entry.text)}</div>
     <div class="entry-footer">
-      <span class="entry-author">👤 ${escapeHtml(entry.author || 'Anonim')}</span>
+      <span></span>
       <button class="${btnClass}" data-entry-id="${entry.id}">
         <span class="vote-badge">
           👍 <span class="vote-count" id="vote-count-${entry.id}">${entry.votes}</span>
@@ -289,14 +282,6 @@ function createEntryCard(entry, retroId, voteState) {
 
   const voteBtn = card.querySelector('.vote-btn');
   voteBtn.addEventListener('click', async () => {
-    const guestInput = document.getElementById('guest-name-input');
-    const currentUser = (api.getUser()?.username) || (guestInput?.value.trim()) || 'Anonim';
-
-    if (currentUser === entry.author) {
-      showToast('Kendi girdinize oy veremezsiniz!', 'error');
-      return;
-    }
-
     const currentlyVoted = voteState && voteState.votedEntryIds.includes(entry.id);
 
     if (!currentlyVoted && voteState && voteState.spent >= voteState.max) {
@@ -312,7 +297,7 @@ function createEntryCard(entry, retroId, voteState) {
         updated = await api.unvoteEntry(retroId, entry.id);
         if (voteState) voteState.votedEntryIds = voteState.votedEntryIds.filter(id => id !== entry.id);
       } else {
-        updated = await api.voteEntry(retroId, entry.id, currentUser);
+        updated = await api.voteEntry(retroId, entry.id);
         if (voteState) voteState.votedEntryIds.push(entry.id);
       }
       
