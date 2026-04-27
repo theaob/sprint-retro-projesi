@@ -61,8 +61,8 @@ export const api = {
   addEntry: (retroId, columnId, text, author) => request(`/retros/${retroId}/entries`, {
     method: 'POST', body: JSON.stringify({ column_id: columnId, text, author })
   }),
-  voteEntry: (retroId, entryId) => request(`/retros/${retroId}/entries/${entryId}/vote`, {
-    method: 'POST'
+  voteEntry: (retroId, entryId, voterName) => request(`/retros/${retroId}/entries/${entryId}/vote`, {
+    method: 'POST', body: JSON.stringify({ voterName })
   }),
   unvoteEntry: (retroId, entryId) => request(`/retros/${retroId}/entries/${entryId}/unvote`, {
     method: 'POST'

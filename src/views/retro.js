@@ -273,6 +273,14 @@ function createEntryCard(entry, retroId, voteState) {
 
   const voteBtn = card.querySelector('.vote-btn');
   voteBtn.addEventListener('click', async () => {
+    const guestInput = document.getElementById('guest-name-input');
+    const currentUser = (api.getUser()?.username) || (guestInput?.value.trim()) || 'Anonim';
+
+    if (currentUser === entry.author) {
+      showToast('Kendi girdinize oy veremezsiniz!', 'error');
+      return;
+    }
+
     const currentlyVoted = voteState && voteState.votedEntryIds.includes(entry.id);
 
     if (!currentlyVoted && voteState && voteState.spent >= voteState.max) {
@@ -288,7 +296,7 @@ function createEntryCard(entry, retroId, voteState) {
         updated = await api.unvoteEntry(retroId, entry.id);
         if (voteState) voteState.votedEntryIds = voteState.votedEntryIds.filter(id => id !== entry.id);
       } else {
-        updated = await api.voteEntry(retroId, entry.id);
+        updated = await api.voteEntry(retroId, entry.id, currentUser);
         if (voteState) voteState.votedEntryIds.push(entry.id);
       }
       
