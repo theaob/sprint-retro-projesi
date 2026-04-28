@@ -4,33 +4,38 @@
 
 /* ── CSS Variables ───────────────────────────────────────────── */
 :root {
-  --bg-primary: #0b0e17;
-  --bg-secondary: #111827;
-  --bg-card: rgba(17, 24, 39, 0.65);
-  --bg-card-hover: rgba(31, 41, 55, 0.8);
-  --bg-input: rgba(17, 24, 39, 0.8);
-  --bg-overlay: rgba(0, 0, 0, 0.6);
+  /* Mobile-first Layout Paddings */
+  --page-padding-x: 16px;
+  --page-padding-y: 24px;
 
-  --accent-primary: #6366f1;
-  --accent-primary-hover: #818cf8;
-  --accent-secondary: #a855f7;
-  --accent-gradient: linear-gradient(135deg, #6366f1, #a855f7);
-  --accent-glow: 0 0 20px rgba(99, 102, 241, 0.4);
-  --accent-glow-hover: 0 0 30px rgba(99, 102, 241, 0.6);
+  /* Premium Midnight/Slate Colors */
+  --bg-primary: #020617;
+  --bg-secondary: #0f172a;
+  --bg-card: rgba(15, 23, 42, 0.7);
+  --bg-card-hover: rgba(30, 41, 59, 0.85);
+  --bg-input: rgba(15, 23, 42, 0.8);
+  --bg-overlay: rgba(2, 6, 23, 0.75);
 
-  --success: #22c55e;
+  --accent-primary: #4f46e5;
+  --accent-primary-hover: #6366f1;
+  --accent-secondary: #8b5cf6;
+  --accent-gradient: linear-gradient(135deg, #4f46e5, #8b5cf6);
+  --accent-glow: 0 0 20px rgba(79, 70, 229, 0.4);
+  --accent-glow-hover: 0 0 30px rgba(79, 70, 229, 0.6);
+
+  --success: #10b981;
   --danger: #ef4444;
   --danger-hover: #dc2626;
   --whatsapp: #25d366;
   --whatsapp-hover: #1ebe5d;
   --vote: #f59e0b;
 
-  --text-primary: #f9fafb;
-  --text-secondary: #9ca3af;
-  --text-muted: #6b7280;
+  --text-primary: #f8fafc;
+  --text-secondary: #cbd5e1;
+  --text-muted: #64748b;
 
-  --border-color: rgba(75, 85, 99, 0.4);
-  --border-focus: rgba(99, 102, 241, 0.6);
+  --border-color: rgba(51, 65, 85, 0.5);
+  --border-focus: rgba(79, 70, 229, 0.6);
 
   --radius-sm: 8px;
   --radius-md: 12px;
@@ -38,7 +43,7 @@
   --radius-xl: 24px;
 
   --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.3);
-  --shadow-elevated: 0 16px 48px rgba(0, 0, 0, 0.45);
+  --shadow-elevated: 0 16px 48px rgba(0, 0, 0, 0.5);
 
   --transition-fast: 0.15s ease;
   --transition-normal: 0.25s ease;
@@ -86,7 +91,7 @@ h2 { font-size: 1.25rem; font-weight: 700; letter-spacing: -0.02em; margin-botto
 h3 { font-size: 1.125rem; font-weight: 600; margin-bottom: 0.75rem; }
 
 /* ── Layout ──────────────────────────────────────────────────── */
-.container { max-width: 1280px; margin: 0 auto; padding: 0 24px; }
+.container { max-width: 1280px; margin: 0 auto; padding: 0 var(--page-padding-x); width: 100%; }
 
 /* ── Header ──────────────────────────────────────────────────── */
 .app-header {
@@ -263,6 +268,7 @@ h3 { font-size: 1.125rem; font-weight: 600; margin-bottom: 0.75rem; }
   justify-content: center;
   gap: 8px;
   padding: 10px 20px;
+  min-height: 48px;
   border: none;
   border-radius: var(--radius-sm);
   font-family: var(--font-family);
@@ -313,14 +319,15 @@ h3 { font-size: 1.125rem; font-weight: 600; margin-bottom: 0.75rem; }
   color: var(--bg-primary);
 }
 
-.btn-sm { padding: 6px 14px; font-size: 0.8rem; }
-.btn-icon { padding: 8px; width: 36px; height: 36px; }
+.btn-sm { padding: 6px 14px; font-size: 0.8rem; min-height: 36px; }
+.btn-icon { padding: 8px; width: 44px; height: 44px; }
 .btn-full { width: 100%; justify-content: center; }
 
 /* ── Inputs ──────────────────────────────────────────────────── */
 .input {
   width: 100%;
   padding: 12px 16px;
+  min-height: 48px;
   background: var(--bg-input);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-sm);
@@ -357,11 +364,11 @@ select.input { cursor: pointer; }
 }
 
 /* ── Admin Page ──────────────────────────────────────────────── */
-.admin-page { padding: 48px 0; }
+.admin-page { padding: var(--page-padding-y) 0; }
 .admin-page h1 { margin-bottom: 8px; }
 .admin-page .subtitle { color: var(--text-secondary); font-size: 1rem; margin-bottom: 40px; }
 
-.create-section { padding: 32px; margin-bottom: 48px; }
+.create-section { padding: 24px; margin-bottom: 48px; }
 .create-form { display: flex; flex-direction: column; gap: 20px; }
 
 .columns-input-list { display: flex; flex-direction: column; gap: 10px; }
@@ -421,13 +428,13 @@ select.input { cursor: pointer; }
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 24px;
+  padding: var(--page-padding-y) var(--page-padding-x);
 }
 
 .login-card {
   width: 100%;
   max-width: 420px;
-  padding: 28px 20px;
+  padding: 32px 24px;
 }
 
 .login-logo {
@@ -553,7 +560,7 @@ select.input { cursor: pointer; }
 .badge-vote-limit { background: var(--accent-primary); color: white; padding: 4px 10px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; }
 
 /* ── Retro Board ─────────────────────────────────────────────── */
-.retro-page { padding: 32px 0 64px; }
+.retro-page { padding: var(--page-padding-y) 0 calc(var(--page-padding-y) * 2); }
 
 .retro-header {
   display: flex;
@@ -592,11 +599,12 @@ select.input { cursor: pointer; }
 
 .board {
   display: flex;
-  gap: 20px;
+  gap: 16px;
   overflow-x: auto;
   padding-bottom: 16px;
   scroll-snap-type: x mandatory;
   align-items: flex-start;
+  padding-right: var(--page-padding-x);
 }
 
 .board::-webkit-scrollbar { height: 8px; }
@@ -605,7 +613,7 @@ select.input { cursor: pointer; }
 .board::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
 
 .column {
-  flex: 0 0 85vw;
+  flex: 0 0 calc(100vw - (var(--page-padding-x) * 2) - 32px);
   max-width: 380px;
   max-height: calc(100vh - 200px);
   min-height: 300px;
@@ -792,6 +800,10 @@ select.input { cursor: pointer; }
 
 /* ── Responsive ──────────────────────────────────────────────── */
 @media (min-width: 768px) {
+  :root {
+    --page-padding-x: 32px;
+    --page-padding-y: 48px;
+  }
   h1 { font-size: 2rem; }
   h2 { font-size: 1.5rem; }
 
@@ -800,6 +812,7 @@ select.input { cursor: pointer; }
   .retro-header { flex-direction: row; align-items: center; justify-content: space-between; }
   .retro-actions { width: auto; }
   .retro-actions .btn { flex: initial; }
+  .board { gap: 20px; padding-right: 0; }
 
   .retro-list { grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); }
 
