@@ -35,8 +35,8 @@ EXPOSE 3000
 # Set environment variable for production
 ENV NODE_ENV=production
 
-# The SQLite database retro.db is stored at the project root (/app/retro.db). 
-# You should mount it as a volume to persist data: 
-# -v /path/to/host/data/retro.db:/app/retro.db
+# The SQLite database is stored in the /app/data directory by default.
+# Mount this directory to a persistent volume to keep data between redeployments:
+# -v /path/to/host/data:/app/data
 
 CMD ["npm", "start"]

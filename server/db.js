@@ -1,11 +1,20 @@
 import Database from 'better-sqlite3';
 import bcrypt from 'bcryptjs';
+import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { v4 as uuidv4 } from 'uuid';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const dbPath = path.join(__dirname, '..', 'retro.db');
+
+// Priority: DB_PATH env var > data/retro.db in project root
+const dbPath = process.env.DB_PATH || path.join(__dirname, '..', 'data', 'retro.db');
+
+// Ensure directory exists
+const dbDir = path.dirname(dbPath);
+if (!fs.existsSync(dbDir)) {
+  fs.mkdirSync(dbDir, { recursive: true });
+}
 
 const db = new Database(dbPath);
 

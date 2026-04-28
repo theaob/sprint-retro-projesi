@@ -59,7 +59,20 @@ Sprint Retro is a full-stack, real-time web application to help agile teams cond
 3. Start the application using `npm run start`.
 
 ### Docker
-You can also use the provided `Dockerfile` to build and run the application inside a container. The setup uses a lightweight Debian base (`node:20-bookworm-slim`) and seamlessly supports multi-architecture builds (including `linux/amd64` and `linux/arm64/v8`). An automated GitHub Actions workflow (`release-docker.yml`) is provided out-of-the-box to handle building and pushing these cross-platform images to Docker Hub.
+You can also use the provided `Dockerfile` to build and run the application inside a container. The setup uses a lightweight Debian base (`node:20-bookworm-slim`) and seamlessly supports multi-architecture builds (including `linux/amd64` and `linux/arm64/v8`).
+
+#### Data Persistence
+To ensure your data (retros, users, and votes) is kept between redeployments or version updates, you should mount a volume to the `/app/data` directory where the SQLite database is stored:
+
+```bash
+docker run -d \
+  -p 3000:3000 \
+  -v $(pwd)/data:/app/data \
+  --name sprint-retro \
+  sprint-retro-app
+```
+
+An automated GitHub Actions workflow (`release-docker.yml`) is provided out-of-the-box to handle building and pushing these cross-platform images to Docker Hub.
 
 ## Project Structure
 
