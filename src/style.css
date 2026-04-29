@@ -831,3 +831,38 @@ select.input { cursor: pointer; }
 
   .form-row { grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); }
 }
+
+/* ── Footer ─────────────────────────────────────────────────── */
+.app-footer {
+  padding: 32px 0;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  margin-top: auto;
+}
+
+.version-tag {
+  background: var(--bg-secondary);
+  color: var(--text-primary);
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+  font-family: monospace;
+}
+
+.login-toggle {
+  text-align: center;
+  margin-top: 20px;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.login-toggle a {
+  color: var(--accent-primary);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.login-toggle a:hover {
+  text-decoration: underline;
+}

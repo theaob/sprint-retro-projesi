@@ -31,6 +31,9 @@ export const api = {
   login: (username, password) => request('/auth/login', {
     method: 'POST', body: JSON.stringify({ username, password })
   }),
+  register: (username, password) => request('/auth/register', {
+    method: 'POST', body: JSON.stringify({ username, password })
+  }),
   logout: () => request('/auth/logout', { method: 'POST' }),
   me: () => request('/auth/me'),
 

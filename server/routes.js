@@ -30,6 +30,26 @@ router.post('/auth/login', (req, res) => {
   res.json({ token, user: { id: user.id, username: user.username, role: user.role } });
 });
 
+// POST /api/auth/register — public
+router.post('/auth/register', (req, res) => {
+  const { username, password } = req.body;
+  if (!username || !password) return res.status(400).json({ error: 'Kullanıcı adı ve şifre gereklidir.' });
+  if (password.length < 4) return res.status(400).json({ error: 'Şifre en az 4 karakter olmalıdır.' });
+
+  const exists = db.prepare('SELECT id FROM users WHERE username = ?').get(username);
+  if (exists) return res.status(409).json({ error: 'Bu kullanıcı adı zaten kullanılmakta.' });
+
+  const id = uuidv4();
+  const hash = bcrypt.hashSync(password, 10);
+  db.prepare('INSERT INTO users (id, username, password_hash, role) VALUES (?, ?, ?, ?)').run(id, username, hash, 'user');
+
+  // Auto-login after registration
+  const token = uuidv4();
+  db.prepare('INSERT INTO sessions (token, user_id) VALUES (?, ?)').run(token, id);
+
+  res.status(201).json({ token, user: { id, username, role: 'user' } });
+});
+
 // POST /api/auth/logout
 router.post('/auth/logout', requireAuth, (req, res) => {
   const token = req.headers.authorization?.slice(7);
@@ -96,12 +116,21 @@ router.put('/users/:id/password', requireAuth, (req, res) => {
 
 // GET /api/retros
 router.get('/retros', requireAuth, (req, res) => {
-  const retros = db.prepare('SELECT * FROM retros ORDER BY created_at DESC').all();
+  const isAdmin = req.user.role === 'admin';
+  let query = 'SELECT * FROM retros ORDER BY created_at DESC';
+  let params = [];
+
+  if (!isAdmin) {
+    query = 'SELECT * FROM retros WHERE created_by = ? ORDER BY created_at DESC';
+    params = [req.user.id];
+  }
+
+  const retros = db.prepare(query).all(...params);
   res.json(retros);
 });
 
-// POST /api/retros  — admin only
-router.post('/retros', requireAdmin, (req, res) => {
+// POST /api/retros  — allow any authenticated user
+router.post('/retros', requireAuth, (req, res) => {
   const { title, columns, max_votes } = req.body;
   if (!title || !columns || !Array.isArray(columns) || columns.length === 0) {
     return res.status(400).json({ error: 'Başlık ve en az bir sütun gereklidir.' });
@@ -109,11 +138,11 @@ router.post('/retros', requireAdmin, (req, res) => {
 
   const retroId = uuidv4();
   const votes = parseInt(max_votes, 10) || 3;
-  const insertRetro = db.prepare('INSERT INTO retros (id, title, max_votes) VALUES (?, ?, ?)');
+  const insertRetro = db.prepare('INSERT INTO retros (id, title, max_votes, created_by) VALUES (?, ?, ?, ?)');
   const insertColumn = db.prepare('INSERT INTO columns (id, retro_id, name, sort_order) VALUES (?, ?, ?, ?)');
 
   db.transaction(() => {
-    insertRetro.run(retroId, title, votes);
+    insertRetro.run(retroId, title, votes, req.user.id);
     columns.forEach((colName, idx) => insertColumn.run(uuidv4(), retroId, colName, idx));
   })();
 
@@ -136,17 +165,32 @@ router.get('/retros/:id', (req, res) => {
   res.json({ ...retro, columns: columnData });
 });
 
-// DELETE /api/retros/:id  — admin only
-router.delete('/retros/:id', requireAdmin, (req, res) => {
-  const result = db.prepare('DELETE FROM retros WHERE id = ?').run(req.params.id);
-  if (result.changes === 0) return res.status(404).json({ error: 'Retro bulunamadı.' });
+// DELETE /api/retros/:id  — admin or owner only
+router.delete('/retros/:id', requireAuth, (req, res) => {
+  const isAdmin = req.user.role === 'admin';
+  const retro = db.prepare('SELECT created_by FROM retros WHERE id = ?').get(req.params.id);
+  
+  if (!retro) return res.status(404).json({ error: 'Retro bulunamadı.' });
+  if (!isAdmin && retro.created_by !== req.user.id) {
+    return res.status(403).json({ error: 'Bu retroyu silme yetkiniz yok.' });
+  }
+
+  db.prepare('DELETE FROM retros WHERE id = ?').run(req.params.id);
   res.json({ success: true });
 });
 
-// PUT /api/retros/:id/columns/:colId  — rename column
-router.put('/retros/:id/columns/:colId', requireAdmin, (req, res) => {
+// PUT /api/retros/:id/columns/:colId  — rename column (admin or owner only)
+router.put('/retros/:id/columns/:colId', requireAuth, (req, res) => {
   const { name } = req.body;
   if (!name) return res.status(400).json({ error: 'Sütun adı gereklidir.' });
+
+  const isAdmin = req.user.role === 'admin';
+  const retro = db.prepare('SELECT created_by FROM retros WHERE id = ?').get(req.params.id);
+  
+  if (!retro) return res.status(404).json({ error: 'Retro bulunamadı.' });
+  if (!isAdmin && retro.created_by !== req.user.id) {
+    return res.status(403).json({ error: 'Bu retroyu düzenleme yetkiniz yok.' });
+  }
 
   const result = db.prepare('UPDATE columns SET name = ? WHERE id = ? AND retro_id = ?')
     .run(name, req.params.colId, req.params.id);

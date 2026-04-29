@@ -1,5 +1,5 @@
 import { api } from '../api.js';
-import { escapeHtml, showToast } from '../utils.js';
+import { escapeHtml, showToast, renderFooter } from '../utils.js';
 
 /**
  * Admin panel — #/
@@ -67,6 +67,7 @@ export async function renderAdmin(appEl) {
         <div class="spinner" id="retro-spinner"></div>
       </div>
     </main>
+    ${renderFooter()}
   `;
 
   // Logout

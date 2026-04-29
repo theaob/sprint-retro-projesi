@@ -1,5 +1,5 @@
 import { api } from '../api.js';
-import { escapeHtml, showToast } from '../utils.js';
+import { escapeHtml, showToast, renderFooter } from '../utils.js';
 
 /**
  * User management page — #/users (admin only)
@@ -42,6 +42,7 @@ export async function renderUsers(appEl) {
         <div class="spinner" id="users-spinner"></div>
       </div>
     </main>
+    ${renderFooter()}
   `;
 
   // Form submit

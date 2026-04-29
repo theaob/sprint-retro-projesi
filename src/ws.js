@@ -14,7 +14,10 @@ export function createRetroSocket(retroId, handlers = {}) {
   const host = location.hostname;
   // In dev, Vite runs on 5173 but server is on 3000 — use server port
   const port = import.meta.env.DEV ? '3000' : location.port;
-  const url = `${protocol}://${host}:${port}/ws`;
+  
+  // Cleanly handle ports — avoid trailing colons if port is empty
+  const portSuffix = port ? `:${port}` : '';
+  const url = `${protocol}://${host}${portSuffix}/ws`;
 
   let ws;
   let reconnectTimer;

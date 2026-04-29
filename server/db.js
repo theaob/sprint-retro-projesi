@@ -28,6 +28,7 @@ db.exec(`
     id TEXT PRIMARY KEY,
     title TEXT NOT NULL,
     max_votes INTEGER DEFAULT 3,
+    created_by TEXT REFERENCES users(id) ON DELETE SET NULL,
     created_at TEXT DEFAULT (datetime('now'))
   );
 
@@ -72,13 +73,18 @@ if (!adminExists) {
   console.log('✅ Default admin created: admin / admin');
 }
 
-// Migration: add max_votes safely
+// Migration: add columns safely
 try {
   const tableInfo = db.pragma('table_info(retros)');
-  const hasMaxVotes = tableInfo.some((col) => col.name === 'max_votes');
-  if (!hasMaxVotes) {
+  
+  if (!tableInfo.some((col) => col.name === 'max_votes')) {
     db.exec('ALTER TABLE retros ADD COLUMN max_votes INTEGER DEFAULT 3;');
     console.log('✅ Migration applied: added max_votes to retros table.');
+  }
+
+  if (!tableInfo.some((col) => col.name === 'created_by')) {
+    db.exec('ALTER TABLE retros ADD COLUMN created_by TEXT REFERENCES users(id) ON DELETE SET NULL;');
+    console.log('✅ Migration applied: added created_by to retros table.');
   }
 } catch (err) {
   console.error('Migration error:', err);

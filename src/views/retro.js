@@ -1,7 +1,7 @@
 import { api } from '../api.js';
 import { exportRetroToExcel } from '../export.js';
 import { createRetroSocket } from '../ws.js';
-import { escapeHtml, showToast } from '../utils.js';
+import { escapeHtml, showToast, renderFooter } from '../utils.js';
 
 /**
  * Retro Board — #/retro/:id
@@ -36,6 +36,7 @@ export async function renderRetro(appEl, retroId) {
     <main class="retro-page container">
       <div class="spinner" id="retro-spinner"></div>
     </main>
+    ${renderFooter()}
   `;
 
   try {
