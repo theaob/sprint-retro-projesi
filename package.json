@@ -1,6 +1,6 @@
 {
   "name": "sprint-retro",
-  "version": "2.3.0",
+  "version": "2.3.1",
   "description": "Sprint Retrospective Web Application",
   "type": "module",
   "scripts": {

@@ -26,10 +26,15 @@ export async function renderAdmin(appEl) {
       </div>
     </header>
     <main class="admin-page container">
-      <h1>Retro Yönetimi</h1>
-      <p class="subtitle">Sprint retrospektif toplantılarınızı oluşturun ve yönetin.</p>
+      <div class="page-header">
+        <div>
+          <h1>Retro Yönetimi</h1>
+          <p class="subtitle">Sprint retrospektif toplantılarınızı oluşturun ve yönetin.</p>
+        </div>
+        <button class="btn btn-primary" id="toggle-create-btn">✨ Yeni Retro Oluştur</button>
+      </div>
 
-      <div class="glass-card create-section" id="create-section">
+      <div class="glass-card create-section hidden" id="create-section">
         <h2>✨ Yeni Retro Oluştur</h2>
         <form class="create-form" id="create-form">
           <div class="form-group">
@@ -69,6 +74,18 @@ export async function renderAdmin(appEl) {
     </main>
     ${renderFooter()}
   `;
+
+  // Toggle create section
+  const toggleBtn = document.getElementById('toggle-create-btn');
+  const createSection = document.getElementById('create-section');
+  toggleBtn.addEventListener('click', () => {
+    const isHidden = createSection.classList.toggle('hidden');
+    toggleBtn.textContent = isHidden ? '✨ Yeni Retro Oluştur' : '✕ Kapat';
+    toggleBtn.className = isHidden ? 'btn btn-primary' : 'btn btn-ghost';
+    if (!isHidden) {
+      document.getElementById('retro-title').focus();
+    }
+  });
 
   // Logout
   document.getElementById('logout-btn').addEventListener('click', async () => {
@@ -122,6 +139,12 @@ export async function renderAdmin(appEl) {
     try {
       const result = await api.createRetro(title, columns, maxVotes);
       showToast('Retro oluşturuldu! ✨', 'success');
+      
+      // Hide section after creation
+      createSection.classList.add('hidden');
+      toggleBtn.textContent = '✨ Yeni Retro Oluştur';
+      toggleBtn.className = 'btn btn-primary';
+      
       window.location.hash = `#/retro/${result.id}`;
     } catch (err) {
       showToast(err.message, 'error');
