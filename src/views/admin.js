@@ -17,11 +17,13 @@ export async function renderAdmin(appEl) {
         <nav class="header-nav">
           <a href="#/" class="btn btn-ghost btn-sm active-nav">📋 Retrolar</a>
           ${user?.role === 'admin' ? '<a href="#/users" class="btn btn-ghost btn-sm">👥 Kullanıcılar</a>' : ''}
+          <span class="nav-separator"></span>
           <div class="user-chip">
             <span class="user-chip-avatar">${user?.username?.[0]?.toUpperCase() || '?'}</span>
             <span>${escapeHtml(user?.username || '')}</span>
           </div>
           ${renderThemeSwitcher()}
+          <span class="nav-separator"></span>
           <button class="btn btn-ghost btn-sm" id="logout-btn">Çıkış</button>
         </nav>
       </div>
@@ -229,7 +231,7 @@ async function loadRetroList() {
       listEl.appendChild(item);
     });
   } catch (err) {
-    container.innerHTML = `<p style="color: var(--danger);">Retrolar yüklenirken hata: ${err.message}</p>`;
+    container.innerHTML = `<p class="error-text">Retrolar yüklenirken hata: ${err.message}</p>`;
   }
 }
 

@@ -17,7 +17,7 @@ export async function renderRetro(appEl, retroId) {
           <div class="logo-icon">🔄</div>
           <span class="logo-text">Sprint Retro</span>
         </a>
-        <div class="header-right">
+        <nav class="header-nav">
           ${user
             ? `<div class="user-chip">
                 <span class="user-chip-avatar">${user.username[0].toUpperCase()}</span>
@@ -29,9 +29,10 @@ export async function renderRetro(appEl, retroId) {
             <span class="ws-dot"></span>
             <span class="ws-label">Bağlanıyor…</span>
           </div>
+          <span class="nav-separator"></span>
           ${renderThemeSwitcher()}
-          ${user ? `<a href="#/" class="btn btn-ghost btn-sm" id="back-btn">← Geri</a>` : ''}
-        </div>
+          ${user ? `<span class="nav-separator"></span><a href="#/" class="btn btn-ghost btn-sm" id="back-btn">← Geri</a>` : ''}
+        </nav>
       </div>
     </header>
     <main class="retro-page container">
@@ -49,7 +50,7 @@ export async function renderRetro(appEl, retroId) {
       <div class="empty-state">
         <div class="empty-state-icon">😕</div>
         <p class="empty-state-text">Retro bulunamadı veya bir hata oluştu.</p>
-        <a href="#/" class="btn btn-primary" style="margin-top: 20px;">← Ana Sayfaya Dön</a>
+        <a href="#/" class="btn btn-primary btn-sm">← Ana Sayfaya Dön</a>
       </div>
     `;
   }
@@ -91,7 +92,7 @@ function renderBoard(appEl, retro, user) {
           Paylaş
         </a>
         <button class="btn btn-ghost btn-sm" id="copy-link-btn">📋 Bağlantı</button>
-        <button class="btn btn-primary" id="export-excel-btn">📊 Excel İndir</button>
+        <button class="btn btn-primary btn-sm" id="export-excel-btn">📊 Excel İndir</button>
       </div>
     </div>
 
@@ -264,8 +265,8 @@ function createEntryCard(entry, retroId, voteState) {
 
   card.innerHTML = `
     <div class="entry-text">${escapeHtml(entry.text)}</div>
-    <div class="entry-footer" style="display: flex; justify-content: space-between; align-items: center; gap: 8px;">
-      <button class="btn btn-ghost btn-sm read-btn" title="Sesli Oku" style="padding: 4px; display: flex; align-items: center;">
+    <div class="entry-footer">
+      <button class="btn btn-ghost btn-icon-sm read-btn" title="Sesli Oku">
         🔊
       </button>
       <button class="${btnClass}" data-entry-id="${entry.id}">

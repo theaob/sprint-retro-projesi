@@ -149,7 +149,7 @@ async function loadUsers(currentUser) {
       });
     });
   } catch (err) {
-    container.innerHTML = `<p style="color:var(--danger)">Kullanıcılar yüklenemedi: ${err.message}</p>`;
+    container.innerHTML = `<p class="error-text">Kullanıcılar yüklenemedi: ${err.message}</p>`;
   }
 }
 
@@ -163,14 +163,14 @@ function showChangePwdModal(userId, username) {
   overlay.innerHTML = `
     <div class="modal" role="dialog" aria-modal="true">
       <h3>🔒 Şifre Değiştir</h3>
-      <p style="color:var(--text-secondary);margin-bottom:20px;">Kullanıcı: <strong>${escapeHtml(username)}</strong></p>
+      <p class="modal-subtitle">Kullanıcı: <strong>${escapeHtml(username)}</strong></p>
       <div class="form-group">
         <label for="new-pwd-input">Yeni Şifre</label>
         <input class="input" type="password" id="new-pwd-input" placeholder="En az 4 karakter" />
       </div>
       <div class="modal-actions">
-        <button class="btn btn-ghost" id="pwd-cancel-btn">İptal</button>
-        <button class="btn btn-primary" id="pwd-save-btn">Kaydet</button>
+        <button class="btn btn-ghost btn-sm" id="pwd-cancel-btn">İptal</button>
+        <button class="btn btn-primary btn-sm" id="pwd-save-btn">Kaydet</button>
       </div>
     </div>
   `;
@@ -208,11 +208,13 @@ function renderHeader(user) {
         <nav class="header-nav">
           <a href="#/" class="btn btn-ghost btn-sm">📋 Retrolar</a>
           <a href="#/users" class="btn btn-ghost btn-sm active-nav">👥 Kullanıcılar</a>
+          <span class="nav-separator"></span>
           <div class="user-chip">
             <span class="user-chip-avatar">${user?.username?.[0]?.toUpperCase() || '?'}</span>
             <span>${escapeHtml(user?.username || '')}</span>
           </div>
           ${renderThemeSwitcher()}
+          <span class="nav-separator"></span>
           <button class="btn btn-ghost btn-sm" id="logout-btn">Çıkış</button>
         </nav>
       </div>

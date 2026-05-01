@@ -52,7 +52,7 @@ export function renderThemeSwitcher() {
   return `
     <div class="theme-switcher">
       <button class="btn btn-ghost btn-icon theme-btn" id="theme-menu-btn" title="Tema değiştir">🎨</button>
-      <div class="theme-menu hidden" id="theme-menu">
+      <div class="theme-menu" id="theme-menu">
         ${THEMES.map(t => `
           <button class="theme-option ${current === t ? 'active' : ''}" data-theme="${t}">
             <span class="theme-swatch theme-${t}"></span>
@@ -71,15 +71,19 @@ export function bindThemeEvents() {
 
   btn.addEventListener('click', (e) => {
     e.stopPropagation();
-    menu.classList.toggle('hidden');
+    menu.classList.toggle('is-open');
   });
 
-  document.addEventListener('click', () => menu.classList.add('hidden'));
+  document.addEventListener('click', (e) => {
+    if (!menu.contains(e.target) && e.target !== btn) {
+      menu.classList.remove('is-open');
+    }
+  });
 
   menu.querySelectorAll('.theme-option').forEach(opt => {
     opt.addEventListener('click', () => {
       setTheme(opt.dataset.theme);
-      location.reload(); // Simplest way to re-render everything with new theme
+      location.reload();
     });
   });
 }
