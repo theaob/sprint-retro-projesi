@@ -529,7 +529,7 @@ select.input { cursor: pointer; }
 }
 
 /* ── Admin Page ──────────────────────────────────────────────── */
-.admin-page { padding: var(--page-padding-y) 0; }
+.admin-page { padding-top: var(--page-padding-y); padding-bottom: var(--page-padding-y); }
 .admin-page h1 { margin-bottom: 8px; }
 .admin-page .subtitle { color: var(--text-secondary); font-size: 1rem; margin-bottom: 40px; }
 
@@ -727,7 +727,7 @@ select.input { cursor: pointer; }
 .badge-vote-limit { background: var(--accent-primary); color: white; padding: 4px 10px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; }
 
 /* ── Retro Board ─────────────────────────────────────────────── */
-.retro-page { padding: var(--page-padding-y) 0 calc(var(--page-padding-y) * 2); }
+.retro-page { padding-top: var(--page-padding-y); padding-bottom: calc(var(--page-padding-y) * 2); }
 
 .retro-header {
   display: flex;
