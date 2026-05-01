@@ -4,6 +4,9 @@ import { renderRetro } from './views/retro.js';
 import { renderLogin } from './views/login.js';
 import { renderUsers } from './views/users.js';
 import { api } from './api.js';
+import { applyTheme } from './utils.js';
+
+applyTheme();
 
 const app = document.getElementById('app');
 

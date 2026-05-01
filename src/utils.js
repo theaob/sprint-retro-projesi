@@ -25,3 +25,61 @@ export function renderFooter() {
     </footer>
   `;
 }
+
+/* ── Theme Management ────────────────────────────────────────── */
+
+const THEMES = ['midnight', 'emerald', 'rose', 'frost', 'sunset'];
+
+export function getTheme() {
+  return localStorage.getItem('app-theme') || 'midnight';
+}
+
+export function setTheme(theme) {
+  if (!THEMES.includes(theme)) theme = 'midnight';
+  localStorage.setItem('app-theme', theme);
+  applyTheme();
+}
+
+export function applyTheme() {
+  const theme = getTheme();
+  const root = document.documentElement;
+  THEMES.forEach(t => root.classList.remove(`theme-${t}`));
+  root.classList.add(`theme-${theme}`);
+}
+
+export function renderThemeSwitcher() {
+  const current = getTheme();
+  return `
+    <div class="theme-switcher">
+      <button class="btn btn-ghost btn-icon theme-btn" id="theme-menu-btn" title="Tema değiştir">🎨</button>
+      <div class="theme-menu hidden" id="theme-menu">
+        ${THEMES.map(t => `
+          <button class="theme-option ${current === t ? 'active' : ''}" data-theme="${t}">
+            <span class="theme-swatch theme-${t}"></span>
+            ${t.charAt(0).toUpperCase() + t.slice(1)}
+          </button>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
+export function bindThemeEvents() {
+  const btn = document.getElementById('theme-menu-btn');
+  const menu = document.getElementById('theme-menu');
+  if (!btn || !menu) return;
+
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    menu.classList.toggle('hidden');
+  });
+
+  document.addEventListener('click', () => menu.classList.add('hidden'));
+
+  menu.querySelectorAll('.theme-option').forEach(opt => {
+    opt.addEventListener('click', () => {
+      setTheme(opt.dataset.theme);
+      location.reload(); // Simplest way to re-render everything with new theme
+    });
+  });
+}

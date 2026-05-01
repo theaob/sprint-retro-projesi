@@ -1,5 +1,5 @@
 import { api } from '../api.js';
-import { escapeHtml, showToast, renderFooter } from '../utils.js';
+import { escapeHtml, showToast, renderFooter, renderThemeSwitcher, bindThemeEvents } from '../utils.js';
 
 /**
  * Admin panel — #/
@@ -21,6 +21,7 @@ export async function renderAdmin(appEl) {
             <span class="user-chip-avatar">${user?.username?.[0]?.toUpperCase() || '?'}</span>
             <span>${escapeHtml(user?.username || '')}</span>
           </div>
+          ${renderThemeSwitcher()}
           <button class="btn btn-ghost btn-sm" id="logout-btn">Çıkış</button>
         </nav>
       </div>
@@ -74,6 +75,9 @@ export async function renderAdmin(appEl) {
     </main>
     ${renderFooter()}
   `;
+
+  // Theme switcher
+  bindThemeEvents();
 
   // Toggle create section
   const toggleBtn = document.getElementById('toggle-create-btn');

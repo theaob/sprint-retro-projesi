@@ -1,5 +1,5 @@
 import { api } from '../api.js';
-import { escapeHtml, showToast, renderFooter } from '../utils.js';
+import { escapeHtml, showToast, renderFooter, renderThemeSwitcher, bindThemeEvents } from '../utils.js';
 
 /**
  * User management page — #/users (admin only)
@@ -44,6 +44,9 @@ export async function renderUsers(appEl) {
     </main>
     ${renderFooter()}
   `;
+
+  // Theme events
+  bindThemeEvents();
 
   // Form submit
   document.getElementById('create-user-form').addEventListener('submit', async (e) => {
@@ -209,6 +212,7 @@ function renderHeader(user) {
             <span class="user-chip-avatar">${user?.username?.[0]?.toUpperCase() || '?'}</span>
             <span>${escapeHtml(user?.username || '')}</span>
           </div>
+          ${renderThemeSwitcher()}
           <button class="btn btn-ghost btn-sm" id="logout-btn">Çıkış</button>
         </nav>
       </div>

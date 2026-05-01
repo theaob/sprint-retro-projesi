@@ -1,7 +1,7 @@
 import { api } from '../api.js';
 import { exportRetroToExcel } from '../export.js';
 import { createRetroSocket } from '../ws.js';
-import { escapeHtml, showToast, renderFooter } from '../utils.js';
+import { escapeHtml, showToast, renderFooter, renderThemeSwitcher, bindThemeEvents } from '../utils.js';
 
 /**
  * Retro Board — #/retro/:id
@@ -29,6 +29,7 @@ export async function renderRetro(appEl, retroId) {
             <span class="ws-dot"></span>
             <span class="ws-label">Bağlanıyor…</span>
           </div>
+          ${renderThemeSwitcher()}
           ${user ? `<a href="#/" class="btn btn-ghost btn-sm" id="back-btn">← Geri</a>` : ''}
         </div>
       </div>
@@ -42,6 +43,7 @@ export async function renderRetro(appEl, retroId) {
   try {
     const retro = await api.getRetro(retroId);
     renderBoard(appEl, retro, user);
+    bindThemeEvents();
   } catch (err) {
     appEl.querySelector('.retro-page').innerHTML = `
       <div class="empty-state">
