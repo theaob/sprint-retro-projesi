@@ -60,6 +60,11 @@ export const api = {
     method: 'PUT', body: JSON.stringify({ name })
   }),
 
+  // Icebreaker
+  triggerIcebreaker: (retroId, prompt) => request(`/retros/${retroId}/icebreaker`, {
+    method: 'POST', body: JSON.stringify({ prompt })
+  }),
+
   // Entries
   addEntry: (retroId, columnId, text, author) => request(`/retros/${retroId}/entries`, {
     method: 'POST', body: JSON.stringify({ column_id: columnId, text, author })

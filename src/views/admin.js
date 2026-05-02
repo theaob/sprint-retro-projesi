@@ -49,6 +49,10 @@ export async function renderAdmin(appEl) {
             <input class="input" type="number" id="retro-max-votes" value="3" min="1" max="20" required />
           </div>
           <div class="form-group">
+            <label>Şablon Seç</label>
+            <div class="template-options" id="template-options"></div>
+          </div>
+          <div class="form-group">
             <label>Sütunlar</label>
             <div class="columns-input-list" id="columns-list">
               <div class="column-input-row">
@@ -98,6 +102,37 @@ export async function renderAdmin(appEl) {
     try { await api.logout(); } catch {}
     api.clearSession();
     window.location.hash = '#/login';
+  });
+
+  // Templates
+  const templates = [
+    { name: 'Standart', cols: ['İyi Giden', 'Geliştirilmeli', 'Aksiyon'] },
+    { name: 'Mad/Sad/Glad', cols: ['Mad 😠', 'Sad 😢', 'Glad 😃', 'Aksiyon 🚀'] },
+    { name: 'Start/Stop/Continue', cols: ['Start 🟢', 'Stop 🔴', 'Continue 🟡'] },
+    { name: '4Ls', cols: ['Liked 👍', 'Learned 🧠', 'Lacked 👎', 'Longed For 🥺'] },
+  ];
+
+  const templateContainer = document.getElementById('template-options');
+  templateContainer.innerHTML = templates.map(t => 
+    `<button type="button" class="btn btn-ghost btn-sm template-btn" data-cols="${escapeHtml(t.cols.join('|'))}">${escapeHtml(t.name)}</button>`
+  ).join('');
+
+  templateContainer.addEventListener('click', (e) => {
+    const btn = e.target.closest('.template-btn');
+    if (!btn) return;
+    const cols = btn.dataset.cols.split('|');
+    
+    const columnsList = document.getElementById('columns-list');
+    columnsList.innerHTML = '';
+    cols.forEach(colName => {
+      const row = document.createElement('div');
+      row.className = 'column-input-row';
+      row.innerHTML = `
+        <input class="input column-name-input" type="text" value="${escapeHtml(colName)}" placeholder="Sütun adı" required />
+        <button type="button" class="btn btn-ghost btn-icon remove-col-btn" title="Kaldır">✕</button>
+      `;
+      columnsList.appendChild(row);
+    });
   });
 
   // Add column

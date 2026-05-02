@@ -44,6 +44,9 @@ export function createRetroSocket(retroId, handlers = {}) {
           case 'column:renamed':
             handlers.onColumnRenamed?.(msg);
             break;
+          case 'icebreaker:show':
+            handlers.onIcebreaker?.(msg.prompt);
+            break;
         }
       } catch (e) {
         // ignore

@@ -592,6 +592,9 @@ select.input { cursor: pointer; }
 .create-section { padding: 24px; margin-bottom: 48px; }
 .create-form { display: flex; flex-direction: column; gap: 16px; }
 
+.template-options { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
+.template-btn { font-size: 0.75rem; padding: 4px 10px; min-height: 28px; border-radius: 999px; }
+
 .columns-input-list { display: flex; flex-direction: column; gap: 10px; }
 .column-input-row { display: flex; gap: 8px; align-items: center; animation: slideIn 0.3s ease; }
 .column-input-row .input { flex: 1; }
