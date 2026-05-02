@@ -28,7 +28,7 @@ export function renderFooter() {
 
 /* ── Theme Management ────────────────────────────────────────── */
 
-const THEMES = ['midnight', 'emerald', 'rose', 'frost', 'sunset'];
+const THEMES = ['midnight', 'daylight', 'emerald', 'rose', 'frost', 'sunset'];
 
 export function getTheme() {
   return localStorage.getItem('app-theme') || 'midnight';

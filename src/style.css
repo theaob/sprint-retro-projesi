@@ -21,8 +21,8 @@
   --radius-lg: 16px;
   --radius-xl: 24px;
 
-  --shadow-card: 0 8px 32px rgba(0, 0, 0, 0.3);
-  --shadow-elevated: 0 16px 48px rgba(0, 0, 0, 0.5);
+  --shadow-card: 0 8px 32px var(--shadow-mid);
+  --shadow-elevated: 0 16px 48px var(--shadow-heavy);
 
   --transition-fast: 0.15s ease;
   --transition-normal: 0.25s ease;
@@ -34,6 +34,21 @@
 /* ── Themes ──────────────────────────────────────────────────── */
 
 :root, .theme-midnight {
+  color-scheme: dark;
+  --glass-2: rgba(255, 255, 255, 0.02);
+  --glass-3: rgba(255, 255, 255, 0.03);
+  --glass-5: rgba(255, 255, 255, 0.05);
+  --glass-6: rgba(255, 255, 255, 0.06);
+  --glass-8: rgba(255, 255, 255, 0.08);
+  --glass-10: rgba(255, 255, 255, 0.1);
+  --glass-15: rgba(255, 255, 255, 0.15);
+
+  --shadow-light: rgba(0, 0, 0, 0.1);
+  --shadow-base: rgba(0, 0, 0, 0.2);
+  --shadow-mid: rgba(0, 0, 0, 0.3);
+  --shadow-dark: rgba(0, 0, 0, 0.4);
+  --shadow-heavy: rgba(0, 0, 0, 0.5);
+
   --bg-primary: #020617;
   --bg-secondary: #0f172a;
   --bg-card: rgba(15, 23, 42, 0.7);
@@ -55,7 +70,45 @@
   --border-focus: rgba(79, 70, 229, 0.6);
 }
 
+.theme-daylight {
+  color-scheme: light;
+  --glass-2: rgba(0, 0, 0, 0.02);
+  --glass-3: rgba(0, 0, 0, 0.03);
+  --glass-5: rgba(0, 0, 0, 0.05);
+  --glass-6: rgba(0, 0, 0, 0.06);
+  --glass-8: rgba(0, 0, 0, 0.08);
+  --glass-10: rgba(0, 0, 0, 0.1);
+  --glass-15: rgba(0, 0, 0, 0.15);
+
+  --shadow-light: rgba(0, 0, 0, 0.05);
+  --shadow-base: rgba(0, 0, 0, 0.08);
+  --shadow-mid: rgba(0, 0, 0, 0.1);
+  --shadow-dark: rgba(0, 0, 0, 0.15);
+  --shadow-heavy: rgba(0, 0, 0, 0.2);
+
+  --bg-primary: #f8fafc;
+  --bg-secondary: #f1f5f9;
+  --bg-card: rgba(255, 255, 255, 0.85);
+  --bg-card-hover: rgba(255, 255, 255, 1);
+  --bg-input: rgba(255, 255, 255, 0.9);
+  --bg-overlay: rgba(248, 250, 252, 0.8);
+
+  --accent-primary: #2563eb;
+  --accent-primary-hover: #1d4ed8;
+  --accent-secondary: #0284c7;
+  --accent-gradient: linear-gradient(135deg, #2563eb, #0284c7);
+  --accent-glow: rgba(37, 99, 235, 0.15);
+  --accent-glow-hover: rgba(37, 99, 235, 0.25);
+
+  --text-primary: #0f172a;
+  --text-secondary: #334155;
+  --text-muted: #64748b;
+  --border-color: rgba(15, 23, 42, 0.1);
+  --border-focus: rgba(37, 99, 235, 0.5);
+}
+
 .theme-emerald {
+  color-scheme: dark;
   --bg-primary: #050505;
   --bg-secondary: #0a0a0a;
   --bg-card: rgba(10, 10, 10, 0.8);
@@ -78,6 +131,7 @@
 }
 
 .theme-rose {
+  color-scheme: dark;
   --bg-primary: #0c0a0a;
   --bg-secondary: #1c1917;
   --bg-card: rgba(28, 25, 23, 0.75);
@@ -100,6 +154,7 @@
 }
 
 .theme-frost {
+  color-scheme: dark;
   --bg-primary: #080c14;
   --bg-secondary: #111827;
   --bg-card: rgba(17, 24, 39, 0.7);
@@ -122,6 +177,7 @@
 }
 
 .theme-sunset {
+  color-scheme: dark;
   --bg-primary: #0a0a0a;
   --bg-secondary: #171717;
   --bg-card: rgba(23, 23, 23, 0.8);
@@ -678,7 +734,7 @@ select.input { cursor: pointer; }
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--text-muted);
-  background: rgba(255, 255, 255, 0.03);
+  background: var(--glass-3);
   border-bottom: 1px solid var(--border-color);
 }
 
@@ -689,7 +745,7 @@ select.input { cursor: pointer; }
 }
 
 .users-table tr:last-child td { border-bottom: none; }
-.users-table tbody tr:hover td { background: rgba(255, 255, 255, 0.02); }
+.users-table tbody tr:hover td { background: var(--glass-2); }
 
 .user-name-cell { display: flex; align-items: center; gap: 10px; }
 
@@ -775,7 +831,7 @@ select.input { cursor: pointer; }
 }
 
 .board::-webkit-scrollbar { height: 8px; }
-.board::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); border-radius: 4px; }
+.board::-webkit-scrollbar-track { background: var(--shadow-light); border-radius: 4px; }
 .board::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
 .board::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
 
@@ -795,7 +851,7 @@ select.input { cursor: pointer; }
   scroll-snap-align: center;
   animation: fadeInUp 0.4s ease;
   transition: all var(--transition-normal);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  box-shadow: 0 8px 32px var(--shadow-dark), inset 0 1px 0 var(--glass-5);
 }
 
 /* Flash effect when new entry arrives from WS */
@@ -809,7 +865,7 @@ select.input { cursor: pointer; }
   justify-content: space-between;
   padding: 16px 20px;
   border-bottom: 1px solid var(--border-color);
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--glass-2);
 }
 
 .column-name {
@@ -835,7 +891,7 @@ select.input { cursor: pointer; }
   font-size: 0.75rem;
   font-weight: 600;
   color: var(--text-muted);
-  background: rgba(255, 255, 255, 0.05);
+  background: var(--glass-5);
   padding: 2px 10px;
   border-radius: 999px;
 }
@@ -852,22 +908,22 @@ select.input { cursor: pointer; }
 
 .column-body::-webkit-scrollbar { width: 4px; }
 .column-body::-webkit-scrollbar-track { background: transparent; }
-.column-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }
-.column-body::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+.column-body::-webkit-scrollbar-thumb { background: var(--glass-10); border-radius: 2px; }
+.column-body::-webkit-scrollbar-thumb:hover { background: var(--glass-15); }
 
 .entry-card {
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: var(--glass-3);
+  border: 1px solid var(--glass-5);
   border-radius: var(--radius-md);
   padding: 14px;
   transition: all var(--transition-fast);
   animation: slideIn 0.3s ease;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  box-shadow: 0 2px 8px var(--shadow-base);
 }
 .entry-card:hover { 
-  background: rgba(255, 255, 255, 0.06); 
-  border-color: rgba(255, 255, 255, 0.15); 
-  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+  background: var(--glass-6); 
+  border-color: var(--glass-15); 
+  box-shadow: 0 4px 12px var(--shadow-mid);
   transform: translateY(-2px);
 }
 
@@ -1046,10 +1102,11 @@ select.input { cursor: pointer; }
   width: 16px;
   height: 16px;
   border-radius: var(--radius-sm);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--glass-10);
 }
 
 .theme-swatch.theme-midnight { background: #4f46e5; }
+.theme-swatch.theme-daylight { background: #f8fafc; border: 1px solid #cbd5e1; }
 .theme-swatch.theme-emerald  { background: #10b981; }
 .theme-swatch.theme-rose     { background: #fb7185; }
 .theme-swatch.theme-frost    { background: #0ea5e9; }
