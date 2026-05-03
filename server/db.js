@@ -62,6 +62,15 @@ db.exec(`
     user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
     created_at TEXT DEFAULT (datetime('now'))
   );
+
+  CREATE TABLE IF NOT EXISTS action_items (
+    id TEXT PRIMARY KEY,
+    retro_id TEXT REFERENCES retros(id) ON DELETE CASCADE,
+    entry_id TEXT REFERENCES entries(id) ON DELETE CASCADE,
+    content TEXT NOT NULL,
+    assignee TEXT,
+    created_at TEXT DEFAULT (datetime('now'))
+  );
 `);
 
 // Seed default admin if none exists
@@ -85,6 +94,11 @@ try {
   if (!tableInfo.some((col) => col.name === 'created_by')) {
     db.exec('ALTER TABLE retros ADD COLUMN created_by TEXT REFERENCES users(id) ON DELETE SET NULL;');
     console.log('✅ Migration applied: added created_by to retros table.');
+  }
+
+  if (!tableInfo.some((col) => col.name === 'status')) {
+    db.exec("ALTER TABLE retros ADD COLUMN status TEXT DEFAULT 'active';");
+    console.log('✅ Migration applied: added status to retros table.');
   }
 } catch (err) {
   console.error('Migration error:', err);

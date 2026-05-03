@@ -76,6 +76,17 @@ export const api = {
     method: 'POST'
   }),
 
+  // Actions & Status
+  updateRetroStatus: (retroId, status) => request(`/retros/${retroId}/status`, {
+    method: 'PUT', body: JSON.stringify({ status })
+  }),
+  addActionItem: (retroId, entryId, content, assignee) => request(`/retros/${retroId}/entries/${entryId}/actions`, {
+    method: 'POST', body: JSON.stringify({ content, assignee })
+  }),
+  deleteActionItem: (retroId, actionId) => request(`/retros/${retroId}/actions/${actionId}`, {
+    method: 'DELETE'
+  }),
+
   // Auth helpers
   getUser: () => {
     try { return JSON.parse(localStorage.getItem('retro_user')); } catch { return null; }

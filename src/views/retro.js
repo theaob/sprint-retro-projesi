@@ -72,6 +72,8 @@ export async function renderRetro(appEl, retroId) {
 function renderBoard(appEl, retro, user) {
   const mainEl = appEl.querySelector('.retro-page');
   const authorName = user?.username || null;
+  const isAdminOrOwner = user?.role === 'admin' || user?.id === retro.created_by;
+  const isFinished = retro.status === 'finished';
 
   const shareUrl = `${window.location.origin}${window.location.pathname}#/retro/${retro.id}`;
   const whatsappUrl = `https://wa.me/?text=${encodeURIComponent(`Sprint Retro: ${retro.title}\n${shareUrl}`)}`;
@@ -107,10 +109,23 @@ function renderBoard(appEl, retro, user) {
         <button class="btn btn-primary btn-sm" id="icebreaker-btn" title="Isınma sorusu gönder">🎲 Icebreaker</button>
         <button class="btn btn-ghost btn-sm" id="copy-link-btn">📋 Bağlantı</button>
         <button class="btn btn-primary btn-sm" id="export-excel-btn">📊 Excel İndir</button>
+        ${isAdminOrOwner && !isFinished ? `<button class="btn btn-danger btn-sm" id="finish-retro-btn">🏁 Retro'yu Bitir</button>` : ''}
       </div>
     </div>
 
-
+    ${isFinished ? `
+    <div class="action-plan-section" id="action-plan-section">
+      <div class="action-plan-header">
+        <h2>🎯 Aksiyon Planı</h2>
+        <select class="input" id="action-filter-select" style="width: auto; padding: 4px 10px; min-height: 32px;">
+          <option value="all">Tümü (>0 oy)</option>
+          <option value="top3">Top 3</option>
+          <option value="top5">Top 5</option>
+        </select>
+      </div>
+      <div class="action-plan-list" id="action-plan-list"></div>
+    </div>
+    ` : ''}
 
     <div class="board" id="board"></div>
   `;
@@ -139,6 +154,26 @@ function renderBoard(appEl, retro, user) {
     }
   });
 
+  const finishBtn = document.getElementById('finish-retro-btn');
+  if (finishBtn) {
+    finishBtn.addEventListener('click', async () => {
+      if (confirm('Retroyu bitirmek istediğinize emin misiniz? Oylama ve madde ekleme kapatılacak.')) {
+        try {
+          await api.updateRetroStatus(retro.id, 'finished');
+        } catch (err) {
+          showToast(err.message, 'error');
+        }
+      }
+    });
+  }
+
+  if (isFinished) {
+    renderActionPlan(retro);
+    document.getElementById('action-filter-select')?.addEventListener('change', () => {
+      renderActionPlan(retro);
+    });
+  }
+
   // Auto-sorting is enabled
 
   const boardEl = document.getElementById('board');
@@ -148,16 +183,16 @@ function renderBoard(appEl, retro, user) {
 
   // Render columns
   retro.columns.forEach(col => {
-    const colEl = buildColumnEl(col, retro.id, user);
+    const colEl = buildColumnEl(col, retro.id, user, isFinished);
     boardEl.appendChild(colEl);
     columnBodyMap[col.id] = colEl.querySelector(`#col-body-${col.id}`);
 
     // Render existing entries (sorted by votes initially)
     col.entries.sort((a, b) => (b.votes || 0) - (a.votes || 0)).forEach(entry => {
-      columnBodyMap[col.id].appendChild(createEntryCard(entry, retro.id, voteState));
+      columnBodyMap[col.id].appendChild(createEntryCard(entry, retro.id, voteState, isFinished, retro.action_items || []));
     });
 
-    bindColumnEvents(colEl, col, retro.id, columnBodyMap, authorName, voteState);
+    bindColumnEvents(colEl, col, retro.id, columnBodyMap, authorName, voteState, isFinished);
   });
 
   // ── WebSocket real-time updates ───────────────────────────
@@ -198,6 +233,28 @@ function renderBoard(appEl, retro, user) {
     },
     onIcebreaker(prompt) {
       showIcebreakerModal(prompt);
+    },
+    onStatusChanged(status) {
+      if (status === 'finished') {
+        window.location.reload(); // Simple way to transition to finished state globally
+      }
+    },
+    onActionAdded(actionItem) {
+      if (!retro.action_items) retro.action_items = [];
+      retro.action_items.push(actionItem);
+      const existingCard = document.getElementById(`entry-${actionItem.entry_id}`);
+      if (existingCard) {
+        // Redraw card with new action items
+        const newCard = createEntryCard(retro.columns.flatMap(c => c.entries).find(e => e.id === actionItem.entry_id), retro.id, voteState, isFinished, retro.action_items);
+        existingCard.replaceWith(newCard);
+      }
+      if (isFinished) renderActionPlan(retro);
+    },
+    onActionRemoved(actionId, retroId) {
+      if (retro.action_items) {
+        retro.action_items = retro.action_items.filter(a => a.id !== actionId);
+      }
+      window.location.reload(); // simplest sync
     }
   });
 
@@ -236,7 +293,7 @@ function showIcebreakerModal(prompt) {
   });
 }
 
-function buildColumnEl(col, retroId, user) {
+function buildColumnEl(col, retroId, user, isFinished) {
   const colEl = document.createElement('div');
   const isAdmin = user?.role === 'admin';
   colEl.className = 'column';
@@ -244,19 +301,23 @@ function buildColumnEl(col, retroId, user) {
 
   colEl.innerHTML = `
     <div class="column-header">
-      <input class="column-name" value="${escapeHtml(col.name)}" data-col-id="${col.id}" id="col-name-${col.id}" ${isAdmin ? '' : 'readonly'} />
+      <input class="column-name" value="${escapeHtml(col.name)}" data-col-id="${col.id}" id="col-name-${col.id}" ${isAdmin && !isFinished ? '' : 'readonly'} />
       <span class="column-count" id="col-count-${col.id}">${col.entries.length}</span>
     </div>
     <div class="column-body" id="col-body-${col.id}"></div>
+    ${isFinished ? '' : `
     <form class="add-entry-form" data-col-id="${col.id}">
       <input class="input" type="text" placeholder="Yeni madde ekle…" required id="entry-input-${col.id}" />
       <button type="submit" class="btn btn-primary btn-sm">+</button>
     </form>
+    `}
   `;
   return colEl;
 }
 
-function bindColumnEvents(colEl, col, retroId, columnBodyMap, authorName, voteState) {
+function bindColumnEvents(colEl, col, retroId, columnBodyMap, authorName, voteState, isFinished) {
+  if (isFinished) return; // Disable all interactions when finished
+
   // Column rename (debounced)
   const nameInput = colEl.querySelector(`#col-name-${col.id}`);
   let renameTimeout;
@@ -305,21 +366,34 @@ function updateColumnCount(columnId, delta) {
   if (countEl) countEl.textContent = parseInt(countEl.textContent || '0') + delta;
 }
 
-function createEntryCard(entry, retroId, voteState) {
+function createEntryCard(entry, retroId, voteState, isFinished, actionItems = []) {
   const card = document.createElement('div');
   card.className = 'entry-card';
   card.id = `entry-${entry.id}`;
+  
+  const entryActions = actionItems.filter(a => a.entry_id === entry.id);
+  const actionHtml = entryActions.length > 0 ? `
+    <div class="entry-actions-list">
+      ${entryActions.map(a => `
+        <div class="action-item">
+          <span class="action-content">🎯 ${escapeHtml(a.content)}</span>
+          ${a.assignee ? `<span class="user-chip-avatar" style="width:20px;height:20px;font-size:0.6rem;display:inline-flex;margin-left:4px;" title="${escapeHtml(a.assignee)}">${escapeHtml(a.assignee)[0].toUpperCase()}</span>` : ''}
+        </div>
+      `).join('')}
+    </div>
+  ` : '';
   
   const isVoted = voteState && voteState.votedEntryIds.includes(entry.id);
   const btnClass = isVoted ? 'btn btn-vote vote-btn voted-active' : 'btn btn-vote vote-btn';
 
   card.innerHTML = `
     <div class="entry-text">${escapeHtml(entry.text)}</div>
+    ${actionHtml}
     <div class="entry-footer">
       <button class="btn btn-ghost btn-icon-sm read-btn" title="Sesli Oku">
         🔊
       </button>
-      <button class="${btnClass}" data-entry-id="${entry.id}">
+      <button class="${btnClass}" data-entry-id="${entry.id}" ${isFinished ? 'disabled' : ''}>
         <span class="vote-badge">
           👍 <span class="vote-count" id="vote-count-${entry.id}">${entry.votes}</span>
         </span>
@@ -387,11 +461,87 @@ function createEntryCard(entry, retroId, voteState) {
 
 function sortColumnByVotes(colBody) {
   if (!colBody) return;
-  const entries = Array.from(colBody.children);
-  entries.sort((a, b) => {
-    const aVotes = parseInt(a.querySelector('.vote-count')?.textContent) || 0;
-    const bVotes = parseInt(b.querySelector('.vote-count')?.textContent) || 0;
-    return bVotes - aVotes;
+  const cards = Array.from(colBody.querySelectorAll('.entry-card'));
+  cards.sort((a, b) => {
+    const vA = parseInt(a.querySelector('.vote-count')?.textContent || '0');
+    const vB = parseInt(b.querySelector('.vote-count')?.textContent || '0');
+    return vB - vA;
   });
-  entries.forEach(entry => colBody.appendChild(entry));
+  cards.forEach(card => colBody.appendChild(card));
+}
+
+function renderActionPlan(retro) {
+  const container = document.getElementById('action-plan-list');
+  const filter = document.getElementById('action-filter-select')?.value || 'all';
+  if (!container) return;
+
+  // Flatten entries
+  let entries = retro.columns.flatMap(c => c.entries).filter(e => e.votes > 0);
+  entries.sort((a, b) => b.votes - a.votes);
+
+  if (filter === 'top3') entries = entries.slice(0, 3);
+  else if (filter === 'top5') entries = entries.slice(0, 5);
+
+  if (entries.length === 0) {
+    container.innerHTML = '<p class="text-muted" style="text-align:center;padding:16px;">Oylanan madde bulunamadı.</p>';
+    return;
+  }
+
+  container.innerHTML = entries.map(entry => {
+    const actions = (retro.action_items || []).filter(a => a.entry_id === entry.id);
+    return `
+      <div class="action-plan-item glass-card" style="margin-bottom:16px;padding:16px;">
+        <div class="action-plan-entry-text" style="font-weight:500;margin-bottom:12px;font-size:1.05rem;">
+          <span class="vote-badge" style="background:var(--vote);color:var(--bg-primary);padding:2px 6px;border-radius:4px;font-size:0.8rem;margin-right:8px;">👍 ${entry.votes}</span>
+          ${escapeHtml(entry.text)}
+        </div>
+        <div class="action-list" id="action-list-${entry.id}" style="display:flex;flex-direction:column;gap:6px;">
+          ${actions.map(a => `
+            <div class="action-item" style="display:flex;align-items:center;background:var(--bg-input);padding:6px 10px;border-radius:6px;gap:8px;">
+              <span class="action-content" style="flex:1;">🎯 ${escapeHtml(a.content)}</span>
+              ${a.assignee ? `<span class="action-assignee" style="font-size:0.85rem;color:var(--text-secondary);background:var(--bg-card);padding:2px 6px;border-radius:4px;">@${escapeHtml(a.assignee)}</span>` : ''}
+              <button type="button" class="btn btn-ghost btn-icon-sm del-action-btn" data-action-id="${a.id}" data-entry-id="${entry.id}">✕</button>
+            </div>
+          `).join('')}
+        </div>
+        <form class="add-action-form" data-entry-id="${entry.id}" style="display:flex;gap:8px;margin-top:12px;">
+          <input type="text" class="input add-action-input" placeholder="Aksiyon planı..." required style="flex:2;min-height:36px;padding:6px 12px;" />
+          <input type="text" class="input add-assignee-input" placeholder="Kişi (opsiyonel)" style="flex:1;min-height:36px;padding:6px 12px;" />
+          <button type="submit" class="btn btn-primary btn-sm">Ekle</button>
+        </form>
+      </div>
+    `;
+  }).join('');
+
+  // Bind add action
+  container.querySelectorAll('.add-action-form').forEach(form => {
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const entryId = form.dataset.entryId;
+      const content = form.querySelector('.add-action-input').value.trim();
+      const assignee = form.querySelector('.add-assignee-input').value.trim();
+      if (!content) return;
+      const btn = form.querySelector('button[type="submit"]');
+      btn.disabled = true;
+      try {
+        await api.addActionItem(retro.id, entryId, content, assignee);
+        form.reset();
+      } catch (err) {
+        showToast(err.message, 'error');
+        btn.disabled = false;
+      }
+    });
+  });
+
+  // Bind delete action
+  container.querySelectorAll('.del-action-btn').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const actionId = btn.dataset.actionId;
+      try {
+        await api.deleteActionItem(retro.id, actionId);
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    });
+  });
 }

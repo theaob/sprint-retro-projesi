@@ -600,6 +600,9 @@ select.input { cursor: pointer; }
 .column-input-row .input { flex: 1; }
 .add-column-btn { align-self: flex-start; }
 
+.action-plan-section { margin-bottom: 32px; }
+.action-plan-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+
 .retro-list {
   display: grid;
   grid-template-columns: 1fr;

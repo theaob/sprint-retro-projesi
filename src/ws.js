@@ -47,6 +47,15 @@ export function createRetroSocket(retroId, handlers = {}) {
           case 'icebreaker:show':
             handlers.onIcebreaker?.(msg.prompt);
             break;
+          case 'retro:status_changed':
+            handlers.onStatusChanged?.(msg.status);
+            break;
+          case 'action:added':
+            handlers.onActionAdded?.(msg.actionItem);
+            break;
+          case 'action:removed':
+            handlers.onActionRemoved?.(msg.actionId, msg.retroId);
+            break;
         }
       } catch (e) {
         // ignore

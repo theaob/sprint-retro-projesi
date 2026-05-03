@@ -156,13 +156,14 @@ router.get('/retros/:id', (req, res) => {
 
   const columns = db.prepare('SELECT * FROM columns WHERE retro_id = ? ORDER BY sort_order').all(req.params.id);
   const entries = db.prepare('SELECT * FROM entries WHERE retro_id = ? ORDER BY created_at').all(req.params.id);
+  const actionItems = db.prepare('SELECT * FROM action_items WHERE retro_id = ? ORDER BY created_at').all(req.params.id);
 
   const columnData = columns.map(col => ({
     ...col,
     entries: entries.filter(e => e.column_id === col.id)
   }));
 
-  res.json({ ...retro, columns: columnData });
+  res.json({ ...retro, columns: columnData, action_items: actionItems });
 });
 
 // DELETE /api/retros/:id  — admin or owner only
@@ -261,6 +262,52 @@ router.post('/retros/:id/entries/:entryId/unvote', (req, res) => {
   broadcast(req.params.id, { type: 'entry:voted', entry });
 
   res.json(entry);
+});
+
+// PUT /api/retros/:id/status
+router.put('/retros/:id/status', requireAuth, (req, res) => {
+  const { status } = req.body;
+  if (!status) return res.status(400).json({ error: 'Status gereklidir.' });
+
+  const isAdmin = req.user.role === 'admin';
+  const retro = db.prepare('SELECT created_by FROM retros WHERE id = ?').get(req.params.id);
+  
+  if (!retro) return res.status(404).json({ error: 'Retro bulunamadı.' });
+  if (!isAdmin && retro.created_by !== req.user.id) {
+    return res.status(403).json({ error: 'Bu retro durumunu değiştirme yetkiniz yok.' });
+  }
+
+  const result = db.prepare('UPDATE retros SET status = ? WHERE id = ?').run(status, req.params.id);
+  if (result.changes === 0) return res.status(404).json({ error: 'Retro bulunamadı.' });
+
+  broadcast(req.params.id, { type: 'retro:status_changed', status });
+  res.json({ success: true, status });
+});
+
+// POST /api/retros/:id/entries/:entryId/actions
+router.post('/retros/:id/entries/:entryId/actions', (req, res) => {
+  const { content, assignee } = req.body;
+  if (!content) return res.status(400).json({ error: 'Aksiyon içeriği gereklidir.' });
+
+  const actionId = uuidv4();
+  db.prepare('INSERT INTO action_items (id, retro_id, entry_id, content, assignee) VALUES (?, ?, ?, ?, ?)')
+    .run(actionId, req.params.id, req.params.entryId, content, assignee || null);
+
+  const actionItem = { id: actionId, retro_id: req.params.id, entry_id: req.params.entryId, content, assignee: assignee || null };
+  
+  broadcast(req.params.id, { type: 'action:added', actionItem });
+  res.status(201).json(actionItem);
+});
+
+// DELETE /api/retros/:id/actions/:actionId
+router.delete('/retros/:id/actions/:actionId', (req, res) => {
+  const result = db.prepare('DELETE FROM action_items WHERE id = ? AND retro_id = ?')
+    .run(req.params.actionId, req.params.id);
+
+  if (result.changes === 0) return res.status(404).json({ error: 'Aksiyon bulunamadı.' });
+
+  broadcast(req.params.id, { type: 'action:removed', actionId: req.params.actionId, retroId: req.params.id });
+  res.json({ success: true });
 });
 
 export default router;
