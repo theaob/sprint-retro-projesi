@@ -490,23 +490,23 @@ function renderActionPlan(retro) {
   container.innerHTML = entries.map(entry => {
     const actions = (retro.action_items || []).filter(a => a.entry_id === entry.id);
     return `
-      <div class="action-plan-item glass-card" style="margin-bottom:16px;padding:16px;">
-        <div class="action-plan-entry-text" style="font-weight:500;margin-bottom:12px;font-size:1.05rem;">
-          <span class="vote-badge" style="background:var(--vote);color:var(--bg-primary);padding:2px 6px;border-radius:4px;font-size:0.8rem;margin-right:8px;">👍 ${entry.votes}</span>
+      <div class="action-plan-item glass-card">
+        <div class="action-plan-entry-text">
+          <span class="vote-badge badge-vote-limit" style="margin-right:8px;">👍 ${entry.votes}</span>
           ${escapeHtml(entry.text)}
         </div>
-        <div class="action-list" id="action-list-${entry.id}" style="display:flex;flex-direction:column;gap:6px;">
+        <div class="action-list" id="action-list-${entry.id}">
           ${actions.map(a => `
-            <div class="action-item" style="display:flex;align-items:center;background:var(--bg-input);padding:6px 10px;border-radius:6px;gap:8px;">
-              <span class="action-content" style="flex:1;">🎯 ${escapeHtml(a.content)}</span>
-              ${a.assignee ? `<span class="action-assignee" style="font-size:0.85rem;color:var(--text-secondary);background:var(--bg-card);padding:2px 6px;border-radius:4px;">@${escapeHtml(a.assignee)}</span>` : ''}
+            <div class="action-item">
+              <span class="action-content">🎯 ${escapeHtml(a.content)}</span>
+              ${a.assignee ? `<span class="action-assignee">@${escapeHtml(a.assignee)}</span>` : ''}
               <button type="button" class="btn btn-ghost btn-icon-sm del-action-btn" data-action-id="${a.id}" data-entry-id="${entry.id}">✕</button>
             </div>
           `).join('')}
         </div>
-        <form class="add-action-form" data-entry-id="${entry.id}" style="display:flex;gap:8px;margin-top:12px;">
-          <input type="text" class="input add-action-input" placeholder="Aksiyon planı..." required style="flex:2;min-height:36px;padding:6px 12px;" />
-          <input type="text" class="input add-assignee-input" placeholder="Kişi (opsiyonel)" style="flex:1;min-height:36px;padding:6px 12px;" />
+        <form class="add-action-form" data-entry-id="${entry.id}">
+          <input type="text" class="input add-action-input" placeholder="Aksiyon planı..." required />
+          <input type="text" class="input add-assignee-input" placeholder="Kişi (opsiyonel)" />
           <button type="submit" class="btn btn-primary btn-sm">Ekle</button>
         </form>
       </div>
