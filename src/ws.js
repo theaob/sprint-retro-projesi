@@ -5,6 +5,7 @@
  *     onEntryAdded: (entry) => {},
  *     onEntryVoted: (entry) => {},
  *     onColumnRenamed: ({ columnId, name }) => {},
+ *     onReconnect: () => {},
  *   });
  *   ws.close(); // cleanup
  */
@@ -22,6 +23,7 @@ export function createRetroSocket(retroId, handlers = {}) {
   let ws;
   let reconnectTimer;
   let closed = false;
+  let hasConnectedBefore = false;
 
   function connect() {
     ws = new WebSocket(url);
@@ -29,6 +31,11 @@ export function createRetroSocket(retroId, handlers = {}) {
     ws.onopen = () => {
       // Join the retro room
       ws.send(JSON.stringify({ type: 'join', retroId }));
+      // If this is a reconnection, notify so the page can refresh stale data
+      if (hasConnectedBefore) {
+        handlers.onReconnect?.();
+      }
+      hasConnectedBefore = true;
     };
 
     ws.onmessage = (event) => {
@@ -43,9 +50,6 @@ export function createRetroSocket(retroId, handlers = {}) {
             break;
           case 'column:renamed':
             handlers.onColumnRenamed?.(msg);
-            break;
-          case 'icebreaker:show':
-            handlers.onIcebreaker?.(msg.prompt);
             break;
           case 'retro:status_changed':
             handlers.onStatusChanged?.(msg.status);
