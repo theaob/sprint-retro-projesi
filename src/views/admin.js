@@ -1,5 +1,5 @@
 import { api } from '../api.js';
-import { escapeHtml, showToast, renderFooter, renderThemeSwitcher, bindThemeEvents } from '../utils.js';
+import { escapeHtml, showToast, renderThemeToggle, bindThemeEvents } from '../utils.js';
 
 /**
  * Admin panel — #/
@@ -22,7 +22,7 @@ export async function renderAdmin(appEl) {
             <span class="user-chip-avatar">${user?.username?.[0]?.toUpperCase() || '?'}</span>
             <span>${escapeHtml(user?.username || '')}</span>
           </div>
-          ${renderThemeSwitcher()}
+          ${renderThemeToggle()}
           <span class="nav-separator"></span>
           <button class="btn btn-ghost btn-sm" id="logout-btn">Çıkış</button>
         </nav>
@@ -79,7 +79,6 @@ export async function renderAdmin(appEl) {
         <div class="spinner" id="retro-spinner"></div>
       </div>
     </main>
-    ${renderFooter()}
   `;
 
   // Theme switcher

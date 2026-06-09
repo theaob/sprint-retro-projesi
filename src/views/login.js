@@ -1,5 +1,4 @@
 import { api } from '../api.js';
-import { renderFooter } from '../utils.js';
 
 /**
  * Login page — #/login
@@ -62,7 +61,6 @@ export function renderLogin(appEl) {
             </div>
           ` : ''}
         </div>
-        ${renderFooter()}
       </div>
     `;
 

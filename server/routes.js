@@ -240,14 +240,6 @@ router.post('/retros/:id/entries/:entryId/vote', (req, res) => {
   res.json(updatedEntry);
 });
 
-// POST /api/retros/:id/icebreaker
-router.post('/retros/:id/icebreaker', (req, res) => {
-  const { prompt } = req.body;
-  if (!prompt) return res.status(400).json({ error: 'Prompt gereklidir.' });
-
-  broadcast(req.params.id, { type: 'icebreaker:show', prompt });
-  res.json({ success: true });
-});
 
 // POST /api/retros/:id/entries/:entryId/unvote
 router.post('/retros/:id/entries/:entryId/unvote', (req, res) => {
