@@ -32,7 +32,7 @@ router.post('/auth/login', (req, res) => {
 
 // POST /api/auth/register — public
 router.post('/auth/register', (req, res) => {
-  const { username, password } = req.body;
+  const { username, password, email } = req.body;
   if (!username || !password) return res.status(400).json({ error: 'Kullanıcı adı ve şifre gereklidir.' });
   if (password.length < 4) return res.status(400).json({ error: 'Şifre en az 4 karakter olmalıdır.' });
 
@@ -41,7 +41,7 @@ router.post('/auth/register', (req, res) => {
 
   const id = uuidv4();
   const hash = bcrypt.hashSync(password, 10);
-  db.prepare('INSERT INTO users (id, username, password_hash, role) VALUES (?, ?, ?, ?)').run(id, username, hash, 'user');
+  db.prepare('INSERT INTO users (id, username, password_hash, role, email) VALUES (?, ?, ?, ?, ?)').run(id, username, hash, 'user', email || null);
 
   // Auto-login after registration
   const token = uuidv4();
@@ -68,13 +68,13 @@ router.get('/auth/me', requireAuth, (req, res) => {
 
 // GET /api/users  — list all users
 router.get('/users', requireAdmin, (req, res) => {
-  const users = db.prepare('SELECT id, username, role, created_at FROM users ORDER BY created_at DESC').all();
+  const users = db.prepare('SELECT id, username, email, role, created_at FROM users ORDER BY created_at DESC').all();
   res.json(users);
 });
 
 // POST /api/users  — create user
 router.post('/users', requireAdmin, (req, res) => {
-  const { username, password, role = 'user' } = req.body;
+  const { username, password, role = 'user', email } = req.body;
   if (!username || !password) return res.status(400).json({ error: 'Kullanıcı adı ve şifre gereklidir.' });
   if (!['admin', 'user'].includes(role)) return res.status(400).json({ error: 'Geçersiz rol.' });
 
@@ -83,8 +83,8 @@ router.post('/users', requireAdmin, (req, res) => {
 
   const id = uuidv4();
   const hash = bcrypt.hashSync(password, 10);
-  db.prepare('INSERT INTO users (id, username, password_hash, role) VALUES (?, ?, ?, ?)').run(id, username, hash, role);
-  res.status(201).json({ id, username, role });
+  db.prepare('INSERT INTO users (id, username, password_hash, role, email) VALUES (?, ?, ?, ?, ?)').run(id, username, hash, role, email || null);
+  res.status(201).json({ id, username, role, email: email || null });
 });
 
 // DELETE /api/users/:id

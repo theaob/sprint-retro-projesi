@@ -39,8 +39,8 @@ export const api = {
 
   // Users (admin)
   listUsers: () => request('/users'),
-  createUser: (username, password, role) => request('/users', {
-    method: 'POST', body: JSON.stringify({ username, password, role })
+  createUser: (username, password, role, email) => request('/users', {
+    method: 'POST', body: JSON.stringify({ username, password, role, email })
   }),
   deleteUser: (id) => request(`/users/${id}`, { method: 'DELETE' }),
   changePassword: (id, password) => request(`/users/${id}/password`, {

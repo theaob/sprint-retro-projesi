@@ -22,6 +22,10 @@ export async function renderUsers(appEl) {
               <input class="input" type="text" id="new-username" placeholder="kullanici_adi" required />
             </div>
             <div class="form-group">
+              <label for="new-email">E-posta</label>
+              <input class="input" type="email" id="new-email" placeholder="ornek@email.com" />
+            </div>
+            <div class="form-group">
               <label for="new-password">Şifre</label>
               <input class="input" type="password" id="new-password" placeholder="En az 4 karakter" required />
             </div>
@@ -51,6 +55,7 @@ export async function renderUsers(appEl) {
   document.getElementById('create-user-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const username = document.getElementById('new-username').value.trim();
+    const email = document.getElementById('new-email').value.trim();
     const password = document.getElementById('new-password').value;
     const role = document.getElementById('new-role').value;
     const btn = document.getElementById('create-user-btn');
@@ -63,9 +68,10 @@ export async function renderUsers(appEl) {
     btn.disabled = true;
     btn.textContent = 'Oluşturuluyor…';
     try {
-      await api.createUser(username, password, role);
+      await api.createUser(username, password, role, email);
       showToast('Kullanıcı oluşturuldu! ✅', 'success');
       document.getElementById('new-username').value = '';
+      document.getElementById('new-email').value = '';
       document.getElementById('new-password').value = '';
       await loadUsers(currentUser);
     } catch (err) {
@@ -92,6 +98,7 @@ async function loadUsers(currentUser) {
       <thead>
         <tr>
           <th>Kullanıcı Adı</th>
+          <th>E-posta</th>
           <th>Rol</th>
           <th>Oluşturulma</th>
           <th>İşlemler</th>
@@ -117,6 +124,7 @@ async function loadUsers(currentUser) {
             ${isSelf ? '<span class="badge badge-self">Siz</span>' : ''}
           </div>
         </td>
+        <td class="muted">${user.email ? escapeHtml(user.email) : '<span style="opacity:0.4">—</span>'}</td>
         <td><span class="badge badge-${user.role}">${user.role === 'admin' ? '🔑 Admin' : '👤 Kullanıcı'}</span></td>
         <td class="muted">${date}</td>
         <td>

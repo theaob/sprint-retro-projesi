@@ -101,7 +101,18 @@ try {
     console.log('✅ Migration applied: added status to retros table.');
   }
 } catch (err) {
-  console.error('Migration error:', err);
+  console.error('Migration error (retros):', err);
+}
+
+// Migration: add email to users
+try {
+  const usersInfo = db.pragma('table_info(users)');
+  if (!usersInfo.some((col) => col.name === 'email')) {
+    db.exec('ALTER TABLE users ADD COLUMN email TEXT;');
+    console.log('✅ Migration applied: added email to users table.');
+  }
+} catch (err) {
+  console.error('Migration error (users):', err);
 }
 
 export default db;
