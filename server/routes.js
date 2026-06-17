@@ -110,6 +110,25 @@ router.put('/users/:id/password', requireAuth, (req, res) => {
   res.json({ success: true });
 });
 
+// PUT /api/users/:id  — update user details (admin only)
+router.put('/users/:id', requireAdmin, (req, res) => {
+  const { email, username } = req.body;
+  const user = db.prepare('SELECT id FROM users WHERE id = ?').get(req.params.id);
+  if (!user) return res.status(404).json({ error: 'Kullanıcı bulunamadı.' });
+
+  if (username !== undefined) {
+    const existing = db.prepare('SELECT id FROM users WHERE username = ? AND id != ?').get(username, req.params.id);
+    if (existing) return res.status(409).json({ error: 'Bu kullanıcı adı zaten kullanılmakta.' });
+    db.prepare('UPDATE users SET username = ? WHERE id = ?').run(username.trim(), req.params.id);
+  }
+  if (email !== undefined) {
+    db.prepare('UPDATE users SET email = ? WHERE id = ?').run(email.trim() || null, req.params.id);
+  }
+
+  const updated = db.prepare('SELECT id, username, email, role, created_at FROM users WHERE id = ?').get(req.params.id);
+  res.json(updated);
+});
+
 /* ══════════════════════════════════════════════════════════════
    RETRO ROUTES
 ══════════════════════════════════════════════════════════════ */

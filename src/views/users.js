@@ -129,12 +129,18 @@ async function loadUsers(currentUser) {
         <td class="muted">${date}</td>
         <td>
           <div class="user-actions">
+            <button class="btn btn-ghost btn-sm edit-user-btn" data-id="${user.id}" data-name="${escapeHtml(user.username)}" data-email="${escapeHtml(user.email || '')}">✏️ Düzenle</button>
             <button class="btn btn-ghost btn-sm change-pwd-btn" data-id="${user.id}" data-name="${escapeHtml(user.username)}">🔒 Şifre</button>
             ${!isSelf ? `<button class="btn btn-danger btn-sm delete-user-btn" data-id="${user.id}" data-name="${escapeHtml(user.username)}">🗑️</button>` : ''}
           </div>
         </td>
       `;
       tbody.appendChild(tr);
+    });
+
+    // Edit user buttons
+    tbody.querySelectorAll('.edit-user-btn').forEach(btn => {
+      btn.addEventListener('click', () => showEditUserModal(btn.dataset.id, btn.dataset.name, btn.dataset.email, currentUser));
     });
 
     // Change password buttons
@@ -158,6 +164,57 @@ async function loadUsers(currentUser) {
   } catch (err) {
     container.innerHTML = `<p class="error-text">Kullanıcılar yüklenemedi: ${err.message}</p>`;
   }
+}
+
+function showEditUserModal(userId, username, email, currentUser) {
+  const existing = document.getElementById('edit-user-modal');
+  if (existing) existing.remove();
+
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.id = 'edit-user-modal';
+  overlay.innerHTML = `
+    <div class="modal" role="dialog" aria-modal="true">
+      <h3>✏️ Kullanıcı Düzenle</h3>
+      <div class="form-group" style="margin-bottom: 16px;">
+        <label for="edit-username">Kullanıcı Adı</label>
+        <input class="input" type="text" id="edit-username" value="${escapeHtml(username)}" />
+      </div>
+      <div class="form-group">
+        <label for="edit-email">E-posta</label>
+        <input class="input" type="email" id="edit-email" value="${escapeHtml(email)}" placeholder="ornek@email.com" />
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost btn-sm" id="edit-cancel-btn">İptal</button>
+        <button class="btn btn-primary btn-sm" id="edit-save-btn">Kaydet</button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+  document.getElementById('edit-email').focus();
+
+  document.getElementById('edit-cancel-btn').addEventListener('click', () => overlay.remove());
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+
+  document.getElementById('edit-save-btn').addEventListener('click', async () => {
+    const newUsername = document.getElementById('edit-username').value.trim();
+    const newEmail = document.getElementById('edit-email').value.trim();
+
+    if (!newUsername) {
+      showToast('Kullanıcı adı boş olamaz.', 'error');
+      return;
+    }
+
+    try {
+      await api.updateUser(userId, { username: newUsername, email: newEmail });
+      showToast('Kullanıcı güncellendi! ✅', 'success');
+      overlay.remove();
+      await loadUsers(currentUser);
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  });
 }
 
 function showChangePwdModal(userId, username) {
