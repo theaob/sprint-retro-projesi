@@ -222,6 +222,44 @@ router.post('/retros/:id/entries', (req, res) => {
   res.status(201).json(entry);
 });
 
+// PUT /api/retros/:id/entries/:entryId  — edit entry text (admin or retro owner)
+router.put('/retros/:id/entries/:entryId', requireAuth, (req, res) => {
+  const { text } = req.body;
+  if (!text || !text.trim()) return res.status(400).json({ error: 'Metin gereklidir.' });
+
+  const isAdmin = req.user.role === 'admin';
+  const retro = db.prepare('SELECT created_by FROM retros WHERE id = ?').get(req.params.id);
+  if (!retro) return res.status(404).json({ error: 'Retro bulunamadı.' });
+  if (!isAdmin && retro.created_by !== req.user.id) {
+    return res.status(403).json({ error: 'Bu girdiyi düzenleme yetkiniz yok.' });
+  }
+
+  const result = db.prepare('UPDATE entries SET text = ? WHERE id = ? AND retro_id = ?')
+    .run(text.trim(), req.params.entryId, req.params.id);
+  if (result.changes === 0) return res.status(404).json({ error: 'Girdi bulunamadı.' });
+
+  const entry = db.prepare('SELECT * FROM entries WHERE id = ?').get(req.params.entryId);
+  broadcast(req.params.id, { type: 'entry:edited', entry });
+  res.json(entry);
+});
+
+// DELETE /api/retros/:id/entries/:entryId  — delete entry (admin or retro owner)
+router.delete('/retros/:id/entries/:entryId', requireAuth, (req, res) => {
+  const isAdmin = req.user.role === 'admin';
+  const retro = db.prepare('SELECT created_by FROM retros WHERE id = ?').get(req.params.id);
+  if (!retro) return res.status(404).json({ error: 'Retro bulunamadı.' });
+  if (!isAdmin && retro.created_by !== req.user.id) {
+    return res.status(403).json({ error: 'Bu girdiyi silme yetkiniz yok.' });
+  }
+
+  const entry = db.prepare('SELECT * FROM entries WHERE id = ? AND retro_id = ?').get(req.params.entryId, req.params.id);
+  if (!entry) return res.status(404).json({ error: 'Girdi bulunamadı.' });
+
+  db.prepare('DELETE FROM entries WHERE id = ? AND retro_id = ?').run(req.params.entryId, req.params.id);
+  broadcast(req.params.id, { type: 'entry:deleted', entryId: req.params.entryId, columnId: entry.column_id });
+  res.json({ success: true });
+});
+
 // POST /api/retros/:id/entries/:entryId/vote
 router.post('/retros/:id/entries/:entryId/vote', (req, res) => {
   const entry = db.prepare('SELECT * FROM entries WHERE id = ? AND retro_id = ?').get(req.params.entryId, req.params.id);

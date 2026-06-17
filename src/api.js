@@ -65,6 +65,12 @@ export const api = {
   addEntry: (retroId, columnId, text, author) => request(`/retros/${retroId}/entries`, {
     method: 'POST', body: JSON.stringify({ column_id: columnId, text, author })
   }),
+  editEntry: (retroId, entryId, text) => request(`/retros/${retroId}/entries/${entryId}`, {
+    method: 'PUT', body: JSON.stringify({ text })
+  }),
+  deleteEntry: (retroId, entryId) => request(`/retros/${retroId}/entries/${entryId}`, {
+    method: 'DELETE'
+  }),
   voteEntry: (retroId, entryId) => request(`/retros/${retroId}/entries/${entryId}/vote`, {
     method: 'POST'
   }),

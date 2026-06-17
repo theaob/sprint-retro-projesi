@@ -858,9 +858,18 @@ select.input { cursor: pointer; }
   transform: translateY(-2px);
 }
 
-.entry-text { font-size: 0.9375rem; line-height: 1.5; margin-bottom: 10px; }
+.entry-top { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 10px; }
+.entry-text { font-size: 0.9375rem; line-height: 1.5; flex: 1; min-width: 0; }
 
-.entry-footer { display: flex; align-items: center; justify-content: space-between; }
+.entry-manage { display: flex; gap: 2px; flex-shrink: 0; opacity: 0; transition: opacity var(--transition-fast); }
+.entry-card:hover .entry-manage { opacity: 1; }
+.entry-manage .btn-icon-sm { color: var(--text-muted); }
+.entry-manage .btn-icon-sm:hover { color: var(--text-primary); }
+
+.entry-edit-input { flex: 1; min-height: 36px; padding: 6px 10px; font-size: 0.9375rem; }
+.entry-edit-actions { display: flex; gap: 4px; flex-shrink: 0; }
+
+.entry-footer { display: flex; align-items: center; justify-content: flex-end; }
 
 .entry-author {
   font-size: 0.75rem;

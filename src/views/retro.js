@@ -161,7 +161,7 @@ function renderBoard(appEl, retro, user) {
 
     // Render existing entries (sorted by votes initially)
     col.entries.sort((a, b) => (b.votes || 0) - (a.votes || 0)).forEach(entry => {
-      columnBodyMap[col.id].appendChild(createEntryCard(entry, retro.id, voteState, isFinished, retro.action_items || []));
+      columnBodyMap[col.id].appendChild(createEntryCard(entry, retro.id, voteState, isFinished, retro.action_items || [], isAdminOrOwner));
     });
 
     bindColumnEvents(colEl, col, retro.id, columnBodyMap, authorName, voteState, isFinished);
@@ -176,7 +176,7 @@ function renderBoard(appEl, retro, user) {
       if (!document.getElementById(`entry-${entry.id}`)) {
         const bodyEl = columnBodyMap[entry.column_id];
         if (bodyEl) {
-          bodyEl.appendChild(createEntryCard(entry, retro.id, voteState));
+          bodyEl.appendChild(createEntryCard(entry, retro.id, voteState, false, [], isAdminOrOwner));
           updateColumnCount(entry.column_id, +1);
           sortColumnByVotes(bodyEl);
 
@@ -215,7 +215,7 @@ function renderBoard(appEl, retro, user) {
       const existingCard = document.getElementById(`entry-${actionItem.entry_id}`);
       if (existingCard) {
         // Redraw card with new action items
-        const newCard = createEntryCard(retro.columns.flatMap(c => c.entries).find(e => e.id === actionItem.entry_id), retro.id, voteState, isFinished, retro.action_items);
+        const newCard = createEntryCard(retro.columns.flatMap(c => c.entries).find(e => e.id === actionItem.entry_id), retro.id, voteState, isFinished, retro.action_items, isAdminOrOwner);
         existingCard.replaceWith(newCard);
       }
       if (isFinished) renderActionPlan(retro);
@@ -229,11 +229,33 @@ function renderBoard(appEl, retro, user) {
       for (const entry of allEntries) {
         const existingCard = document.getElementById(`entry-${entry.id}`);
         if (existingCard) {
-          const newCard = createEntryCard(entry, retro.id, voteState, isFinished, retro.action_items || []);
+          const newCard = createEntryCard(entry, retro.id, voteState, isFinished, retro.action_items || [], isAdminOrOwner);
           existingCard.replaceWith(newCard);
         }
       }
       if (isFinished) renderActionPlan(retro);
+    },
+    onEntryEdited(entry) {
+      const textEl = document.querySelector(`#entry-${entry.id} .entry-text`);
+      if (textEl) {
+        textEl.textContent = entry.text;
+      }
+      // Update the entry data in retro.columns for consistency
+      for (const col of retro.columns) {
+        const e = col.entries.find(e => e.id === entry.id);
+        if (e) { e.text = entry.text; break; }
+      }
+    },
+    onEntryDeleted(entryId, columnId) {
+      const card = document.getElementById(`entry-${entryId}`);
+      if (card) {
+        card.remove();
+        updateColumnCount(columnId, -1);
+      }
+      // Remove from retro.columns data
+      for (const col of retro.columns) {
+        col.entries = col.entries.filter(e => e.id !== entryId);
+      }
     },
     async onReconnect() {
       // Re-fetch authoritative data to catch up on broadcasts missed during disconnection
@@ -325,7 +347,7 @@ function bindColumnEvents(colEl, col, retroId, columnBodyMap, authorName, voteSt
       // Add to our own board if websocket hasn't added it already
       if (!document.getElementById(`entry-${entry.id}`)) {
         const bodyEl = columnBodyMap[col.id];
-        bodyEl.appendChild(createEntryCard(entry, retroId, voteState));
+        bodyEl.appendChild(createEntryCard(entry, retroId, voteState, false, [], false));
         updateColumnCount(col.id, +1);
         sortColumnByVotes(bodyEl);
       }
@@ -344,7 +366,7 @@ function updateColumnCount(columnId, delta) {
   if (countEl) countEl.textContent = parseInt(countEl.textContent || '0') + delta;
 }
 
-function createEntryCard(entry, retroId, voteState, isFinished, actionItems = []) {
+function createEntryCard(entry, retroId, voteState, isFinished, actionItems = [], canManage = false) {
   const card = document.createElement('div');
   card.className = 'entry-card';
   card.id = `entry-${entry.id}`;
@@ -364,8 +386,18 @@ function createEntryCard(entry, retroId, voteState, isFinished, actionItems = []
   const isVoted = voteState && voteState.votedEntryIds.includes(entry.id);
   const btnClass = isVoted ? 'btn btn-vote vote-btn voted-active' : 'btn btn-vote vote-btn';
 
+  const manageHtml = canManage && !isFinished ? `
+    <div class="entry-manage">
+      <button class="btn btn-ghost btn-icon-sm edit-entry-btn" title="Düzenle">✏️</button>
+      <button class="btn btn-ghost btn-icon-sm delete-entry-btn" title="Sil">🗑️</button>
+    </div>
+  ` : '';
+
   card.innerHTML = `
-    <div class="entry-text">${escapeHtml(entry.text)}</div>
+    <div class="entry-top">
+      <div class="entry-text">${escapeHtml(entry.text)}</div>
+      ${manageHtml}
+    </div>
     ${actionHtml}
     <div class="entry-footer">
       <button class="${btnClass}" data-entry-id="${entry.id}" ${isFinished ? 'disabled' : ''}>
@@ -428,7 +460,139 @@ function createEntryCard(entry, retroId, voteState, isFinished, actionItems = []
     }
   });
 
+  // Edit entry
+  const editBtn = card.querySelector('.edit-entry-btn');
+  if (editBtn) {
+    editBtn.addEventListener('click', () => {
+      const textEl = card.querySelector('.entry-text');
+      const currentText = entry.text;
+      const topEl = card.querySelector('.entry-top');
+
+      // Replace with inline edit form
+      topEl.innerHTML = `
+        <input class="input entry-edit-input" type="text" value="${escapeHtml(currentText)}" />
+        <div class="entry-edit-actions">
+          <button class="btn btn-primary btn-icon-sm save-edit-btn" title="Kaydet">✓</button>
+          <button class="btn btn-ghost btn-icon-sm cancel-edit-btn" title="İptal">✕</button>
+        </div>
+      `;
+      const input = topEl.querySelector('.entry-edit-input');
+      input.focus();
+      input.setSelectionRange(input.value.length, input.value.length);
+
+      const save = async () => {
+        const newText = input.value.trim();
+        if (!newText || newText === currentText) {
+          cancel();
+          return;
+        }
+        try {
+          await api.editEntry(retroId, entry.id, newText);
+          entry.text = newText;
+        } catch (err) {
+          showToast(err.message, 'error');
+          cancel();
+        }
+      };
+
+      const cancel = () => {
+        topEl.innerHTML = `
+          <div class="entry-text">${escapeHtml(entry.text)}</div>
+          <div class="entry-manage">
+            <button class="btn btn-ghost btn-icon-sm edit-entry-btn" title="Düzenle">✏️</button>
+            <button class="btn btn-ghost btn-icon-sm delete-entry-btn" title="Sil">🗑️</button>
+          </div>
+        `;
+        // Re-bind edit/delete on the restored buttons
+        bindManageButtons(card, entry, retroId);
+      };
+
+      topEl.querySelector('.save-edit-btn').addEventListener('click', save);
+      topEl.querySelector('.cancel-edit-btn').addEventListener('click', cancel);
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') save();
+        if (e.key === 'Escape') cancel();
+      });
+    });
+  }
+
+  // Delete entry
+  const deleteBtn = card.querySelector('.delete-entry-btn');
+  if (deleteBtn) {
+    deleteBtn.addEventListener('click', async () => {
+      if (!confirm('Bu girdiyi silmek istediğinize emin misiniz?')) return;
+      try {
+        await api.deleteEntry(retroId, entry.id);
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    });
+  }
+
   return card;
+}
+
+function bindManageButtons(card, entry, retroId) {
+  const editBtn = card.querySelector('.edit-entry-btn');
+  if (editBtn) {
+    editBtn.addEventListener('click', () => {
+      const topEl = card.querySelector('.entry-top');
+      const currentText = entry.text;
+
+      topEl.innerHTML = `
+        <input class="input entry-edit-input" type="text" value="${escapeHtml(currentText)}" />
+        <div class="entry-edit-actions">
+          <button class="btn btn-primary btn-icon-sm save-edit-btn" title="Kaydet">✓</button>
+          <button class="btn btn-ghost btn-icon-sm cancel-edit-btn" title="İptal">✕</button>
+        </div>
+      `;
+      const input = topEl.querySelector('.entry-edit-input');
+      input.focus();
+      input.setSelectionRange(input.value.length, input.value.length);
+
+      const save = async () => {
+        const newText = input.value.trim();
+        if (!newText || newText === currentText) { cancel(); return; }
+        try {
+          await api.editEntry(retroId, entry.id, newText);
+          entry.text = newText;
+        } catch (err) {
+          showToast(err.message, 'error');
+          cancel();
+        }
+      };
+
+      const cancel = () => {
+        topEl.innerHTML = `
+          <div class="entry-text">${escapeHtml(entry.text)}</div>
+          <div class="entry-manage">
+            <button class="btn btn-ghost btn-icon-sm edit-entry-btn" title="Düzenle">✏️</button>
+            <button class="btn btn-ghost btn-icon-sm delete-entry-btn" title="Sil">🗑️</button>
+          </div>
+        `;
+        bindManageButtons(card, entry, retroId);
+      };
+
+      topEl.querySelector('.save-edit-btn').addEventListener('click', save);
+      topEl.querySelector('.cancel-edit-btn').addEventListener('click', cancel);
+      input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') save();
+        if (e.key === 'Escape') cancel();
+      });
+    });
+  }
+
+  const deleteBtn = card.querySelector('.delete-entry-btn');
+  if (deleteBtn) {
+    deleteBtn.addEventListener('click', async () => {
+      if (!confirm('Bu girdiyi silmek istediğinize emin misiniz?')) return;
+      try {
+        await api.deleteEntry(retroId, entry.id);
+      } catch (err) {
+        showToast(err.message, 'error');
+      }
+    });
+  }
 }
 
 function sortColumnByVotes(colBody) {
