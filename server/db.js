@@ -119,28 +119,31 @@ try {
 try {
   const tableInfo = db.pragma('table_info(retros)');
   if (!tableInfo.some((col) => col.name === 'short_code')) {
-    db.exec('ALTER TABLE retros ADD COLUMN short_code TEXT UNIQUE;');
-    console.log('✅ Migration applied: added short_code to retros table.');
-
-    // Backfill existing retros
-    const retros = db.prepare('SELECT id FROM retros WHERE short_code IS NULL').all();
-    if (retros.length > 0) {
-      const updateStmt = db.prepare('UPDATE retros SET short_code = ? WHERE id = ?');
-      db.transaction(() => {
-        for (const retro of retros) {
-          let code;
-          let exists = true;
-          while (exists) {
-            code = Math.random().toString(36).substring(2, 8);
-            const row = db.prepare('SELECT id FROM retros WHERE short_code = ?').get(code);
-            if (!row) exists = false;
-          }
-          updateStmt.run(code, retro.id);
-        }
-      })();
-      console.log(`✅ Backfilled short_code for ${retros.length} existing retros.`);
-    }
+    db.exec('ALTER TABLE retros ADD COLUMN short_code TEXT;');
+    console.log('✅ Migration applied: added short_code column to retros table.');
   }
+
+  // Backfill existing retros with unique codes
+  const retros = db.prepare('SELECT id FROM retros WHERE short_code IS NULL').all();
+  if (retros.length > 0) {
+    const updateStmt = db.prepare('UPDATE retros SET short_code = ? WHERE id = ?');
+    db.transaction(() => {
+      for (const retro of retros) {
+        let code;
+        let exists = true;
+        while (exists) {
+          code = Math.random().toString(36).substring(2, 8);
+          const row = db.prepare('SELECT id FROM retros WHERE short_code = ?').get(code);
+          if (!row) exists = false;
+        }
+        updateStmt.run(code, retro.id);
+      }
+    })();
+    console.log(`✅ Backfilled short_code for ${retros.length} existing retros.`);
+  }
+
+  // Enforce uniqueness with a unique index
+  db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_retros_short_code ON retros(short_code);');
 } catch (err) {
   console.error('Migration error (short_code):', err);
 }
