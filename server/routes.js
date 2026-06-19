@@ -34,7 +34,7 @@ router.post('/auth/login', (req, res) => {
 router.post('/auth/register', (req, res) => {
   const { username, password, email } = req.body;
   if (!username || !password) return res.status(400).json({ error: 'Kullanıcı adı ve şifre gereklidir.' });
-  if (password.length < 4) return res.status(400).json({ error: 'Şifre en az 4 karakter olmalıdır.' });
+  if (password.length < 6) return res.status(400).json({ error: 'Şifre en az 6 karakter olmalıdır.' });
 
   const exists = db.prepare('SELECT id FROM users WHERE username = ?').get(username);
   if (exists) return res.status(409).json({ error: 'Bu kullanıcı adı zaten kullanılmakta.' });
@@ -76,6 +76,7 @@ router.get('/users', requireAdmin, (req, res) => {
 router.post('/users', requireAdmin, (req, res) => {
   const { username, password, role = 'user', email } = req.body;
   if (!username || !password) return res.status(400).json({ error: 'Kullanıcı adı ve şifre gereklidir.' });
+  if (password.length < 6) return res.status(400).json({ error: 'Şifre en az 6 karakter olmalıdır.' });
   if (!['admin', 'user'].includes(role)) return res.status(400).json({ error: 'Geçersiz rol.' });
 
   const exists = db.prepare('SELECT id FROM users WHERE username = ?').get(username);
@@ -103,7 +104,7 @@ router.put('/users/:id/password', requireAuth, (req, res) => {
   if (!isSelf && !isAdmin) return res.status(403).json({ error: 'Yetki yok.' });
 
   const { password } = req.body;
-  if (!password || password.length < 4) return res.status(400).json({ error: 'Şifre en az 4 karakter olmalıdır.' });
+  if (!password || password.length < 6) return res.status(400).json({ error: 'Şifre en az 6 karakter olmalıdır.' });
 
   const hash = bcrypt.hashSync(password, 10);
   db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hash, req.params.id);

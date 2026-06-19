@@ -36,7 +36,7 @@ export function renderLogin(appEl) {
                   class="input"
                   type="password"
                   id="login-password"
-                  placeholder="${isRegistering ? 'En az 4 karakter' : 'Şifreniz'}"
+                  placeholder="${isRegistering ? 'En az 6 karakter' : 'Şifreniz'}"
                   autocomplete="${isRegistering ? 'new-password' : 'current-password'}"
                   required
                 />
@@ -99,8 +99,8 @@ export function renderLogin(appEl) {
         return;
       }
 
-      if (isRegistering && password.length < 4) {
-        errorEl.textContent = 'Şifre en az 4 karakter olmalıdır.';
+      if (isRegistering && password.length < 6) {
+        errorEl.textContent = 'Şifre en az 6 karakter olmalıdır.';
         return;
       }
 

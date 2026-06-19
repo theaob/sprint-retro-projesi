@@ -27,7 +27,7 @@ export async function renderUsers(appEl) {
             </div>
             <div class="form-group">
               <label for="new-password">Şifre</label>
-              <input class="input" type="password" id="new-password" placeholder="En az 4 karakter" required />
+              <input class="input" type="password" id="new-password" placeholder="En az 6 karakter" required />
             </div>
             <div class="form-group">
               <label for="new-role">Rol</label>
@@ -62,6 +62,11 @@ export async function renderUsers(appEl) {
 
     if (!username || !password) {
       showToast('Kullanıcı adı ve şifre gereklidir.', 'error');
+      return;
+    }
+
+    if (password.length < 6) {
+      showToast('Şifre en az 6 karakter olmalıdır.', 'error');
       return;
     }
 
@@ -230,7 +235,7 @@ function showChangePwdModal(userId, username) {
       <p class="modal-subtitle">Kullanıcı: <strong>${escapeHtml(username)}</strong></p>
       <div class="form-group">
         <label for="new-pwd-input">Yeni Şifre</label>
-        <input class="input" type="password" id="new-pwd-input" placeholder="En az 4 karakter" />
+        <input class="input" type="password" id="new-pwd-input" placeholder="En az 6 karakter" />
       </div>
       <div class="modal-actions">
         <button class="btn btn-ghost btn-sm" id="pwd-cancel-btn">İptal</button>
@@ -247,8 +252,8 @@ function showChangePwdModal(userId, username) {
 
   document.getElementById('pwd-save-btn').addEventListener('click', async () => {
     const pwd = document.getElementById('new-pwd-input').value;
-    if (!pwd || pwd.length < 4) {
-      showToast('Şifre en az 4 karakter olmalıdır.', 'error');
+    if (!pwd || pwd.length < 6) {
+      showToast('Şifre en az 6 karakter olmalıdır.', 'error');
       return;
     }
     try {
