@@ -58,7 +58,9 @@ function renderBoard(appEl, retro, user) {
   const isAdminOrOwner = user?.role === 'admin' || user?.id === retro.created_by;
   const isFinished = retro.status === 'finished';
 
-  const shareUrl = `${window.location.origin}${window.location.pathname}#/retro/${retro.id}`;
+  const shareUrl = retro.short_code
+    ? `${window.location.origin}/s/${retro.short_code}`
+    : `${window.location.origin}${window.location.pathname}#/retro/${retro.id}`;
 
   let votedArray = [];
   try {

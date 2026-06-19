@@ -5,7 +5,12 @@ Sprint Retro is a full-stack, real-time web application to help agile teams cond
 ## Features
 
 - **Real-Time Collaboration**: Built with WebSockets, allowing multiple team members to interact with the board simultaneously.
-- **Authentication**: Secure access via simple authentication.
+- **Authentication**: Secure access via simple authentication with a minimum 6-character password limit.
+- **Short URL Redirection**: Generates clean, short sharing links (`/s/:code`) for retrospectives to make sharing with the team extremely simple.
+- **Mobile-First Optimizations**: Tailored layouts for mobile devices including:
+  - Sticky bottom navigation bar for main sections on mobile viewports.
+  - Interactive board column tabs with smooth scrolling and scroll sync (active tab updates as you swipe columns).
+  - Card-based responsive table layouts for easy user management on small screens.
 - **Vote & Feedback Gathering**: Add items to your retro board and allow the team to vote on priority.
 - **Configurable Vote Limits**: Admins can configure the maximum number of votes each participant is allowed to cast (locally enforced on devices).
 - **Export Data**: Easily export retro results to Excel (`.xlsx`) format.

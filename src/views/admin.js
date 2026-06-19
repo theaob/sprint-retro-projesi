@@ -237,6 +237,10 @@ async function loadRetroList() {
         hour: '2-digit', minute: '2-digit'
       });
 
+      const shareLink = retro.short_code
+        ? `${window.location.origin}/s/${retro.short_code}`
+        : `${window.location.origin}${window.location.pathname}#/retro/${retro.id}`;
+
       const item = document.createElement('div');
       item.className = 'glass-card retro-item';
       item.innerHTML = `
@@ -248,7 +252,7 @@ async function loadRetroList() {
           <button class="btn btn-danger btn-sm delete-btn" data-id="${retro.id}" title="Sil">🗑️</button>
         </div>
         <div class="retro-item-link">
-          <span class="retro-link-text">${window.location.origin}${window.location.pathname}#/retro/${retro.id}</span>
+          <span class="retro-link-text">${shareLink}</span>
           <button class="btn btn-ghost btn-sm copy-link-btn" data-id="${retro.id}">📋 Kopyala</button>
         </div>
       `;
@@ -273,8 +277,7 @@ async function loadRetroList() {
 
       item.querySelector('.copy-link-btn').addEventListener('click', (e) => {
         e.stopPropagation();
-        const link = `${window.location.origin}${window.location.pathname}#/retro/${retro.id}`;
-        navigator.clipboard.writeText(link);
+        navigator.clipboard.writeText(shareLink);
         showToast('Bağlantı kopyalandı! 📋', 'success');
       });
 

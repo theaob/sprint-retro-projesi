@@ -149,6 +149,21 @@ router.get('/retros', requireAuth, (req, res) => {
   res.json(retros);
 });
 
+function generateShortCode() {
+  return Math.random().toString(36).substring(2, 8);
+}
+
+function createUniqueShortCode() {
+  let code;
+  let exists = true;
+  while (exists) {
+    code = generateShortCode();
+    const row = db.prepare('SELECT id FROM retros WHERE short_code = ?').get(code);
+    if (!row) exists = false;
+  }
+  return code;
+}
+
 // POST /api/retros  — allow any authenticated user
 router.post('/retros', requireAuth, (req, res) => {
   const { title, columns, max_votes } = req.body;
@@ -158,15 +173,16 @@ router.post('/retros', requireAuth, (req, res) => {
 
   const retroId = uuidv4();
   const votes = parseInt(max_votes, 10) || 3;
-  const insertRetro = db.prepare('INSERT INTO retros (id, title, max_votes, created_by) VALUES (?, ?, ?, ?)');
+  const shortCode = createUniqueShortCode();
+  const insertRetro = db.prepare('INSERT INTO retros (id, title, max_votes, created_by, short_code) VALUES (?, ?, ?, ?, ?)');
   const insertColumn = db.prepare('INSERT INTO columns (id, retro_id, name, sort_order) VALUES (?, ?, ?, ?)');
 
   db.transaction(() => {
-    insertRetro.run(retroId, title, votes, req.user.id);
+    insertRetro.run(retroId, title, votes, req.user.id, shortCode);
     columns.forEach((colName, idx) => insertColumn.run(uuidv4(), retroId, colName, idx));
   })();
 
-  res.status(201).json({ id: retroId, title });
+  res.status(201).json({ id: retroId, title, short_code: shortCode });
 });
 
 // GET /api/retros/:id
