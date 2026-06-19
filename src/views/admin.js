@@ -10,10 +10,6 @@ export async function renderAdmin(appEl) {
   appEl.innerHTML = `
     <header class="app-header">
       <div class="container">
-        <a href="#/" class="logo" id="logo-link">
-          <div class="logo-icon">🔄</div>
-          <span class="logo-text">Sprint Retro</span>
-        </a>
         <nav class="header-nav">
           <a href="#/" class="btn btn-ghost btn-sm active-nav">📋 Retrolar</a>
           ${user?.role === 'admin' ? '<a href="#/users" class="btn btn-ghost btn-sm">👥 Kullanıcılar</a>' : ''}
@@ -79,6 +75,22 @@ export async function renderAdmin(appEl) {
         <div class="spinner" id="retro-spinner"></div>
       </div>
     </main>
+    <div class="mobile-nav-bar">
+      <a href="#/" class="mobile-nav-item active">
+        <span class="mobile-nav-icon">📋</span>
+        <span class="mobile-nav-label">Retrolar</span>
+      </a>
+      ${user?.role === 'admin' ? `
+      <a href="#/users" class="mobile-nav-item">
+        <span class="mobile-nav-icon">👥</span>
+        <span class="mobile-nav-label">Kullanıcılar</span>
+      </a>
+      ` : ''}
+      <button class="mobile-nav-item" id="mobile-logout-btn">
+        <span class="mobile-nav-icon">🚪</span>
+        <span class="mobile-nav-label">Çıkış</span>
+      </button>
+    </div>
   `;
 
   // Theme switcher
@@ -96,12 +108,15 @@ export async function renderAdmin(appEl) {
     }
   });
 
-  // Logout
-  document.getElementById('logout-btn').addEventListener('click', async () => {
+  // Logout helpers
+  const handleLogout = async () => {
     try { await api.logout(); } catch {}
     api.clearSession();
     window.location.hash = '#/login';
-  });
+  };
+
+  document.getElementById('logout-btn').addEventListener('click', handleLogout);
+  document.getElementById('mobile-logout-btn')?.addEventListener('click', handleLogout);
 
   // Templates
   const templates = [

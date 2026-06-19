@@ -5,8 +5,8 @@
 /* ── CSS Variables ───────────────────────────────────────────── */
 :root {
   /* Mobile-first Layout Paddings */
-  --page-padding-x: 24px;
-  --page-padding-y: 32px;
+  --page-padding-x: 16px;
+  --page-padding-y: 20px;
 
   /* Shared System Colors */
   --success: #10b981;
@@ -197,38 +197,9 @@ h3 { font-size: 1.125rem; font-weight: 600; margin-bottom: 0.75rem; }
 .app-header .container {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   gap: 8px;
   flex-wrap: wrap;
-}
-
-.app-header .logo {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  text-decoration: none;
-  color: var(--text-primary);
-  flex-shrink: 0;
-}
-
-.app-header .logo-icon {
-  width: 36px;
-  height: 36px;
-  background: var(--accent-gradient);
-  border-radius: var(--radius-sm);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.1rem;
-}
-
-.app-header .logo-text {
-  font-size: 1.15rem;
-  font-weight: 700;
-  background: var(--accent-gradient);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
 }
 
 /* Header nav */
@@ -585,12 +556,7 @@ select.input { cursor: pointer; }
   padding: 32px 24px;
 }
 
-.login-logo {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 28px;
-}
+
 
 .login-title {
   font-size: 1.6rem;
@@ -1030,4 +996,201 @@ select.input { cursor: pointer; }
 
 .login-toggle a:hover {
   text-decoration: underline;
+}
+
+/* ── Mobile Header Nav Updates ────────────────────────────── */
+@media (max-width: 767px) {
+  .header-nav .btn-ghost:not(#back-btn), 
+  .header-nav .nav-separator {
+    display: none !important;
+  }
+  
+  #back-btn .back-text {
+    display: none;
+  }
+}
+
+/* ── Mobile Navigation Bar ────────────────────────────────── */
+.mobile-nav-bar {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 64px;
+  background: var(--bg-overlay);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid var(--border-color);
+  justify-content: space-around;
+  align-items: center;
+  z-index: 999;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.mobile-nav-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  padding: 8px 0;
+  color: var(--text-muted);
+  text-decoration: none;
+  font-family: var(--font-family);
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  flex: 1;
+  transition: all var(--transition-fast);
+}
+
+.mobile-nav-item.active {
+  color: var(--accent-primary-hover);
+}
+
+.mobile-nav-icon {
+  font-size: 1.25rem;
+  margin-bottom: 2px;
+}
+
+@media (max-width: 767px) {
+  .mobile-nav-bar {
+    display: flex;
+  }
+  body {
+    padding-bottom: 80px; /* Space for bottom nav */
+  }
+}
+
+/* ── Board Tab Navigation for mobile ──────────────────────── */
+.board-tabs-container {
+  display: none;
+  width: 100%;
+  overflow-x: auto;
+  padding: 8px var(--page-padding-x);
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-secondary);
+  position: sticky;
+  top: 57px;
+  z-index: 99;
+}
+
+@media (max-width: 767px) {
+  .board-tabs-container {
+    display: block;
+  }
+}
+
+.board-tabs {
+  display: flex;
+  gap: 8px;
+}
+
+.board-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all var(--transition-fast);
+}
+
+.board-tab.active {
+  background: var(--accent-gradient);
+  color: white;
+  border-color: transparent;
+  box-shadow: var(--accent-glow);
+}
+
+.board-tab .tab-count {
+  background: var(--glass-10);
+  padding: 2px 6px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+}
+
+.board-tab.active .tab-count {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* ── Users Table Mobile Card-Layout ───────────────────────── */
+@media (max-width: 767px) {
+  .users-table-wrap {
+    border: none;
+  }
+  .users-table, 
+  .users-table tbody, 
+  .users-table tr, 
+  .users-table td {
+    display: block;
+    width: 100%;
+  }
+  .users-table thead {
+    display: none;
+  }
+  .users-table tr {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-md);
+    margin-bottom: 16px;
+    padding: 16px;
+    box-shadow: var(--shadow-card);
+  }
+  .users-table td {
+    border: none;
+    padding: 6px 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .users-table td::before {
+    content: attr(data-label);
+    font-weight: 700;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+  .users-table td:first-child {
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 12px;
+    margin-bottom: 8px;
+  }
+  .users-table td:first-child::before {
+    display: none;
+  }
+  .users-table .user-name-cell {
+    width: 100%;
+  }
+  .users-table .user-actions {
+    width: 100%;
+    justify-content: flex-end;
+    margin-top: 8px;
+    border-top: 1px solid var(--border-color);
+    padding-top: 12px;
+  }
+}
+
+/* ── Retro Board Actions Mobile Optimization ─────────────── */
+@media (max-width: 600px) {
+  .retro-actions {
+    display: flex;
+    flex-wrap: wrap;
+    width: 100%;
+    gap: 8px;
+  }
+  .retro-actions .btn {
+    flex: 1 1 calc(50% - 8px);
+  }
+  .retro-actions #finish-retro-btn {
+    flex: 1 1 100%;
+  }
 }

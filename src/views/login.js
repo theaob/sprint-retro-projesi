@@ -10,10 +10,6 @@ export function renderLogin(appEl) {
     appEl.innerHTML = `
       <div class="login-page">
         <div class="login-card glass-card">
-          <div class="login-logo">
-            <div class="logo-icon">🔄</div>
-            <span class="logo-text">Sprint Retro</span>
-          </div>
           <h1 class="login-title">${isRegistering ? 'Yeni Hesap Oluştur' : 'Yönetici Girişi'}</h1>
           <p class="login-subtitle">${isRegistering ? 'Hemen bir hesap açın ve retrospektiflerinizi yönetin.' : 'Retro yönetimi için giriş yapın.'}</p>
 

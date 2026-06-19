@@ -14,10 +14,6 @@ export async function renderRetro(appEl, retroId) {
   appEl.innerHTML = `
     <header class="app-header">
       <div class="container">
-        <a href="#/" class="logo" id="logo-link">
-          <div class="logo-icon">🔄</div>
-          <span class="logo-text">Sprint Retro</span>
-        </a>
         <nav class="header-nav">
           ${user
             ? `<div class="user-chip">
@@ -32,7 +28,7 @@ export async function renderRetro(appEl, retroId) {
           </div>
           <span class="nav-separator"></span>
           ${renderThemeToggle()}
-          ${user ? `<span class="nav-separator"></span><a href="#/" class="btn btn-ghost btn-sm" id="back-btn">← Geri</a>` : ''}
+          ${user ? `<span class="nav-separator"></span><a href="#/" class="btn btn-ghost btn-sm" id="back-btn">←<span class="back-text"> Geri</span></a>` : ''}
         </nav>
       </div>
     </header>
@@ -108,6 +104,7 @@ function renderBoard(appEl, retro, user) {
     </div>
     ` : ''}
 
+    <div class="board-tabs-container" id="board-tabs-container"></div>
     <div class="board" id="board"></div>
   `;
 
@@ -167,6 +164,64 @@ function renderBoard(appEl, retro, user) {
     bindColumnEvents(colEl, col, retro.id, columnBodyMap, authorName, voteState, isFinished);
   });
 
+  // Render board tabs for mobile view
+  const tabsContainer = document.getElementById('board-tabs-container');
+  if (tabsContainer) {
+    tabsContainer.innerHTML = `
+      <div class="board-tabs">
+        ${retro.columns.map((col, idx) => `
+          <button class="board-tab ${idx === 0 ? 'active' : ''}" data-col-id="${col.id}" id="board-tab-${col.id}">
+            <span class="tab-name-text">${escapeHtml(col.name)}</span>
+            <span class="tab-count" id="tab-count-${col.id}">${col.entries.length}</span>
+          </button>
+        `).join('')}
+      </div>
+    `;
+
+    tabsContainer.querySelectorAll('.board-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        const colId = tab.dataset.colId;
+        const colEl = document.querySelector(`[data-col-id="${colId}"]`);
+        if (colEl) {
+          colEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+          tabsContainer.querySelectorAll('.board-tab').forEach(t => t.classList.remove('active'));
+          tab.classList.add('active');
+        }
+      });
+    });
+  }
+
+  // Scroll sync for tabs on mobile
+  let isScrolling;
+  boardEl.addEventListener('scroll', () => {
+    window.clearTimeout(isScrolling);
+    isScrolling = setTimeout(() => {
+      const boardRect = boardEl.getBoundingClientRect();
+      const boardCenter = boardRect.left + boardRect.width / 2;
+      let closestCol = null;
+      let minDistance = Infinity;
+      retro.columns.forEach(col => {
+        const colEl = document.querySelector(`[data-col-id="${col.id}"]`);
+        if (colEl) {
+          const rect = colEl.getBoundingClientRect();
+          const colCenter = rect.left + rect.width / 2;
+          const distance = Math.abs(colCenter - boardCenter);
+          if (distance < minDistance) {
+            minDistance = distance;
+            closestCol = col.id;
+          }
+        }
+      });
+      if (closestCol && tabsContainer) {
+        const tabEl = document.getElementById(`board-tab-${closestCol}`);
+        if (tabEl) {
+          tabsContainer.querySelectorAll('.board-tab').forEach(t => t.classList.remove('active'));
+          tabEl.classList.add('active');
+        }
+      }
+    }, 100);
+  });
+
   // ── WebSocket real-time updates ───────────────────────────
   let wsIndicator = document.getElementById('ws-indicator');
 
@@ -201,6 +256,10 @@ function renderBoard(appEl, retro, user) {
       const input = document.getElementById(`col-name-${columnId}`);
       if (input && document.activeElement !== input) {
         input.value = name;
+      }
+      const tabNameSpan = document.querySelector(`#board-tab-${columnId} .tab-name-text`);
+      if (tabNameSpan) {
+        tabNameSpan.textContent = name;
       }
     },
 
@@ -322,9 +381,13 @@ function bindColumnEvents(colEl, col, retroId, columnBodyMap, authorName, voteSt
   const nameInput = colEl.querySelector(`#col-name-${col.id}`);
   let renameTimeout;
   nameInput.addEventListener('input', () => {
+    const val = nameInput.value.trim();
+    const tabNameSpan = document.querySelector(`#board-tab-${col.id} .tab-name-text`);
+    if (tabNameSpan) tabNameSpan.textContent = val;
+
     clearTimeout(renameTimeout);
     renameTimeout = setTimeout(async () => {
-      try { await api.renameColumn(retroId, col.id, nameInput.value.trim()); }
+      try { await api.renameColumn(retroId, col.id, val); }
       catch (err) { showToast(err.message, 'error'); }
     }, 600);
   });
@@ -364,6 +427,8 @@ function bindColumnEvents(colEl, col, retroId, columnBodyMap, authorName, voteSt
 function updateColumnCount(columnId, delta) {
   const countEl = document.getElementById(`col-count-${columnId}`);
   if (countEl) countEl.textContent = parseInt(countEl.textContent || '0') + delta;
+  const tabCountEl = document.getElementById(`tab-count-${columnId}`);
+  if (tabCountEl) tabCountEl.textContent = parseInt(tabCountEl.textContent || '0') + delta;
 }
 
 function createEntryCard(entry, retroId, voteState, isFinished, actionItems = [], canManage = false) {

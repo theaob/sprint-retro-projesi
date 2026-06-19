@@ -46,6 +46,20 @@ export async function renderUsers(appEl) {
         <div class="spinner" id="users-spinner"></div>
       </div>
     </main>
+    <div class="mobile-nav-bar">
+      <a href="#/" class="mobile-nav-item">
+        <span class="mobile-nav-icon">📋</span>
+        <span class="mobile-nav-label">Retrolar</span>
+      </a>
+      <a href="#/users" class="mobile-nav-item active">
+        <span class="mobile-nav-icon">👥</span>
+        <span class="mobile-nav-label">Kullanıcılar</span>
+      </a>
+      <button class="mobile-nav-item" id="mobile-logout-btn">
+        <span class="mobile-nav-icon">🚪</span>
+        <span class="mobile-nav-label">Çıkış</span>
+      </button>
+    </div>
   `;
 
   // Theme events
@@ -122,17 +136,17 @@ async function loadUsers(currentUser) {
       const tr = document.createElement('tr');
       tr.id = `user-row-${user.id}`;
       tr.innerHTML = `
-        <td>
+        <td data-label="Kullanıcı">
           <div class="user-name-cell">
             <div class="user-avatar">${user.username[0].toUpperCase()}</div>
             <span>${escapeHtml(user.username)}</span>
             ${isSelf ? '<span class="badge badge-self">Siz</span>' : ''}
           </div>
         </td>
-        <td class="muted">${user.email ? escapeHtml(user.email) : '<span style="opacity:0.4">—</span>'}</td>
-        <td><span class="badge badge-${user.role}">${user.role === 'admin' ? '🔑 Admin' : '👤 Kullanıcı'}</span></td>
-        <td class="muted">${date}</td>
-        <td>
+        <td data-label="E-posta" class="muted">${user.email ? escapeHtml(user.email) : '<span style="opacity:0.4">—</span>'}</td>
+        <td data-label="Rol"><span class="badge badge-${user.role}">${user.role === 'admin' ? '🔑 Admin' : '👤 Kullanıcı'}</span></td>
+        <td data-label="Oluşturulma" class="muted">${date}</td>
+        <td data-label="İşlemler">
           <div class="user-actions">
             <button class="btn btn-ghost btn-sm edit-user-btn" data-id="${user.id}" data-name="${escapeHtml(user.username)}" data-email="${escapeHtml(user.email || '')}">✏️ Düzenle</button>
             <button class="btn btn-ghost btn-sm change-pwd-btn" data-id="${user.id}" data-name="${escapeHtml(user.username)}">🔒 Şifre</button>
@@ -270,10 +284,6 @@ function renderHeader(user) {
   return `
     <header class="app-header">
       <div class="container">
-        <a href="#/" class="logo" id="logo-link">
-          <div class="logo-icon">🔄</div>
-          <span class="logo-text">Sprint Retro</span>
-        </a>
         <nav class="header-nav">
           <a href="#/" class="btn btn-ghost btn-sm">📋 Retrolar</a>
           <a href="#/users" class="btn btn-ghost btn-sm active-nav">👥 Kullanıcılar</a>
@@ -295,7 +305,7 @@ function renderHeader(user) {
 
 // Bind logout after render
 document.addEventListener('click', async (e) => {
-  if (e.target?.id === 'logout-btn') {
+  if (e.target?.id === 'logout-btn' || e.target?.closest('#mobile-logout-btn')) {
     try { await api.logout(); } catch {}
     api.clearSession();
     window.location.hash = '#/login';
