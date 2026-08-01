@@ -87,7 +87,7 @@ function renderBoard(appEl, retro, user) {
       </div>
       <div class="retro-actions">
         <button class="btn btn-ghost btn-sm" id="copy-link-btn">📋 Bağlantı</button>
-        <button class="btn btn-primary btn-sm" id="export-excel-btn">📊 Excel İndir</button>
+        ${isFinished ? `<button class="btn btn-primary btn-sm" id="export-excel-btn">📊 Excel İndir</button>` : ''}
         ${isAdminOrOwner && !isFinished ? `<button class="btn btn-danger btn-sm" id="finish-retro-btn">🏁 Retro'yu Bitir</button>` : ''}
       </div>
     </div>
@@ -116,8 +116,8 @@ function renderBoard(appEl, retro, user) {
     showToast('Bağlantı kopyalandı! 📋', 'success');
   });
 
-  // Excel export
-  document.getElementById('export-excel-btn').addEventListener('click', () => {
+  // Excel export (finished retros only)
+  document.getElementById('export-excel-btn')?.addEventListener('click', () => {
     api.getRetro(retro.id).then(latest => {
       exportRetroToExcel(latest);
       showToast('Excel dosyası indirildi! 📊', 'success');
