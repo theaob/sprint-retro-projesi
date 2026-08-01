@@ -1,6 +1,6 @@
 import './style.css';
 import { renderAdmin } from './views/admin.js';
-import { renderRetro } from './views/retro.js';
+import { renderRetro } from './views/retro/index.js';
 import { renderLogin } from './views/login.js';
 import { renderUsers } from './views/users.js';
 import { api } from './api.js';
@@ -43,7 +43,12 @@ function router() {
   }
 }
 
+// No DOMContentLoaded listener needed: module scripts are deferred by spec —
+// they run after the document is fully parsed, before DOMContentLoaded fires
+// — so this synchronous call already has a ready DOM. Registering both used
+// to double-invoke router() on every initial load (harmless for the old
+// innerHTML-based views' "last write wins" rendering, but it corrupts
+// Preact's mount bookkeeping when two renders race on the same container).
 window.addEventListener('hashchange', router);
-window.addEventListener('DOMContentLoaded', router);
 router();
 
