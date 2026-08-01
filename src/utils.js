@@ -32,7 +32,7 @@ export function setTheme(theme) {
 export function applyTheme() {
   const theme = getTheme();
   const root = document.documentElement;
-  THEMES.forEach(t => root.classList.remove(`theme-${t}`));
+  THEMES.forEach(t => { root.classList.remove(`theme-${t}`); });
   root.classList.add(`theme-${theme}`);
 
   // Update any toggle buttons on the page

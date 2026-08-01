@@ -179,7 +179,7 @@ router.post('/retros', requireAuth, (req, res) => {
 
   db.transaction(() => {
     insertRetro.run(retroId, title, votes, req.user.id, shortCode);
-    columns.forEach((colName, idx) => insertColumn.run(uuidv4(), retroId, colName, idx));
+    columns.forEach((colName, idx) => { insertColumn.run(uuidv4(), retroId, colName, idx); });
   })();
 
   res.status(201).json({ id: retroId, title, short_code: shortCode });
@@ -350,10 +350,17 @@ router.put('/retros/:id/status', requireAuth, (req, res) => {
   res.json({ success: true, status });
 });
 
-// POST /api/retros/:id/entries/:entryId/actions
-router.post('/retros/:id/entries/:entryId/actions', (req, res) => {
+// POST /api/retros/:id/entries/:entryId/actions — Scrum Master (retro owner) or admin only
+router.post('/retros/:id/entries/:entryId/actions', requireAuth, (req, res) => {
   const { content, assignee } = req.body;
   if (!content) return res.status(400).json({ error: 'Aksiyon içeriği gereklidir.' });
+
+  const isAdmin = req.user.role === 'admin';
+  const retro = db.prepare('SELECT created_by FROM retros WHERE id = ?').get(req.params.id);
+  if (!retro) return res.status(404).json({ error: 'Retro bulunamadı.' });
+  if (!isAdmin && retro.created_by !== req.user.id) {
+    return res.status(403).json({ error: 'Aksiyon ekleme yetkiniz yok. Bu işlem Scrum Master\'a aittir.' });
+  }
 
   const actionId = uuidv4();
   db.prepare('INSERT INTO action_items (id, retro_id, entry_id, content, assignee) VALUES (?, ?, ?, ?, ?)')
@@ -365,8 +372,15 @@ router.post('/retros/:id/entries/:entryId/actions', (req, res) => {
   res.status(201).json(actionItem);
 });
 
-// DELETE /api/retros/:id/actions/:actionId
-router.delete('/retros/:id/actions/:actionId', (req, res) => {
+// DELETE /api/retros/:id/actions/:actionId — Scrum Master (retro owner) or admin only
+router.delete('/retros/:id/actions/:actionId', requireAuth, (req, res) => {
+  const isAdmin = req.user.role === 'admin';
+  const retro = db.prepare('SELECT created_by FROM retros WHERE id = ?').get(req.params.id);
+  if (!retro) return res.status(404).json({ error: 'Retro bulunamadı.' });
+  if (!isAdmin && retro.created_by !== req.user.id) {
+    return res.status(403).json({ error: 'Aksiyon silme yetkiniz yok. Bu işlem Scrum Master\'a aittir.' });
+  }
+
   const result = db.prepare('DELETE FROM action_items WHERE id = ? AND retro_id = ?')
     .run(req.params.actionId, req.params.id);
 

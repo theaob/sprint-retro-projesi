@@ -139,9 +139,9 @@ function renderBoard(appEl, retro, user) {
   }
 
   if (isFinished) {
-    renderActionPlan(retro);
+    renderActionPlan(retro, isAdminOrOwner);
     document.getElementById('action-filter-select')?.addEventListener('change', () => {
-      renderActionPlan(retro);
+      renderActionPlan(retro, isAdminOrOwner);
     });
   }
 
@@ -172,7 +172,7 @@ function renderBoard(appEl, retro, user) {
     tabsContainer.innerHTML = `
       <div class="board-tabs">
         ${retro.columns.map((col, idx) => `
-          <button class="board-tab ${idx === 0 ? 'active' : ''}" data-col-id="${col.id}" id="board-tab-${col.id}">
+          <button class="board-tab ${idx === 0 ? 'active' : ''}" data-tab-col-id="${col.id}" id="board-tab-${col.id}">
             <span class="tab-name-text">${escapeHtml(col.name)}</span>
             <span class="tab-count" id="tab-count-${col.id}">${col.entries.length}</span>
           </button>
@@ -182,13 +182,15 @@ function renderBoard(appEl, retro, user) {
 
     tabsContainer.querySelectorAll('.board-tab').forEach(tab => {
       tab.addEventListener('click', () => {
-        const colId = tab.dataset.colId;
+        // Tab buttons use data-tab-col-id (not data-col-id) so they can never be
+        // mismatched with the actual .column element in an unscoped query — see 3.0.3.
+        const colId = tab.dataset.tabColId;
         const colEl = document.querySelector(`.column[data-col-id="${colId}"]`);
         if (colEl) {
           // No `behavior: 'smooth'` — combined with the board's CSS scroll-snap-type,
           // Chrome/Safari silently no-op the scroll instead of animating it.
           colEl.scrollIntoView({ block: 'nearest', inline: 'center' });
-          tabsContainer.querySelectorAll('.board-tab').forEach(t => t.classList.remove('active'));
+          tabsContainer.querySelectorAll('.board-tab').forEach(t => { t.classList.remove('active'); });
           tab.classList.add('active');
         }
       });
@@ -219,7 +221,7 @@ function renderBoard(appEl, retro, user) {
       if (closestCol && tabsContainer) {
         const tabEl = document.getElementById(`board-tab-${closestCol}`);
         if (tabEl) {
-          tabsContainer.querySelectorAll('.board-tab').forEach(t => t.classList.remove('active'));
+          tabsContainer.querySelectorAll('.board-tab').forEach(t => { t.classList.remove('active'); });
           tabEl.classList.add('active');
         }
       }
@@ -227,7 +229,7 @@ function renderBoard(appEl, retro, user) {
   });
 
   // ── WebSocket real-time updates ───────────────────────────
-  let wsIndicator = document.getElementById('ws-indicator');
+  const wsIndicator = document.getElementById('ws-indicator');
 
   const socket = createRetroSocket(retro.id, {
     onEntryAdded(entry) {
@@ -281,7 +283,7 @@ function renderBoard(appEl, retro, user) {
         const newCard = createEntryCard(retro.columns.flatMap(c => c.entries).find(e => e.id === actionItem.entry_id), retro.id, voteState, isFinished, retro.action_items, isAdminOrOwner);
         existingCard.replaceWith(newCard);
       }
-      if (isFinished) renderActionPlan(retro);
+      if (isFinished) renderActionPlan(retro, isAdminOrOwner);
     },
     onActionRemoved(actionId, retroId) {
       if (retro.action_items) {
@@ -296,7 +298,7 @@ function renderBoard(appEl, retro, user) {
           existingCard.replaceWith(newCard);
         }
       }
-      if (isFinished) renderActionPlan(retro);
+      if (isFinished) renderActionPlan(retro, isAdminOrOwner);
     },
     onEntryEdited(entry) {
       const textEl = document.querySelector(`#entry-${entry.id} .entry-text`);
@@ -529,74 +531,8 @@ function createEntryCard(entry, retroId, voteState, isFinished, actionItems = []
     }
   });
 
-  // Edit entry
-  const editBtn = card.querySelector('.edit-entry-btn');
-  if (editBtn) {
-    editBtn.addEventListener('click', () => {
-      const textEl = card.querySelector('.entry-text');
-      const currentText = entry.text;
-      const topEl = card.querySelector('.entry-top');
-
-      // Replace with inline edit form
-      topEl.innerHTML = `
-        <input class="input entry-edit-input" type="text" value="${escapeHtml(currentText)}" />
-        <div class="entry-edit-actions">
-          <button class="btn btn-primary btn-icon-sm save-edit-btn" title="Kaydet">✓</button>
-          <button class="btn btn-ghost btn-icon-sm cancel-edit-btn" title="İptal">✕</button>
-        </div>
-      `;
-      const input = topEl.querySelector('.entry-edit-input');
-      input.focus();
-      input.setSelectionRange(input.value.length, input.value.length);
-
-      const save = async () => {
-        const newText = input.value.trim();
-        if (!newText || newText === currentText) {
-          cancel();
-          return;
-        }
-        try {
-          await api.editEntry(retroId, entry.id, newText);
-          entry.text = newText;
-        } catch (err) {
-          showToast(err.message, 'error');
-          cancel();
-        }
-      };
-
-      const cancel = () => {
-        topEl.innerHTML = `
-          <div class="entry-text">${escapeHtml(entry.text)}</div>
-          <div class="entry-manage">
-            <button class="btn btn-ghost btn-icon-sm edit-entry-btn" title="Düzenle">✏️</button>
-            <button class="btn btn-ghost btn-icon-sm delete-entry-btn" title="Sil">🗑️</button>
-          </div>
-        `;
-        // Re-bind edit/delete on the restored buttons
-        bindManageButtons(card, entry, retroId);
-      };
-
-      topEl.querySelector('.save-edit-btn').addEventListener('click', save);
-      topEl.querySelector('.cancel-edit-btn').addEventListener('click', cancel);
-      input.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') save();
-        if (e.key === 'Escape') cancel();
-      });
-    });
-  }
-
-  // Delete entry
-  const deleteBtn = card.querySelector('.delete-entry-btn');
-  if (deleteBtn) {
-    deleteBtn.addEventListener('click', async () => {
-      if (!confirm('Bu girdiyi silmek istediğinize emin misiniz?')) return;
-      try {
-        await api.deleteEntry(retroId, entry.id);
-      } catch (err) {
-        showToast(err.message, 'error');
-      }
-    });
-  }
+  // Edit / delete (also re-bound after a cancelled edit restores these buttons)
+  bindManageButtons(card, entry, retroId);
 
   return card;
 }
@@ -625,6 +561,7 @@ function bindManageButtons(card, entry, retroId) {
         try {
           await api.editEntry(retroId, entry.id, newText);
           entry.text = newText;
+          cancel(); // restore the text view with the saved value
         } catch (err) {
           showToast(err.message, 'error');
           cancel();
@@ -672,10 +609,10 @@ function sortColumnByVotes(colBody) {
     const vB = parseInt(b.querySelector('.vote-count')?.textContent || '0');
     return vB - vA;
   });
-  cards.forEach(card => colBody.appendChild(card));
+  cards.forEach(card => { colBody.appendChild(card); });
 }
 
-function renderActionPlan(retro) {
+function renderActionPlan(retro, isAdminOrOwner) {
   const container = document.getElementById('action-plan-list');
   const filter = document.getElementById('action-filter-select')?.value || 'all';
   if (!container) return;
@@ -692,6 +629,8 @@ function renderActionPlan(retro) {
     return;
   }
 
+  // Adding/removing action items is a Scrum Master (retro owner) / admin responsibility —
+  // guests and other members only see the read-only list.
   container.innerHTML = entries.map(entry => {
     const actions = (retro.action_items || []).filter(a => a.entry_id === entry.id);
     return `
@@ -705,15 +644,17 @@ function renderActionPlan(retro) {
             <div class="action-item">
               <span class="action-content">🎯 ${escapeHtml(a.content)}</span>
               ${a.assignee ? `<span class="action-assignee">@${escapeHtml(a.assignee)}</span>` : ''}
-              <button type="button" class="btn btn-ghost btn-icon-sm del-action-btn" data-action-id="${a.id}" data-entry-id="${entry.id}">✕</button>
+              ${isAdminOrOwner ? `<button type="button" class="btn btn-ghost btn-icon-sm del-action-btn" data-action-id="${a.id}" data-entry-id="${entry.id}">✕</button>` : ''}
             </div>
           `).join('')}
         </div>
+        ${isAdminOrOwner ? `
         <form class="add-action-form" data-entry-id="${entry.id}">
           <input type="text" class="input add-action-input" placeholder="Aksiyon planı..." required />
           <input type="text" class="input add-assignee-input" placeholder="Kişi (opsiyonel)" />
           <button type="submit" class="btn btn-primary btn-sm">Ekle</button>
         </form>
+        ` : ''}
       </div>
     `;
   }).join('');
