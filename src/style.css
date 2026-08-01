@@ -831,6 +831,11 @@ select.input { cursor: pointer; }
 .entry-manage .btn-icon-sm { color: var(--text-muted); }
 .entry-manage .btn-icon-sm:hover { color: var(--text-primary); }
 
+/* Touch devices have no :hover — always show manage controls, not just on hover */
+@media (hover: none) {
+  .entry-manage { opacity: 1; }
+}
+
 .entry-edit-input { flex: 1; min-height: 36px; padding: 6px 10px; font-size: 0.9375rem; }
 .entry-edit-actions { display: flex; gap: 4px; flex-shrink: 0; }
 
@@ -876,6 +881,8 @@ select.input { cursor: pointer; }
   justify-content: center;
   z-index: 1000;
   animation: fadeIn 0.2s ease;
+  padding: 16px;
+  overflow-y: auto;
 }
 
 .modal {
@@ -885,6 +892,8 @@ select.input { cursor: pointer; }
   padding: 32px;
   max-width: 480px;
   width: 90%;
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
   box-shadow: var(--shadow-elevated);
   animation: slideIn 0.3s ease;
 }
@@ -999,11 +1008,11 @@ select.input { cursor: pointer; }
 
 /* ── Mobile Header Nav Updates ────────────────────────────── */
 @media (max-width: 767px) {
-  .header-nav .btn-ghost:not(#back-btn), 
+  .header-nav .btn-ghost:not(#back-btn):not(.theme-toggle),
   .header-nav .nav-separator {
     display: none !important;
   }
-  
+
   #back-btn .back-text {
     display: none;
   }
@@ -1192,4 +1201,14 @@ select.input { cursor: pointer; }
   .retro-actions #finish-retro-btn {
     flex: 1 1 100%;
   }
+}
+
+/* ── Touch Target Sizing ───────────────────────────────────── */
+/* Coarse pointers (touch) need bigger tap targets than mouse-hover UI */
+@media (hover: none) {
+  .btn-icon-sm { width: 34px; height: 34px; min-height: 34px; font-size: 0.9rem; }
+  .btn-icon { width: 40px; height: 40px; min-height: 40px; }
+  .btn-vote { min-height: 40px; padding: 8px 14px; }
+  .toggle-pwd { padding: 10px 12px; margin-right: -12px; }
+  .board-tab { padding: 8px 14px; }
 }
