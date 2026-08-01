@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import rateLimit from 'express-rate-limit';
 import { v4 as uuidv4 } from 'uuid';
 import bcrypt from 'bcryptjs';
 import db from './db.js';
@@ -10,12 +11,43 @@ const router = Router();
 let broadcast = () => {};
 export function setBroadcast(fn) { broadcast = fn; }
 
+const SESSION_LIFETIME_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+
+const skipInTests = () => process.env.NODE_ENV === 'test';
+
+// Generous enough for a genuine forgotten-password retry, tight enough to
+// make brute-forcing a login or mass-creating accounts impractical.
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: skipInTests,
+  message: { error: 'Çok fazla giriş denemesi. Lütfen birkaç dakika sonra tekrar deneyin.' }
+});
+
+const registerLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  limit: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: skipInTests,
+  message: { error: 'Çok fazla kayıt denemesi. Lütfen daha sonra tekrar deneyin.' }
+});
+
+function createSession(userId) {
+  const token = uuidv4();
+  const expiresAt = new Date(Date.now() + SESSION_LIFETIME_MS).toISOString();
+  db.prepare('INSERT INTO sessions (token, user_id, expires_at) VALUES (?, ?, ?)').run(token, userId, expiresAt);
+  return token;
+}
+
 /* ══════════════════════════════════════════════════════════════
    AUTH ROUTES
 ══════════════════════════════════════════════════════════════ */
 
 // POST /api/auth/login
-router.post('/auth/login', (req, res) => {
+router.post('/auth/login', loginLimiter, (req, res) => {
   const { username, password } = req.body;
   if (!username || !password) return res.status(400).json({ error: 'Kullanıcı adı ve şifre gereklidir.' });
 
@@ -24,14 +56,13 @@ router.post('/auth/login', (req, res) => {
     return res.status(401).json({ error: 'Kullanıcı adı veya şifre hatalı.' });
   }
 
-  const token = uuidv4();
-  db.prepare('INSERT INTO sessions (token, user_id) VALUES (?, ?)').run(token, user.id);
+  const token = createSession(user.id);
 
-  res.json({ token, user: { id: user.id, username: user.username, role: user.role } });
+  res.json({ token, user: { id: user.id, username: user.username, role: user.role, must_change_password: !!user.must_change_password } });
 });
 
 // POST /api/auth/register — public
-router.post('/auth/register', (req, res) => {
+router.post('/auth/register', registerLimiter, (req, res) => {
   const { username, password, email } = req.body;
   if (!username || !password) return res.status(400).json({ error: 'Kullanıcı adı ve şifre gereklidir.' });
   if (password.length < 6) return res.status(400).json({ error: 'Şifre en az 6 karakter olmalıdır.' });
@@ -44,10 +75,9 @@ router.post('/auth/register', (req, res) => {
   db.prepare('INSERT INTO users (id, username, password_hash, role, email) VALUES (?, ?, ?, ?, ?)').run(id, username, hash, 'user', email || null);
 
   // Auto-login after registration
-  const token = uuidv4();
-  db.prepare('INSERT INTO sessions (token, user_id) VALUES (?, ?)').run(token, id);
+  const token = createSession(id);
 
-  res.status(201).json({ token, user: { id, username, role: 'user' } });
+  res.status(201).json({ token, user: { id, username, role: 'user', must_change_password: false } });
 });
 
 // POST /api/auth/logout
@@ -107,7 +137,7 @@ router.put('/users/:id/password', requireAuth, (req, res) => {
   if (!password || password.length < 6) return res.status(400).json({ error: 'Şifre en az 6 karakter olmalıdır.' });
 
   const hash = bcrypt.hashSync(password, 10);
-  db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(hash, req.params.id);
+  db.prepare('UPDATE users SET password_hash = ?, must_change_password = 0 WHERE id = ?').run(hash, req.params.id);
   res.json({ success: true });
 });
 
@@ -199,7 +229,16 @@ router.get('/retros/:id', (req, res) => {
     entries: entries.filter(e => e.column_id === col.id)
   }));
 
-  res.json({ ...retro, columns: columnData, action_items: actionItems });
+  // Tell the caller which entries *they* (this authenticated user, or this
+  // anonymous participant_id) have already voted for, so the client no
+  // longer has to trust its own localStorage as the source of truth.
+  const participantId = req.user?.id || req.query.participant_id;
+  const votedEntryIds = participantId
+    ? db.prepare('SELECT entry_id FROM votes WHERE retro_id = ? AND participant_id = ?')
+        .all(req.params.id, participantId).map(v => v.entry_id)
+    : [];
+
+  res.json({ ...retro, columns: columnData, action_items: actionItems, voted_entry_ids: votedEntryIds });
 });
 
 // DELETE /api/retros/:id  — admin or owner only
@@ -297,32 +336,56 @@ router.delete('/retros/:id/entries/:entryId', requireAuth, (req, res) => {
 });
 
 // POST /api/retros/:id/entries/:entryId/vote
+// Enforced server-side against a participant identity: the authenticated
+// user's id if logged in, otherwise a client-generated participant_id
+// (localStorage-persisted) for anonymous guests.
 router.post('/retros/:id/entries/:entryId/vote', (req, res) => {
+  const participantId = req.user?.id || req.body.participant_id;
+  if (!participantId) return res.status(400).json({ error: 'participant_id gereklidir.' });
+
+  const retro = db.prepare('SELECT max_votes FROM retros WHERE id = ?').get(req.params.id);
+  if (!retro) return res.status(404).json({ error: 'Retro bulunamadı.' });
+
   const entry = db.prepare('SELECT * FROM entries WHERE id = ? AND retro_id = ?').get(req.params.entryId, req.params.id);
   if (!entry) return res.status(404).json({ error: 'Girdi bulunamadı.' });
 
-  const result = db.prepare('UPDATE entries SET votes = votes + 1 WHERE id = ? AND retro_id = ?')
-    .run(req.params.entryId, req.params.id);
+  const existingVote = db.prepare('SELECT id FROM votes WHERE retro_id = ? AND entry_id = ? AND participant_id = ?')
+    .get(req.params.id, req.params.entryId, participantId);
+  if (existingVote) return res.status(409).json({ error: 'Bu girdiye zaten oy verdiniz.' });
 
-  if (result.changes === 0) return res.status(404).json({ error: 'Girdi güncellenemedi.' });
+  const votesUsed = db.prepare('SELECT COUNT(*) as count FROM votes WHERE retro_id = ? AND participant_id = ?')
+    .get(req.params.id, participantId).count;
+  const maxVotes = retro.max_votes ?? 3;
+  if (votesUsed >= maxVotes) {
+    return res.status(400).json({ error: 'Tüm oy haklarınızı kullandınız!' });
+  }
 
-  const updatedEntry = db.prepare('SELECT * FROM entries WHERE id = ?').get(req.params.entryId);
+  const updatedEntry = db.transaction(() => {
+    db.prepare('INSERT INTO votes (id, retro_id, entry_id, participant_id) VALUES (?, ?, ?, ?)')
+      .run(uuidv4(), req.params.id, req.params.entryId, participantId);
+    db.prepare('UPDATE entries SET votes = votes + 1 WHERE id = ?').run(req.params.entryId);
+    return db.prepare('SELECT * FROM entries WHERE id = ?').get(req.params.entryId);
+  })();
 
-  // Broadcast
   broadcast(req.params.id, { type: 'entry:voted', entry: updatedEntry });
 
   res.json(updatedEntry);
 });
 
-
 // POST /api/retros/:id/entries/:entryId/unvote
 router.post('/retros/:id/entries/:entryId/unvote', (req, res) => {
-  const result = db.prepare('UPDATE entries SET votes = MAX(0, votes - 1) WHERE id = ? AND retro_id = ?')
-    .run(req.params.entryId, req.params.id);
+  const participantId = req.user?.id || req.body.participant_id;
+  if (!participantId) return res.status(400).json({ error: 'participant_id gereklidir.' });
 
-  if (result.changes === 0) return res.status(404).json({ error: 'Girdi bulunamadı.' });
+  const existingVote = db.prepare('SELECT id FROM votes WHERE retro_id = ? AND entry_id = ? AND participant_id = ?')
+    .get(req.params.id, req.params.entryId, participantId);
+  if (!existingVote) return res.status(404).json({ error: 'Bu girdiye oy vermediniz.' });
 
-  const entry = db.prepare('SELECT * FROM entries WHERE id = ?').get(req.params.entryId);
+  const entry = db.transaction(() => {
+    db.prepare('DELETE FROM votes WHERE id = ?').run(existingVote.id);
+    db.prepare('UPDATE entries SET votes = MAX(0, votes - 1) WHERE id = ?').run(req.params.entryId);
+    return db.prepare('SELECT * FROM entries WHERE id = ?').get(req.params.entryId);
+  })();
 
   // Broadcast using entry:voted so frontend simply updates the count
   broadcast(req.params.id, { type: 'entry:voted', entry });

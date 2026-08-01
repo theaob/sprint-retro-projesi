@@ -1,4 +1,5 @@
 import express from 'express';
+import helmet from 'helmet';
 import cors from 'cors';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -10,7 +11,21 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const app = express();
 
+// Trust the first proxy hop (Docker/reverse-proxy deployments) so
+// express-rate-limit keys on the real client IP, not the proxy's.
+app.set('trust proxy', 1);
+
 // ── Middleware ──────────────────────────────────────────────
+// CSP and COEP are off for now: the UI relies on inline `style="..."`
+// attributes throughout and cross-origin Google Fonts, and a correct policy
+// for those needs its own dedicated pass with full visual verification
+// rather than a default that silently breaks styling. The other protections
+// (X-Frame-Options, X-Content-Type-Options, Referrer-Policy, HSTS, etc.)
+// are still on.
+app.use(helmet({
+  contentSecurityPolicy: false,
+  crossOriginEmbedderPolicy: false
+}));
 app.use(cors());
 app.use(express.json());
 app.use(loadUser);

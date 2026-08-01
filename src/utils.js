@@ -5,6 +5,21 @@ export function escapeHtml(text) {
   return div.innerHTML;
 }
 
+/**
+ * A persistent, anonymous identity for this browser, used so the server can
+ * enforce per-retro vote limits for guests who aren't logged in. Not a
+ * security boundary — clearing localStorage or using another browser gets a
+ * fresh identity — but it closes the "just call the API in a loop" gap.
+ */
+export function getParticipantId() {
+  let id = localStorage.getItem('retro_participant_id');
+  if (!id) {
+    id = crypto.randomUUID();
+    localStorage.setItem('retro_participant_id', id);
+  }
+  return id;
+}
+
 export function showToast(message, type = 'success') {
   const existing = document.querySelector('.toast');
   if (existing) existing.remove();

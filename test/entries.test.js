@@ -21,20 +21,101 @@ describe('entries', () => {
     expect(res.body.votes).toBe(0);
   });
 
-  it('lets a guest vote and unvote with no server-side limit today (tracked for v4.1)', async () => {
+  it('requires a participant_id to vote when not authenticated', async () => {
     const added = await request(app)
       .post(`/api/retros/${retro.id}/entries`)
       .send({ column_id: columnId, text: 'Standups run long' });
+    const res = await request(app).post(`/api/retros/${retro.id}/entries/${added.body.id}/vote`);
+    expect(res.status).toBe(400);
+  });
+
+  it('lets a guest vote and unvote via a persistent participant_id', async () => {
+    const added = await request(app)
+      .post(`/api/retros/${retro.id}/entries`)
+      .send({ column_id: columnId, text: 'Deploys take too long' });
     const entryId = added.body.id;
+    const participantId = 'guest-participant-1';
 
-    await request(app).post(`/api/retros/${retro.id}/entries/${entryId}/vote`);
-    const vote2 = await request(app).post(`/api/retros/${retro.id}/entries/${entryId}/vote`);
-    // No participant identity exists server-side yet, so nothing stops the same
-    // caller voting past max_votes — this is the gap v4.1 closes.
-    expect(vote2.body.votes).toBe(2);
+    const vote = await request(app)
+      .post(`/api/retros/${retro.id}/entries/${entryId}/vote`)
+      .send({ participant_id: participantId });
+    expect(vote.status).toBe(200);
+    expect(vote.body.votes).toBe(1);
 
-    const unvote = await request(app).post(`/api/retros/${retro.id}/entries/${entryId}/unvote`);
-    expect(unvote.body.votes).toBe(1);
+    const unvote = await request(app)
+      .post(`/api/retros/${retro.id}/entries/${entryId}/unvote`)
+      .send({ participant_id: participantId });
+    expect(unvote.status).toBe(200);
+    expect(unvote.body.votes).toBe(0);
+  });
+
+  it('rejects voting for the same entry twice from the same participant', async () => {
+    const added = await request(app)
+      .post(`/api/retros/${retro.id}/entries`)
+      .send({ column_id: columnId, text: 'Double-vote test' });
+    const entryId = added.body.id;
+    const participantId = 'guest-participant-2';
+
+    await request(app).post(`/api/retros/${retro.id}/entries/${entryId}/vote`).send({ participant_id: participantId });
+    const second = await request(app)
+      .post(`/api/retros/${retro.id}/entries/${entryId}/vote`)
+      .send({ participant_id: participantId });
+    expect(second.status).toBe(409);
+  });
+
+  it('enforces max_votes per participant across the whole retro', async () => {
+    const limited = await createRetro(owner, 'Vote Limit Retro', ['Only Column']);
+    const fetched = await request(app).get(`/api/retros/${limited.id}`);
+    const colId = fetched.body.columns[0].id;
+    const participantId = 'guest-participant-3';
+
+    // retro's max_votes defaults to 3 via createRetro's helper
+    const entryIds = [];
+    for (let i = 0; i < 4; i++) {
+      const added = await request(app)
+        .post(`/api/retros/${limited.id}/entries`)
+        .send({ column_id: colId, text: `Entry ${i}` });
+      entryIds.push(added.body.id);
+    }
+
+    for (let i = 0; i < 3; i++) {
+      const res = await request(app)
+        .post(`/api/retros/${limited.id}/entries/${entryIds[i]}/vote`)
+        .send({ participant_id: participantId });
+      expect(res.status).toBe(200);
+    }
+
+    const fourth = await request(app)
+      .post(`/api/retros/${limited.id}/entries/${entryIds[3]}/vote`)
+      .send({ participant_id: participantId });
+    expect(fourth.status).toBe(400);
+  });
+
+  it('reports voted_entry_ids for the requesting participant on GET', async () => {
+    const added = await request(app)
+      .post(`/api/retros/${retro.id}/entries`)
+      .send({ column_id: columnId, text: 'Voted-entries reporting test' });
+    const entryId = added.body.id;
+    const participantId = 'guest-participant-4';
+
+    await request(app).post(`/api/retros/${retro.id}/entries/${entryId}/vote`).send({ participant_id: participantId });
+
+    const withId = await request(app).get(`/api/retros/${retro.id}?participant_id=${participantId}`);
+    expect(withId.body.voted_entry_ids).toContain(entryId);
+
+    const withoutId = await request(app).get(`/api/retros/${retro.id}`);
+    expect(withoutId.body.voted_entry_ids).toEqual([]);
+  });
+
+  it('lets an authenticated user vote using their own identity, no participant_id needed', async () => {
+    const added = await request(app)
+      .post(`/api/retros/${retro.id}/entries`)
+      .send({ column_id: columnId, text: 'Logged-in voter test' });
+    const res = await request(app)
+      .post(`/api/retros/${retro.id}/entries/${added.body.id}/vote`)
+      .set('Authorization', `Bearer ${outsider.token}`);
+    expect(res.status).toBe(200);
+    expect(res.body.votes).toBe(1);
   });
 
   it('blocks a non-owner, non-admin from editing or deleting an entry', async () => {

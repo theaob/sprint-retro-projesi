@@ -1,6 +1,61 @@
 import { api } from '../api.js';
 
 /**
+ * Blocking password-change prompt for an account still sitting on a
+ * server-assigned default password (e.g. the seeded admin/admin account).
+ * No dismiss/cancel — the account can't be used until this is done.
+ */
+function showForcedPasswordChangeModal(appEl, token, user) {
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.innerHTML = `
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="force-pwd-title">
+      <h3 id="force-pwd-title">🔒 Şifrenizi Değiştirin</h3>
+      <p class="modal-subtitle">Hesabınız varsayılan bir şifre kullanıyor. Devam etmeden önce yeni bir şifre belirleyin.</p>
+      <div class="form-group">
+        <label for="force-pwd-input">Yeni Şifre</label>
+        <input class="input" type="password" id="force-pwd-input" placeholder="En az 6 karakter" autocomplete="new-password" />
+      </div>
+      <div class="login-error" id="force-pwd-error"></div>
+      <div class="modal-actions">
+        <button class="btn btn-primary btn-full" id="force-pwd-save-btn">Şifreyi Değiştir ve Devam Et</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  const input = document.getElementById('force-pwd-input');
+  const errorEl = document.getElementById('force-pwd-error');
+  const saveBtn = document.getElementById('force-pwd-save-btn');
+  input.focus();
+
+  const submit = async () => {
+    const newPassword = input.value;
+    if (!newPassword || newPassword.length < 6) {
+      errorEl.textContent = 'Şifre en az 6 karakter olmalıdır.';
+      return;
+    }
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Kaydediliyor…';
+    try {
+      await api.changePassword(user.id, newPassword);
+      api.saveSession(token, { ...user, must_change_password: false });
+      overlay.remove();
+      window.location.hash = '#/';
+    } catch (err) {
+      errorEl.textContent = err.message;
+      saveBtn.disabled = false;
+      saveBtn.textContent = 'Şifreyi Değiştir ve Devam Et';
+    }
+  };
+
+  saveBtn.addEventListener('click', submit);
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') submit();
+  });
+}
+
+/**
  * Login page — #/login
  */
 export function renderLogin(appEl) {
@@ -104,12 +159,17 @@ export function renderLogin(appEl) {
       btn.textContent = isRegistering ? 'Hesap oluşturuluyor…' : 'Giriş yapılıyor…';
 
       try {
-        const { token, user } = isRegistering 
+        const { token, user } = isRegistering
           ? await api.register(username, password)
           : await api.login(username, password);
-          
+
         api.saveSession(token, user);
-        window.location.hash = '#/';
+
+        if (user.must_change_password) {
+          showForcedPasswordChangeModal(appEl, token, user);
+        } else {
+          window.location.hash = '#/';
+        }
       } catch (err) {
         errorEl.textContent = err.message;
         btn.disabled = false;

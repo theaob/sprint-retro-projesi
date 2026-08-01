@@ -1,3 +1,5 @@
+import { getParticipantId } from './utils.js';
+
 const BASE = '/api';
 
 function getToken() {
@@ -55,7 +57,7 @@ export const api = {
   createRetro: (title, columns, maxVotes) => request('/retros', {
     method: 'POST', body: JSON.stringify({ title, columns, max_votes: maxVotes })
   }),
-  getRetro: (id) => request(`/retros/${id}`),
+  getRetro: (id) => request(`/retros/${id}?participant_id=${getParticipantId()}`),
   deleteRetro: (id) => request(`/retros/${id}`, { method: 'DELETE' }),
 
   // Columns
@@ -75,10 +77,10 @@ export const api = {
     method: 'DELETE'
   }),
   voteEntry: (retroId, entryId) => request(`/retros/${retroId}/entries/${entryId}/vote`, {
-    method: 'POST'
+    method: 'POST', body: JSON.stringify({ participant_id: getParticipantId() })
   }),
   unvoteEntry: (retroId, entryId) => request(`/retros/${retroId}/entries/${entryId}/unvote`, {
-    method: 'POST'
+    method: 'POST', body: JSON.stringify({ participant_id: getParticipantId() })
   }),
 
   // Actions & Status

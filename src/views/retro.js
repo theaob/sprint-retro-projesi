@@ -62,19 +62,11 @@ function renderBoard(appEl, retro, user) {
     ? `${window.location.origin}/s/${retro.short_code}`
     : `${window.location.origin}${window.location.pathname}#/retro/${retro.id}`;
 
-  let votedArray = [];
-  try {
-    const stored = localStorage.getItem(`retro_${retro.id}_votes_spent`);
-    if (stored) {
-      const parsed = JSON.parse(stored);
-      if (Array.isArray(parsed)) votedArray = parsed;
-    }
-  } catch (e) {
-    localStorage.removeItem(`retro_${retro.id}_votes_spent`);
-  }
-
+  // The server is the source of truth for who voted for what — see
+  // voted_entry_ids on GET /retros/:id. Vote limits are enforced there too;
+  // this local mirror is just for instant UI state, not the actual limit.
   const voteState = {
-    votedEntryIds: votedArray,
+    votedEntryIds: [...(retro.voted_entry_ids || [])],
     get spent() { return this.votedEntryIds.length; },
     max: retro.max_votes !== undefined ? retro.max_votes : 3
   };
@@ -511,7 +503,6 @@ function createEntryCard(entry, retroId, voteState, isFinished, actionItems = []
       }
       
       if (voteState) {
-        localStorage.setItem(`retro_${retroId}_votes_spent`, JSON.stringify(voteState.votedEntryIds));
         const limitBadge = document.getElementById('vote-limit-badge');
         if (limitBadge) {
            limitBadge.textContent = `Kalan Oy Hakkı: ${Math.max(0, voteState.max - voteState.spent)}`;

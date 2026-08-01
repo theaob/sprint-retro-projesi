@@ -54,12 +54,14 @@ db.exec(`
     username TEXT UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
     role TEXT NOT NULL DEFAULT 'user',
+    must_change_password INTEGER DEFAULT 0,
     created_at TEXT DEFAULT (datetime('now'))
   );
 
   CREATE TABLE IF NOT EXISTS sessions (
     token TEXT PRIMARY KEY,
     user_id TEXT REFERENCES users(id) ON DELETE CASCADE,
+    expires_at TEXT,
     created_at TEXT DEFAULT (datetime('now'))
   );
 
@@ -71,15 +73,24 @@ db.exec(`
     assignee TEXT,
     created_at TEXT DEFAULT (datetime('now'))
   );
+
+  CREATE TABLE IF NOT EXISTS votes (
+    id TEXT PRIMARY KEY,
+    retro_id TEXT REFERENCES retros(id) ON DELETE CASCADE,
+    entry_id TEXT REFERENCES entries(id) ON DELETE CASCADE,
+    participant_id TEXT NOT NULL,
+    created_at TEXT DEFAULT (datetime('now'))
+  );
+  CREATE UNIQUE INDEX IF NOT EXISTS idx_votes_unique ON votes(retro_id, entry_id, participant_id);
 `);
 
 // Seed default admin if none exists
 const adminExists = db.prepare("SELECT id FROM users WHERE role = 'admin' LIMIT 1").get();
 if (!adminExists) {
   const hash = bcrypt.hashSync('admin', 10);
-  db.prepare('INSERT INTO users (id, username, password_hash, role) VALUES (?, ?, ?, ?)')
+  db.prepare('INSERT INTO users (id, username, password_hash, role, must_change_password) VALUES (?, ?, ?, ?, 1)')
     .run(uuidv4(), 'admin', hash, 'admin');
-  console.log('✅ Default admin created: admin / admin');
+  console.log('✅ Default admin created: admin / admin (must change password on first login)');
 }
 
 // Migration: add columns safely
@@ -146,6 +157,52 @@ try {
   db.exec('CREATE UNIQUE INDEX IF NOT EXISTS idx_retros_short_code ON retros(short_code);');
 } catch (err) {
   console.error('Migration error (short_code):', err);
+}
+
+// Migration: add must_change_password to users, and retroactively flag any
+// admin account still sitting on the literal seeded 'admin' password —
+// not just freshly-created ones.
+try {
+  const usersInfo = db.pragma('table_info(users)');
+  if (!usersInfo.some((col) => col.name === 'must_change_password')) {
+    db.exec('ALTER TABLE users ADD COLUMN must_change_password INTEGER DEFAULT 0;');
+    console.log('✅ Migration applied: added must_change_password to users table.');
+  }
+
+  const admins = db.prepare("SELECT id, password_hash FROM users WHERE role = 'admin'").all();
+  const flagStmt = db.prepare('UPDATE users SET must_change_password = 1 WHERE id = ?');
+  let flagged = 0;
+  for (const admin of admins) {
+    if (bcrypt.compareSync('admin', admin.password_hash)) {
+      flagStmt.run(admin.id);
+      flagged++;
+    }
+  }
+  if (flagged > 0) {
+    console.log(`✅ Flagged ${flagged} admin account(s) still on the default password for a forced change.`);
+  }
+} catch (err) {
+  console.error('Migration error (must_change_password):', err);
+}
+
+// Migration: add expires_at to sessions, backfilling existing (previously
+// eternal) sessions to a 30-day grace window instead of leaving them
+// unexpiring forever or invalidating everyone immediately.
+try {
+  const sessionsInfo = db.pragma('table_info(sessions)');
+  if (!sessionsInfo.some((col) => col.name === 'expires_at')) {
+    db.exec('ALTER TABLE sessions ADD COLUMN expires_at TEXT;');
+    console.log('✅ Migration applied: added expires_at to sessions table.');
+  }
+
+  const thirtyDaysFromNow = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+  const backfilled = db.prepare('UPDATE sessions SET expires_at = ? WHERE expires_at IS NULL')
+    .run(thirtyDaysFromNow);
+  if (backfilled.changes > 0) {
+    console.log(`✅ Backfilled expires_at for ${backfilled.changes} existing session(s).`);
+  }
+} catch (err) {
+  console.error('Migration error (expires_at):', err);
 }
 
 export default db;
