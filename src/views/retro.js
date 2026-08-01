@@ -183,7 +183,7 @@ function renderBoard(appEl, retro, user) {
     tabsContainer.querySelectorAll('.board-tab').forEach(tab => {
       tab.addEventListener('click', () => {
         const colId = tab.dataset.colId;
-        const colEl = document.querySelector(`[data-col-id="${colId}"]`);
+        const colEl = document.querySelector(`.column[data-col-id="${colId}"]`);
         if (colEl) {
           colEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
           tabsContainer.querySelectorAll('.board-tab').forEach(t => t.classList.remove('active'));
@@ -203,7 +203,7 @@ function renderBoard(appEl, retro, user) {
       let closestCol = null;
       let minDistance = Infinity;
       retro.columns.forEach(col => {
-        const colEl = document.querySelector(`[data-col-id="${col.id}"]`);
+        const colEl = document.querySelector(`.column[data-col-id="${col.id}"]`);
         if (colEl) {
           const rect = colEl.getBoundingClientRect();
           const colCenter = rect.left + rect.width / 2;
@@ -238,7 +238,7 @@ function renderBoard(appEl, retro, user) {
           sortColumnByVotes(bodyEl);
 
           // Flash the column
-          const colEl = document.querySelector(`[data-col-id="${entry.column_id}"]`);
+          const colEl = document.querySelector(`.column[data-col-id="${entry.column_id}"]`);
           colEl?.classList.add('col-flash');
           setTimeout(() => colEl?.classList.remove('col-flash'), 600);
         }
