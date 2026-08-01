@@ -185,7 +185,9 @@ function renderBoard(appEl, retro, user) {
         const colId = tab.dataset.colId;
         const colEl = document.querySelector(`.column[data-col-id="${colId}"]`);
         if (colEl) {
-          colEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+          // No `behavior: 'smooth'` — combined with the board's CSS scroll-snap-type,
+          // Chrome/Safari silently no-op the scroll instead of animating it.
+          colEl.scrollIntoView({ block: 'nearest', inline: 'center' });
           tabsContainer.querySelectorAll('.board-tab').forEach(t => t.classList.remove('active'));
           tab.classList.add('active');
         }
