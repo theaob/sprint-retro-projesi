@@ -1,5 +1,5 @@
 import { api } from '../api.js';
-import { escapeHtml, showToast, bindThemeEvents, renderAppHeader, renderMobileNav, bindLogoutEvents } from '../utils.js';
+import { escapeHtml, showToast, bindThemeEvents, renderSidebarNav, renderMobileTopbar, renderMobileNav, bindLogoutEvents } from '../utils.js';
 import { shouldShowWhatsNew, showWhatsNewModal } from '../whatsNew.js';
 
 function createColumnInputRow(value = '') {
@@ -38,65 +38,72 @@ export async function renderAdmin(appEl) {
   const user = api.getUser();
 
   appEl.innerHTML = `
-    ${renderAppHeader(user, 'retros')}
-    <main class="admin-page container">
-      <div class="page-header">
-        <div>
-          <h1>Retro Yönetimi</h1>
-          <p class="subtitle">Sprint retrospektif toplantılarınızı oluşturun ve yönetin.</p>
-        </div>
-        <button class="btn btn-primary" id="toggle-create-btn">✨ Yeni Retro Oluştur</button>
-      </div>
-
-      <div class="glass-card create-section hidden" id="create-section">
-        <h2>✨ Yeni Retro Oluştur</h2>
-        <form class="create-form" id="create-form">
-          <div class="form-group">
-            <label for="retro-title">Retro Başlığı</label>
-            <input class="input" type="text" id="retro-title" placeholder="Örn: Sprint 14 Retro" required />
-          </div>
-          <div class="form-group">
-            <label for="retro-team">Takım</label>
-            <select class="input" id="retro-team" required></select>
-          </div>
-          <div class="form-group">
-            <label for="retro-max-votes">Kişi Başı Oy Hakkı</label>
-            <input class="input" type="number" id="retro-max-votes" value="3" min="1" max="20" required />
-          </div>
-          <div class="form-group">
-            <div class="template-label-row">
-              <label>Şablon Seç</label>
-              ${user?.role === 'admin' ? `<button type="button" class="btn btn-ghost btn-sm" id="manage-templates-btn">🗂️ Şablonları Yönet</button>` : ''}
+    <div class="app-shell">
+      ${renderSidebarNav(user, 'retros')}
+      <div class="app-main">
+        ${renderMobileTopbar()}
+        <main class="admin-page container">
+          <div class="page-header">
+            <div>
+              <h1>Retro Yönetimi</h1>
+              <p class="subtitle">Sprint retrospektif toplantılarınızı oluşturun ve yönetin.</p>
             </div>
-            <div class="template-options" id="template-options"></div>
+            <button class="btn btn-primary" id="toggle-create-btn">✨ Yeni Retro Oluştur</button>
           </div>
-          <div class="form-group">
-            <label>Sütunlar</label>
-            <div class="columns-input-list" id="columns-list">
-              <div class="column-input-row">
-                <input class="input column-name-input" type="text" value="İyi Giden" placeholder="Sütun adı" required />
-                <button type="button" class="btn btn-ghost btn-icon remove-col-btn" title="Kaldır">✕</button>
-              </div>
-              <div class="column-input-row">
-                <input class="input column-name-input" type="text" value="Geliştirilmeli" placeholder="Sütun adı" required />
-                <button type="button" class="btn btn-ghost btn-icon remove-col-btn" title="Kaldır">✕</button>
-              </div>
-              <div class="column-input-row">
-                <input class="input column-name-input" type="text" value="Aksiyon" placeholder="Sütun adı" required />
-                <button type="button" class="btn btn-ghost btn-icon remove-col-btn" title="Kaldır">✕</button>
-              </div>
-            </div>
-            <button type="button" class="btn btn-ghost btn-sm add-column-btn" id="add-column-btn">+ Sütun Ekle</button>
-          </div>
-          <button type="submit" class="btn btn-primary" id="create-retro-btn">🚀 Retro Oluştur</button>
-        </form>
-      </div>
 
-      <h2>📋 Geçmiş Retrolar</h2>
-      <div id="retro-list-container">
-        <div class="spinner" id="retro-spinner"></div>
+          <div class="stats-grid" id="stats-grid"></div>
+
+          <div class="glass-card create-section hidden" id="create-section">
+            <h2>✨ Yeni Retro Oluştur</h2>
+            <form class="create-form" id="create-form">
+              <div class="form-group">
+                <label for="retro-title">Retro Başlığı</label>
+                <input class="input" type="text" id="retro-title" placeholder="Örn: Sprint 14 Retro" required />
+              </div>
+              <div class="form-group">
+                <label for="retro-team">Takım</label>
+                <select class="input" id="retro-team" required></select>
+              </div>
+              <div class="form-group">
+                <label for="retro-max-votes">Kişi Başı Oy Hakkı</label>
+                <input class="input" type="number" id="retro-max-votes" value="3" min="1" max="20" required />
+              </div>
+              <div class="form-group">
+                <div class="template-label-row">
+                  <label>Şablon Seç</label>
+                  ${user?.role === 'admin' ? `<button type="button" class="btn btn-ghost btn-sm" id="manage-templates-btn">🗂️ Şablonları Yönet</button>` : ''}
+                </div>
+                <div class="template-options" id="template-options"></div>
+              </div>
+              <div class="form-group">
+                <label>Sütunlar</label>
+                <div class="columns-input-list" id="columns-list">
+                  <div class="column-input-row">
+                    <input class="input column-name-input" type="text" value="İyi Giden" placeholder="Sütun adı" required />
+                    <button type="button" class="btn btn-ghost btn-icon remove-col-btn" title="Kaldır">✕</button>
+                  </div>
+                  <div class="column-input-row">
+                    <input class="input column-name-input" type="text" value="Geliştirilmeli" placeholder="Sütun adı" required />
+                    <button type="button" class="btn btn-ghost btn-icon remove-col-btn" title="Kaldır">✕</button>
+                  </div>
+                  <div class="column-input-row">
+                    <input class="input column-name-input" type="text" value="Aksiyon" placeholder="Sütun adı" required />
+                    <button type="button" class="btn btn-ghost btn-icon remove-col-btn" title="Kaldır">✕</button>
+                  </div>
+                </div>
+                <button type="button" class="btn btn-ghost btn-sm add-column-btn" id="add-column-btn">+ Sütun Ekle</button>
+              </div>
+              <button type="submit" class="btn btn-primary" id="create-retro-btn">🚀 Retro Oluştur</button>
+            </form>
+          </div>
+
+          <h2>📋 Geçmiş Retrolar</h2>
+          <div id="retro-list-container">
+            <div class="spinner" id="retro-spinner"></div>
+          </div>
+        </main>
       </div>
-    </main>
+    </div>
     ${renderMobileNav(user, 'retros')}
   `;
 
@@ -154,8 +161,10 @@ export async function renderAdmin(appEl) {
   });
 
   const teamSelect = document.getElementById('retro-team');
+  let teamCount = 0;
   try {
     const teams = await api.listTeams();
+    teamCount = teams.length;
     teamSelect.innerHTML = teams.length > 0
       ? teams.map(t => `<option value="${t.id}">${escapeHtml(t.name)}</option>`).join('')
       : '<option value="" disabled selected>Önce bir takım oluşturun (Kullanıcılar sayfası)</option>';
@@ -202,13 +211,35 @@ export async function renderAdmin(appEl) {
     }
   });
 
-  await loadRetroList();
+  await loadDashboard(teamCount);
 }
 
-async function loadRetroList() {
+function renderStatCards(retros, openActionsCount, teamCount) {
+  const statsEl = document.getElementById('stats-grid');
+  const finishedCount = retros.filter(r => r.status === 'finished').length;
+  const stats = [
+    { value: retros.length, label: 'Toplam Retro' },
+    { value: openActionsCount, label: 'Açık Aksiyon' },
+    { value: finishedCount, label: 'Tamamlanan' },
+    { value: teamCount, label: 'Takım Sayısı' }
+  ];
+  statsEl.innerHTML = stats.map(s => `
+    <div class="stat-card">
+      <div class="stat-card-value">${s.value}</div>
+      <div class="stat-card-label">${s.label}</div>
+    </div>
+  `).join('');
+}
+
+async function loadDashboard(teamCount) {
   const container = document.getElementById('retro-list-container');
   try {
-    const retros = await api.listRetros();
+    const [retros, openActions] = await Promise.all([
+      api.listRetros(),
+      api.listOpenActionItems().catch(() => [])
+    ]);
+
+    renderStatCards(retros, openActions.length, teamCount);
 
     if (retros.length === 0) {
       container.innerHTML = `
@@ -220,61 +251,69 @@ async function loadRetroList() {
       return;
     }
 
-    container.innerHTML = `<div class="retro-list" id="retro-list"></div>`;
-    const listEl = document.getElementById('retro-list');
+    container.innerHTML = `
+      <div class="users-table-wrap">
+        <table class="users-table" id="retro-table">
+          <thead>
+            <tr>
+              <th>Başlık</th>
+              <th>Takım</th>
+              <th>Tarih</th>
+              <th>Aksiyon</th>
+              <th>Durum</th>
+              <th>İşlemler</th>
+            </tr>
+          </thead>
+          <tbody id="retro-tbody"></tbody>
+        </table>
+      </div>
+    `;
+    const tbody = document.getElementById('retro-tbody');
 
     retros.forEach(retro => {
       const date = new Date(`${retro.created_at}Z`);
-      const dateStr = date.toLocaleDateString('tr-TR', {
-        year: 'numeric', month: 'long', day: 'numeric',
-        hour: '2-digit', minute: '2-digit'
-      });
+      const dateStr = date.toLocaleDateString('tr-TR', { year: 'numeric', month: 'short', day: 'numeric' });
 
       const shareLink = retro.short_code
         ? `${window.location.origin}/s/${retro.short_code}`
         : `${window.location.origin}${window.location.pathname}#/retro/${retro.id}`;
 
-      const item = document.createElement('div');
-      item.className = 'glass-card retro-item';
-      item.innerHTML = `
-        <div class="retro-item-header">
-          <div>
-            <div class="retro-item-title">${escapeHtml(retro.title)}</div>
-            <div class="retro-item-date">${dateStr}</div>
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td data-label="Başlık"><a href="#/retro/${retro.id}" class="retro-table-title">${escapeHtml(retro.title)}</a></td>
+        <td data-label="Takım" class="muted">${retro.team ? escapeHtml(retro.team) : '<span style="opacity:0.4">—</span>'}</td>
+        <td data-label="Tarih" class="muted">${dateStr}</td>
+        <td data-label="Aksiyon">${retro.open_actions > 0 ? `<span class="badge badge-team">${retro.open_actions} açık</span>` : '<span class="muted">—</span>'}</td>
+        <td data-label="Durum"><span class="badge ${retro.status === 'finished' ? 'badge-self' : 'badge-admin'}">${retro.status === 'finished' ? 'Bitti' : 'Aktif'}</span></td>
+        <td data-label="İşlemler">
+          <div class="user-actions">
+            <button class="btn btn-ghost btn-sm copy-link-btn" data-link="${shareLink}">📋 Kopyala</button>
+            <button class="btn btn-danger btn-sm delete-btn" data-id="${retro.id}" title="Sil">🗑️</button>
           </div>
-          <button class="btn btn-danger btn-sm delete-btn" data-id="${retro.id}" title="Sil">🗑️</button>
-        </div>
-        <div class="retro-item-link">
-          <span class="retro-link-text">${shareLink}</span>
-          <button class="btn btn-ghost btn-sm copy-link-btn" data-id="${retro.id}">📋 Kopyala</button>
-        </div>
+        </td>
       `;
+      tbody.appendChild(tr);
+    });
 
-      item.addEventListener('click', (e) => {
-        if (e.target.closest('.delete-btn') || e.target.closest('.copy-link-btn')) return;
-        window.location.hash = `#/retro/${retro.id}`;
-      });
-
-      item.querySelector('.delete-btn').addEventListener('click', async (e) => {
-        e.stopPropagation();
-        if (confirm(`"${retro.title}" retrosunu silmek istediğinize emin misiniz?`)) {
-          try {
-            await api.deleteRetro(retro.id);
-            showToast('Retro silindi.', 'success');
-            item.remove();
-          } catch (err) {
-            showToast(err.message, 'error');
-          }
+    tbody.querySelectorAll('.delete-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const retro = retros.find(r => r.id === btn.dataset.id);
+        if (!confirm(`"${retro.title}" retrosunu silmek istediğinize emin misiniz?`)) return;
+        try {
+          await api.deleteRetro(btn.dataset.id);
+          showToast('Retro silindi.', 'success');
+          btn.closest('tr').remove();
+        } catch (err) {
+          showToast(err.message, 'error');
         }
       });
+    });
 
-      item.querySelector('.copy-link-btn').addEventListener('click', (e) => {
-        e.stopPropagation();
-        navigator.clipboard.writeText(shareLink);
+    tbody.querySelectorAll('.copy-link-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        navigator.clipboard.writeText(btn.dataset.link);
         showToast('Bağlantı kopyalandı! 📋', 'success');
       });
-
-      listEl.appendChild(item);
     });
   } catch (err) {
     container.innerHTML = `<p class="error-text">Retrolar yüklenirken hata: ${err.message}</p>`;

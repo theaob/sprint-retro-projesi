@@ -99,4 +99,29 @@ describe('retros', () => {
       .set('Authorization', `Bearer ${owner.token}`);
     expect(allowed.status).toBe(200);
   });
+
+  it('annotates each retro in the list with its team name and open action-item count', async () => {
+    const team = await request(app).post('/api/teams').set('Authorization', `Bearer ${admin.token}`).send({ name: 'Retros List Test Team' });
+    const retro = await createRetro(owner, 'Stat Card Test Retro', ['A'], team.body.id);
+
+    const fetched = await request(app).get(`/api/retros/${retro.id}`);
+    const entry = await request(app).post(`/api/retros/${retro.id}/entries`).send({ column_id: fetched.body.columns[0].id, text: 'note' });
+    await request(app)
+      .post(`/api/retros/${retro.id}/entries/${entry.body.id}/actions`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .send({ content: 'Open one' });
+    const doneAction = await request(app)
+      .post(`/api/retros/${retro.id}/entries/${entry.body.id}/actions`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .send({ content: 'Done one' });
+    await request(app)
+      .put(`/api/retros/${retro.id}/actions/${doneAction.body.id}`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .send({ done: true });
+
+    const list = await request(app).get('/api/retros').set('Authorization', `Bearer ${admin.token}`);
+    const inList = list.body.find(r => r.id === retro.id);
+    expect(inList.team).toBe('Retros List Test Team');
+    expect(inList.open_actions).toBe(1);
+  });
 });

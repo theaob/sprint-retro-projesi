@@ -50,26 +50,27 @@ export function applyTheme() {
   THEMES.forEach(t => { root.classList.remove(`theme-${t}`); });
   root.classList.add(`theme-${theme}`);
 
-  // Update any toggle buttons on the page
-  const toggleBtn = document.getElementById('theme-toggle-btn');
-  if (toggleBtn) {
+  // Update any toggle buttons on the page — a page can legitimately render
+  // more than one (e.g. the admin sidebar's + the mobile top bar's, only
+  // one of which is visible at a given viewport width), so this updates
+  // every match rather than assuming a single unique id.
+  document.querySelectorAll('[data-theme-toggle]').forEach(toggleBtn => {
     toggleBtn.textContent = theme === 'midnight' ? '☀️' : '🌙';
     toggleBtn.title = theme === 'midnight' ? 'Açık Tema' : 'Koyu Tema';
-  }
+  });
 }
 
 export function renderThemeToggle() {
   const current = getTheme();
-  return `<button class="btn btn-ghost btn-icon theme-toggle" id="theme-toggle-btn" title="${current === 'midnight' ? 'Açık Tema' : 'Koyu Tema'}">${current === 'midnight' ? '☀️' : '🌙'}</button>`;
+  return `<button class="btn btn-ghost btn-icon theme-toggle" data-theme-toggle title="${current === 'midnight' ? 'Açık Tema' : 'Koyu Tema'}">${current === 'midnight' ? '☀️' : '🌙'}</button>`;
 }
 
 export function bindThemeEvents() {
-  const btn = document.getElementById('theme-toggle-btn');
-  if (!btn) return;
-
-  btn.addEventListener('click', () => {
-    const next = getTheme() === 'midnight' ? 'daylight' : 'midnight';
-    setTheme(next);
+  document.querySelectorAll('[data-theme-toggle]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const next = getTheme() === 'midnight' ? 'daylight' : 'midnight';
+      setTheme(next);
+    });
   });
 }
 
@@ -78,33 +79,49 @@ export function bindThemeEvents() {
    link lists can't drift out of sync with each other. */
 
 const NAV_ITEMS = [
-  { key: 'retros', href: '#/', icon: '📋', label: 'Retrolar', adminOnly: false },
+  { key: 'retros', href: '#/app', icon: '📋', label: 'Retrolar', adminOnly: false },
   { key: 'actions', href: '#/actions', icon: '✅', label: 'Açık Aksiyonlar', adminOnly: false },
   { key: 'users', href: '#/users', icon: '👥', label: 'Kullanıcılar', adminOnly: true }
 ];
 
-export function renderAppHeader(user, active) {
+/**
+ * Sidebar replaces the top header-account cluster (theme toggle, logout)
+ * for admin-area pages, but it's desktop-only (see .sidebar-nav's media
+ * query) — without this, mobile visitors would have no way to reach
+ * either control, since the bottom mobile-nav-bar only carries page
+ * links + logout, not theme.
+ */
+export function renderMobileTopbar() {
+  return `
+    <div class="mobile-topbar">
+      <div class="mobile-topbar-brand">◆ Sprint Retro</div>
+      ${renderThemeToggle()}
+    </div>
+  `;
+}
+
+export function renderSidebarNav(user, active) {
   const items = NAV_ITEMS.filter(item => !item.adminOnly || user?.role === 'admin');
   const links = items.map(item =>
-    `<a href="${item.href}" class="btn btn-ghost btn-sm${active === item.key ? ' active-nav' : ''}">${item.icon} ${item.label}</a>`
+    `<a href="${item.href}" class="sidebar-nav-item${active === item.key ? ' active' : ''}">${item.icon} ${item.label}</a>`
   ).join('');
 
   return `
-    <header class="app-header">
-      <div class="container">
-        <nav class="header-nav-links">
-          ${links}
-        </nav>
-        <div class="header-account">
-          <div class="user-chip">
-            <span class="user-chip-avatar">${user?.username?.[0]?.toUpperCase() || '?'}</span>
-            <span>${escapeHtml(user?.username || '')}</span>
-          </div>
+    <aside class="sidebar-nav">
+      <div class="sidebar-brand">◆ Sprint Retro</div>
+      <nav class="sidebar-nav-links">${links}</nav>
+      <div class="sidebar-account">
+        <div class="sidebar-user-avatar">${user?.username?.[0]?.toUpperCase() || '?'}</div>
+        <div>
+          <div class="sidebar-user-name">${escapeHtml(user?.username || '')}</div>
+          <div class="sidebar-user-role">${user?.role === 'admin' ? 'Admin' : 'Kullanıcı'}</div>
+        </div>
+        <div class="sidebar-account-actions">
           ${renderThemeToggle()}
-          <button class="btn btn-ghost btn-sm" id="logout-btn">Çıkış</button>
+          <button id="logout-btn" title="Çıkış">🚪</button>
         </div>
       </div>
-    </header>
+    </aside>
   `;
 }
 

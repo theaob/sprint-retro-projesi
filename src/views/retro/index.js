@@ -31,7 +31,7 @@ export async function renderRetro(appEl, retroId) {
         </nav>
         <div class="header-account">
           ${renderThemeToggle()}
-          ${user ? `<a href="#/" class="btn btn-ghost btn-sm" id="back-btn">←<span class="back-text"> Geri</span></a>` : ''}
+          ${user ? `<a href="#/app" class="btn btn-ghost btn-sm" id="back-btn">←<span class="back-text"> Geri</span></a>` : ''}
         </div>
       </div>
     </header>
@@ -66,7 +66,7 @@ export async function renderRetro(appEl, retroId) {
       <div class="empty-state">
         <div class="empty-state-icon">😕</div>
         <p class="empty-state-text">Retro bulunamadı veya bir hata oluştu.</p>
-        <a href="#/" class="btn btn-primary btn-sm">← Ana Sayfaya Dön</a>
+        <a href="${user ? '#/app' : '#/'}" class="btn btn-primary btn-sm">← Ana Sayfaya Dön</a>
       </div>
     `;
   }

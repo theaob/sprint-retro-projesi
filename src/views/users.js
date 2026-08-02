@@ -1,5 +1,5 @@
 import { api } from '../api.js';
-import { escapeHtml, showToast, bindThemeEvents, renderAppHeader, renderMobileNav, bindLogoutEvents } from '../utils.js';
+import { escapeHtml, showToast, bindThemeEvents, renderSidebarNav, renderMobileTopbar, renderMobileNav, bindLogoutEvents } from '../utils.js';
 
 function teamOptionsHtml(teams, selectedId = '') {
   const options = teams.map(t =>
@@ -15,51 +15,56 @@ export async function renderUsers(appEl) {
   const currentUser = api.getUser();
 
   appEl.innerHTML = `
-    ${renderAppHeader(currentUser, 'users')}
-    <main class="admin-page container">
-      <h1>👥 Kullanıcı Yönetimi</h1>
-      <p class="subtitle">Sisteme erişim yetkisi olan kullanıcıları yönetin.</p>
+    <div class="app-shell">
+      ${renderSidebarNav(currentUser, 'users')}
+      <div class="app-main">
+        ${renderMobileTopbar()}
+        <main class="admin-page container">
+          <h1>👥 Kullanıcı Yönetimi</h1>
+          <p class="subtitle">Sisteme erişim yetkisi olan kullanıcıları yönetin.</p>
 
-      <div class="glass-card create-section" id="create-user-section">
-        <h2>➕ Yeni Kullanıcı Ekle</h2>
-        <form class="create-form" id="create-user-form">
-          <div class="form-row">
-            <div class="form-group">
-              <label for="new-username">Kullanıcı Adı</label>
-              <input class="input" type="text" id="new-username" placeholder="kullanici_adi" required />
-            </div>
-            <div class="form-group">
-              <label for="new-email">E-posta</label>
-              <input class="input" type="email" id="new-email" placeholder="ornek@email.com" />
-            </div>
-            <div class="form-group">
-              <label for="new-password">Şifre</label>
-              <input class="input" type="password" id="new-password" placeholder="En az 6 karakter" required />
-            </div>
-            <div class="form-group">
-              <label for="new-role">Rol</label>
-              <select class="input" id="new-role">
-                <option value="user">Kullanıcı</option>
-                <option value="admin">Admin</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <div class="template-label-row">
-                <label for="new-team">Takım</label>
-                <button type="button" class="btn btn-ghost btn-sm" id="manage-teams-btn">🗂️ Takımları Yönet</button>
+          <div class="glass-card create-section" id="create-user-section">
+            <h2>➕ Yeni Kullanıcı Ekle</h2>
+            <form class="create-form" id="create-user-form">
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="new-username">Kullanıcı Adı</label>
+                  <input class="input" type="text" id="new-username" placeholder="kullanici_adi" required />
+                </div>
+                <div class="form-group">
+                  <label for="new-email">E-posta</label>
+                  <input class="input" type="email" id="new-email" placeholder="ornek@email.com" />
+                </div>
+                <div class="form-group">
+                  <label for="new-password">Şifre</label>
+                  <input class="input" type="password" id="new-password" placeholder="En az 6 karakter" required />
+                </div>
+                <div class="form-group">
+                  <label for="new-role">Rol</label>
+                  <select class="input" id="new-role">
+                    <option value="user">Kullanıcı</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <div class="template-label-row">
+                    <label for="new-team">Takım</label>
+                    <button type="button" class="btn btn-ghost btn-sm" id="manage-teams-btn">🗂️ Takımları Yönet</button>
+                  </div>
+                  <select class="input" id="new-team"></select>
+                </div>
               </div>
-              <select class="input" id="new-team"></select>
-            </div>
+              <button type="submit" class="btn btn-primary" id="create-user-btn">Kullanıcı Oluştur</button>
+            </form>
           </div>
-          <button type="submit" class="btn btn-primary" id="create-user-btn">Kullanıcı Oluştur</button>
-        </form>
-      </div>
 
-      <h2>📋 Kullanıcılar</h2>
-      <div id="users-list-container">
-        <div class="spinner" id="users-spinner"></div>
+          <h2>📋 Kullanıcılar</h2>
+          <div id="users-list-container">
+            <div class="spinner" id="users-spinner"></div>
+          </div>
+        </main>
       </div>
-    </main>
+    </div>
     ${renderMobileNav(currentUser, 'users')}
   `;
 

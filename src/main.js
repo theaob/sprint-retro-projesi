@@ -4,6 +4,7 @@ import { renderRetro } from './views/retro/index.js';
 import { renderLogin } from './views/login.js';
 import { renderUsers } from './views/users.js';
 import { renderOpenActions } from './views/openActions.js';
+import { renderLanding } from './views/landing.js';
 import { api } from './api.js';
 import { applyTheme } from './utils.js';
 
@@ -13,7 +14,8 @@ const app = document.getElementById('app');
 
 /**
  * Hash-based router:
- * #/           → Admin panel  (requires admin)
+ * #/           → Public landing page (logged-in visitors bounce to #/app)
+ * #/app        → Retro management dashboard (requires login)
  * #/login      → Login page
  * #/users      → User management (requires admin)
  * #/actions    → Open action items across retros (requires login)
@@ -22,33 +24,38 @@ const app = document.getElementById('app');
 function router() {
   const hash = window.location.hash || '#/';
   const retroMatch = hash.match(/^#\/retro\/(.+)$/);
-  const usersMatch = hash === '#/users';
-  const actionsMatch = hash === '#/actions';
-  const loginMatch = hash === '#/login';
 
   if (retroMatch) {
     renderRetro(app, retroMatch[1]);
-  } else if (loginMatch) {
+  } else if (hash === '#/login') {
     renderLogin(app);
-  } else if (usersMatch) {
+  } else if (hash === '#/users') {
     if (!api.isAdmin()) {
       window.location.hash = '#/login';
       return;
     }
     renderUsers(app);
-  } else if (actionsMatch) {
+  } else if (hash === '#/actions') {
     if (!api.getUser()) {
       window.location.hash = '#/login';
       return;
     }
     renderOpenActions(app);
-  } else {
-    // Admin panel — requires login
+  } else if (hash === '#/app') {
     if (!api.getUser()) {
       window.location.hash = '#/login';
       return;
     }
     renderAdmin(app);
+  } else {
+    // '#/' and any unrecognized hash both fall back here — an
+    // already-authenticated visitor is bounced straight to the dashboard
+    // so they never see marketing copy right after logging in.
+    if (api.getUser()) {
+      window.location.hash = '#/app';
+      return;
+    }
+    renderLanding(app);
   }
 }
 

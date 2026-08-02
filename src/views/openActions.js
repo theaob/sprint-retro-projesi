@@ -1,5 +1,5 @@
 import { api } from '../api.js';
-import { escapeHtml, showToast, bindThemeEvents, renderAppHeader, renderMobileNav, bindLogoutEvents } from '../utils.js';
+import { escapeHtml, showToast, bindThemeEvents, renderSidebarNav, renderMobileTopbar, renderMobileNav, bindLogoutEvents } from '../utils.js';
 
 const TEAM_FILTER_KEY = 'retro_open_actions_team_filter';
 const NO_TEAM_VALUE = '__none__';
@@ -15,19 +15,24 @@ export async function renderOpenActions(appEl) {
   const user = api.getUser();
 
   appEl.innerHTML = `
-    ${renderAppHeader(user, 'actions')}
-    <main class="admin-page container">
-      <div class="page-header">
-        <div>
-          <h1>✅ Açık Aksiyonlar</h1>
-          <p class="subtitle">Tamamlanmamış aksiyon planı maddeleri, retrolarınız genelinde.</p>
-        </div>
-        <div id="team-filter-container"></div>
+    <div class="app-shell">
+      ${renderSidebarNav(user, 'actions')}
+      <div class="app-main">
+        ${renderMobileTopbar()}
+        <main class="admin-page container">
+          <div class="page-header">
+            <div>
+              <h1>✅ Açık Aksiyonlar</h1>
+              <p class="subtitle">Tamamlanmamış aksiyon planı maddeleri, retrolarınız genelinde.</p>
+            </div>
+            <div id="team-filter-container"></div>
+          </div>
+          <div id="open-actions-container">
+            <div class="spinner" id="open-actions-spinner"></div>
+          </div>
+        </main>
       </div>
-      <div id="open-actions-container">
-        <div class="spinner" id="open-actions-spinner"></div>
-      </div>
-    </main>
+    </div>
     ${renderMobileNav(user, 'actions')}
   `;
 

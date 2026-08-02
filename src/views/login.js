@@ -41,7 +41,7 @@ function showForcedPasswordChangeModal(appEl, token, user) {
       await api.changePassword(user.id, newPassword);
       api.saveSession(token, { ...user, must_change_password: false });
       overlay.remove();
-      window.location.hash = '#/';
+      window.location.hash = '#/app';
     } catch (err) {
       errorEl.textContent = err.message;
       saveBtn.disabled = false;
@@ -170,7 +170,7 @@ export function renderLogin(appEl) {
         if (user.must_change_password) {
           showForcedPasswordChangeModal(appEl, token, user);
         } else {
-          window.location.hash = '#/';
+          window.location.hash = '#/app';
         }
       } catch (err) {
         errorEl.textContent = err.message;

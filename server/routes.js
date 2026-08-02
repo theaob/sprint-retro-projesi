@@ -315,16 +315,20 @@ router.delete('/templates/:id', requireAdmin, (req, res) => {
    RETRO ROUTES
 ══════════════════════════════════════════════════════════════ */
 
-// GET /api/retros
+// GET /api/retros — each retro is annotated with its team name and open
+// (not-done) action-item count, for the admin dashboard's table/stat cards.
 router.get('/retros', requireAuth, (req, res) => {
   const isAdmin = req.user.role === 'admin';
-  let query = 'SELECT * FROM retros ORDER BY created_at DESC';
-  let params = [];
-
-  if (!isAdmin) {
-    query = 'SELECT * FROM retros WHERE created_by = ? ORDER BY created_at DESC';
-    params = [req.user.id];
-  }
+  const baseQuery = `
+    SELECT r.*, t.name AS team,
+      (SELECT COUNT(*) FROM action_items a WHERE a.retro_id = r.id AND a.done = 0) AS open_actions
+    FROM retros r
+    LEFT JOIN teams t ON t.id = r.team_id
+  `;
+  const query = isAdmin
+    ? `${baseQuery} ORDER BY r.created_at DESC`
+    : `${baseQuery} WHERE r.created_by = ? ORDER BY r.created_at DESC`;
+  const params = isAdmin ? [] : [req.user.id];
 
   const retros = db.prepare(query).all(...params);
   res.json(retros);

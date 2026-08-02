@@ -91,10 +91,13 @@ export function Column({
 
   const sortedEntries = [...col.entries].sort((a, b) => (b.votes || 0) - (a.votes || 0));
   const voteFull = votedEntryIds.length >= voteMax;
+  // Cycles through 4 accent colors regardless of how many columns exist —
+  // matches the 1b mockup direction without hardcoding a fixed column count.
+  const accentIndex = colIndex >= 0 ? colIndex % 4 : 0;
 
   return html`
     <div
-      class="column${flashing ? ' col-flash' : ''}${dragOver ? ' column-drag-over' : ''}"
+      class="column col-accent-${accentIndex}${flashing ? ' col-flash' : ''}${dragOver ? ' column-drag-over' : ''}"
       data-col-id=${col.id}
       ref=${(el) => registerRef(col.id, el)}
       onDragOver=${handleDragOver}
