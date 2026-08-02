@@ -35,7 +35,7 @@ export function showToast(message, type = 'success') {
 const THEMES = ['midnight', 'daylight'];
 
 export function getTheme() {
-  return localStorage.getItem('app-theme') || 'midnight';
+  return localStorage.getItem('app-theme') || 'daylight';
 }
 
 export function setTheme(theme) {
@@ -92,17 +92,17 @@ export function renderAppHeader(user, active) {
   return `
     <header class="app-header">
       <div class="container">
-        <nav class="header-nav">
+        <nav class="header-nav-links">
           ${links}
-          <span class="nav-separator"></span>
+        </nav>
+        <div class="header-account">
           <div class="user-chip">
             <span class="user-chip-avatar">${user?.username?.[0]?.toUpperCase() || '?'}</span>
             <span>${escapeHtml(user?.username || '')}</span>
           </div>
           ${renderThemeToggle()}
-          <span class="nav-separator"></span>
           <button class="btn btn-ghost btn-sm" id="logout-btn">Çıkış</button>
-        </nav>
+        </div>
       </div>
     </header>
   `;

@@ -112,12 +112,12 @@ export function Column({
         <div class="column-header-right">
           <span class="column-count">${col.entries.length}</span>
           ${canMove ? html`
-            <div class="column-manage">
+            <div class="column-reorder">
               <button class="btn btn-ghost btn-icon-sm" title="Sola taşı" disabled=${isFirstColumn} onClick=${() => onMoveColumn(col.id, 'left')}>‹</button>
               <button class="btn btn-ghost btn-icon-sm" title="Sağa taşı" disabled=${isLastColumn} onClick=${() => onMoveColumn(col.id, 'right')}>›</button>
-              ${allColumns.length > 1 ? html`<button class="btn btn-ghost btn-icon-sm" title="Sütunu sil" onClick=${handleDeleteColumn}>🗑️</button>` : null}
             </div>
           ` : null}
+          ${canMove && allColumns.length > 1 ? html`<button class="btn btn-ghost btn-icon-sm column-delete-btn" title="Sütunu sil" onClick=${handleDeleteColumn}>🗑️</button>` : null}
         </div>
       </div>
       <div class="column-body">

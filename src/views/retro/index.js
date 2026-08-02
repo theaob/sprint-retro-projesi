@@ -28,10 +28,11 @@ export async function renderRetro(appEl, retroId) {
             <span class="ws-dot"></span>
             <span class="ws-label">Bağlanıyor…</span>
           </div>
-          <span class="nav-separator"></span>
-          ${renderThemeToggle()}
-          ${user ? `<span class="nav-separator"></span><a href="#/" class="btn btn-ghost btn-sm" id="back-btn">←<span class="back-text"> Geri</span></a>` : ''}
         </nav>
+        <div class="header-account">
+          ${renderThemeToggle()}
+          ${user ? `<a href="#/" class="btn btn-ghost btn-sm" id="back-btn">←<span class="back-text"> Geri</span></a>` : ''}
+        </div>
       </div>
     </header>
     <main class="retro-page container">
