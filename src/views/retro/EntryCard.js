@@ -1,7 +1,7 @@
 import { h } from 'preact';
 import { useState, useRef, useEffect } from 'preact/hooks';
 import htm from 'htm';
-import { showToast } from '../../utils.js';
+import { showToast, spawnVoteCelebration } from '../../utils.js';
 
 const html = htm.bind(h);
 
@@ -55,7 +55,10 @@ export function EntryCard({ entry, retroId, isVoted, voteFull, isFinished, canMa
   const handleVoteClick = () => {
     if (isVoted) onUnvote(entry.id);
     else if (voteFull) showToast('Tüm oy haklarınızı kullandınız!', 'error');
-    else onVote(entry.id);
+    else {
+      spawnVoteCelebration();
+      onVote(entry.id);
+    }
   };
 
   const handleDelete = async () => {

@@ -30,6 +30,32 @@ export function showToast(message, type = 'success') {
   setTimeout(() => toast.remove(), 3000);
 }
 
+/**
+ * A brief burst of thumbs-up emojis floating up across the whole viewport —
+ * pure positive feedback when a user casts a vote. Skipped entirely under
+ * prefers-reduced-motion rather than shown statically, since it's a
+ * decorative one-off flourish, not content the user needs to see.
+ */
+export function spawnVoteCelebration() {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+  const burst = document.createElement('div');
+  burst.className = 'vote-celebration';
+  const count = 10;
+  for (let i = 0; i < count; i++) {
+    const emoji = document.createElement('span');
+    emoji.className = 'vote-celebration-emoji';
+    emoji.textContent = '👍';
+    emoji.style.left = `${Math.random() * 100}%`;
+    emoji.style.fontSize = `${1.4 + Math.random() * 1.6}rem`;
+    emoji.style.animationDuration = `${1.6 + Math.random() * 1}s`;
+    emoji.style.animationDelay = `${Math.random() * 0.35}s`;
+    burst.appendChild(emoji);
+  }
+  document.body.appendChild(burst);
+  setTimeout(() => burst.remove(), 3000);
+}
+
 /* ── Theme Management ────────────────────────────────────────── */
 
 const THEMES = ['midnight', 'daylight'];
