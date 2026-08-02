@@ -347,4 +347,28 @@ try {
   console.error('Migration error (demote teams):', err);
 }
 
+// Migration: drop the team field entirely. Even as a free-text label it
+// wasn't earning its keep — removed from users/retros/templates and from
+// the Open Actions filter (back to one flat list per account).
+try {
+  const usersInfo = db.pragma('table_info(users)');
+  const retrosInfo = db.pragma('table_info(retros)');
+  const templatesInfo = db.pragma('table_info(templates)');
+
+  if (usersInfo.some((col) => col.name === 'team')) {
+    db.exec('ALTER TABLE users DROP COLUMN team;');
+    console.log('✅ Migration applied: dropped team from users table.');
+  }
+  if (retrosInfo.some((col) => col.name === 'team')) {
+    db.exec('ALTER TABLE retros DROP COLUMN team;');
+    console.log('✅ Migration applied: dropped team from retros table.');
+  }
+  if (templatesInfo.some((col) => col.name === 'team')) {
+    db.exec('ALTER TABLE templates DROP COLUMN team;');
+    console.log('✅ Migration applied: dropped team from templates table.');
+  }
+} catch (err) {
+  console.error('Migration error (drop team):', err);
+}
+
 export default db;

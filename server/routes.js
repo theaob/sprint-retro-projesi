@@ -58,7 +58,7 @@ router.post('/auth/login', loginLimiter, (req, res) => {
 
   const token = createSession(user.id);
 
-  res.json({ token, user: { id: user.id, username: user.username, role: user.role, team: user.team || null, must_change_password: !!user.must_change_password } });
+  res.json({ token, user: { id: user.id, username: user.username, role: user.role, must_change_password: !!user.must_change_password } });
 });
 
 // POST /api/auth/register — public
@@ -77,7 +77,7 @@ router.post('/auth/register', registerLimiter, (req, res) => {
   // Auto-login after registration
   const token = createSession(id);
 
-  res.status(201).json({ token, user: { id, username, role: 'user', team: null, must_change_password: false } });
+  res.status(201).json({ token, user: { id, username, role: 'user', must_change_password: false } });
 });
 
 // POST /api/auth/logout
@@ -99,14 +99,14 @@ router.get('/auth/me', requireAuth, (req, res) => {
 // GET /api/users  — list all users
 router.get('/users', requireAdmin, (req, res) => {
   const users = db.prepare(`
-    SELECT id, username, email, role, team, created_at FROM users ORDER BY created_at DESC
+    SELECT id, username, email, role, created_at FROM users ORDER BY created_at DESC
   `).all();
   res.json(users);
 });
 
 // POST /api/users  — create user
 router.post('/users', requireAdmin, (req, res) => {
-  const { username, password, role = 'user', email, team } = req.body;
+  const { username, password, role = 'user', email } = req.body;
   if (!username || !password) return res.status(400).json({ error: 'Kullanıcı adı ve şifre gereklidir.' });
   if (password.length < 6) return res.status(400).json({ error: 'Şifre en az 6 karakter olmalıdır.' });
   if (!['admin', 'user'].includes(role)) return res.status(400).json({ error: 'Geçersiz rol.' });
@@ -114,12 +114,11 @@ router.post('/users', requireAdmin, (req, res) => {
   const exists = db.prepare('SELECT id FROM users WHERE username = ?').get(username);
   if (exists) return res.status(409).json({ error: 'Bu kullanıcı adı zaten kullanılmakta.' });
 
-  const trimmedTeam = team?.trim() || null;
   const id = uuidv4();
   const hash = bcrypt.hashSync(password, 10);
-  db.prepare('INSERT INTO users (id, username, password_hash, role, email, team) VALUES (?, ?, ?, ?, ?, ?)').run(id, username, hash, role, email || null, trimmedTeam);
+  db.prepare('INSERT INTO users (id, username, password_hash, role, email) VALUES (?, ?, ?, ?, ?)').run(id, username, hash, role, email || null);
 
-  res.status(201).json({ id, username, role, email: email || null, team: trimmedTeam });
+  res.status(201).json({ id, username, role, email: email || null });
 });
 
 // DELETE /api/users/:id
@@ -147,7 +146,7 @@ router.put('/users/:id/password', requireAuth, (req, res) => {
 
 // PUT /api/users/:id  — update user details (admin only)
 router.put('/users/:id', requireAdmin, (req, res) => {
-  const { email, username, team } = req.body;
+  const { email, username } = req.body;
   const user = db.prepare('SELECT id FROM users WHERE id = ?').get(req.params.id);
   if (!user) return res.status(404).json({ error: 'Kullanıcı bulunamadı.' });
 
@@ -159,19 +158,14 @@ router.put('/users/:id', requireAdmin, (req, res) => {
   if (email !== undefined) {
     db.prepare('UPDATE users SET email = ? WHERE id = ?').run(email.trim() || null, req.params.id);
   }
-  if (team !== undefined) {
-    db.prepare('UPDATE users SET team = ? WHERE id = ?').run(team?.trim() || null, req.params.id);
-  }
 
-  const updated = db.prepare('SELECT id, username, email, role, team, created_at FROM users WHERE id = ?').get(req.params.id);
+  const updated = db.prepare('SELECT id, username, email, role, created_at FROM users WHERE id = ?').get(req.params.id);
   res.json(updated);
 });
 
 /* ══════════════════════════════════════════════════════════════
-   RETRO TEMPLATES — global by default (team IS NULL), or scoped to a
-   single team (free-text label). Management is admin-only. Any
-   authenticated user can read the ones visible to them, for the
-   create-retro form.
+   RETRO TEMPLATES — global, visible to everyone. Management is
+   admin-only.
 ══════════════════════════════════════════════════════════════ */
 
 function validateTemplateBody(body) {
@@ -183,50 +177,37 @@ function validateTemplateBody(body) {
   return null;
 }
 
-// GET /api/templates — global templates (team IS NULL) plus the
-// caller's own team's templates, if they have one.
+// GET /api/templates
 router.get('/templates', requireAuth, (req, res) => {
-  const templates = req.user.team
-    ? db.prepare('SELECT * FROM templates WHERE team IS NULL OR team = ? ORDER BY sort_order').all(req.user.team)
-    : db.prepare('SELECT * FROM templates WHERE team IS NULL ORDER BY sort_order').all();
+  const templates = db.prepare('SELECT * FROM templates ORDER BY sort_order').all();
   res.json(templates.map(t => ({ ...t, columns: JSON.parse(t.columns) })));
 });
 
-// POST /api/templates — team omitted/null makes it global (visible to everyone)
+// POST /api/templates
 router.post('/templates', requireAdmin, (req, res) => {
   const error = validateTemplateBody(req.body);
   if (error) return res.status(400).json({ error });
 
-  const { name, columns, team } = req.body;
-  const trimmedTeam = team?.trim() || null;
+  const { name, columns } = req.body;
   const trimmedColumns = columns.map(c => c.trim());
   const id = uuidv4();
   const sortOrder = db.prepare('SELECT COALESCE(MAX(sort_order), -1) + 1 as next FROM templates').get().next;
 
-  db.prepare('INSERT INTO templates (id, name, columns, sort_order, team) VALUES (?, ?, ?, ?, ?)')
-    .run(id, name.trim(), JSON.stringify(trimmedColumns), sortOrder, trimmedTeam);
+  db.prepare('INSERT INTO templates (id, name, columns, sort_order) VALUES (?, ?, ?, ?)')
+    .run(id, name.trim(), JSON.stringify(trimmedColumns), sortOrder);
 
-  res.status(201).json({ id, name: name.trim(), columns: trimmedColumns, sort_order: sortOrder, team: trimmedTeam });
+  res.status(201).json({ id, name: name.trim(), columns: trimmedColumns, sort_order: sortOrder });
 });
 
-// PUT /api/templates/:id — team is only touched when the caller
-// explicitly includes it; omitting it leaves the existing scope alone
-// (send team: null to explicitly make an existing template global).
+// PUT /api/templates/:id
 router.put('/templates/:id', requireAdmin, (req, res) => {
   const error = validateTemplateBody(req.body);
   if (error) return res.status(400).json({ error });
 
-  const { name, columns, team } = req.body;
-  const touchesTeam = Object.prototype.hasOwnProperty.call(req.body, 'team');
-
+  const { name, columns } = req.body;
   const trimmedColumns = columns.map(c => c.trim());
-  if (touchesTeam) {
-    db.prepare('UPDATE templates SET name = ?, columns = ?, team = ? WHERE id = ?')
-      .run(name.trim(), JSON.stringify(trimmedColumns), team?.trim() || null, req.params.id);
-  } else {
-    db.prepare('UPDATE templates SET name = ?, columns = ? WHERE id = ?')
-      .run(name.trim(), JSON.stringify(trimmedColumns), req.params.id);
-  }
+  db.prepare('UPDATE templates SET name = ?, columns = ? WHERE id = ?')
+    .run(name.trim(), JSON.stringify(trimmedColumns), req.params.id);
 
   const updated = db.prepare('SELECT * FROM templates WHERE id = ?').get(req.params.id);
   if (!updated) return res.status(404).json({ error: 'Şablon bulunamadı.' });
@@ -244,8 +225,8 @@ router.delete('/templates/:id', requireAdmin, (req, res) => {
    RETRO ROUTES
 ══════════════════════════════════════════════════════════════ */
 
-// GET /api/retros — each retro is annotated with its team name and open
-// (not-done) action-item count, for the admin dashboard's table/stat cards.
+// GET /api/retros — each retro is annotated with its open (not-done)
+// action-item count, for the admin dashboard's table/stat cards.
 router.get('/retros', requireAuth, (req, res) => {
   const isAdmin = req.user.role === 'admin';
   const baseQuery = `
@@ -279,25 +260,23 @@ function createUniqueShortCode() {
 
 // POST /api/retros  — allow any authenticated user
 router.post('/retros', requireAuth, (req, res) => {
-  const { title, columns, max_votes, team } = req.body;
+  const { title, columns, max_votes } = req.body;
   if (!title || !columns || !Array.isArray(columns) || columns.length === 0) {
     return res.status(400).json({ error: 'Başlık ve en az bir sütun gereklidir.' });
   }
-  const trimmedTeam = team?.trim();
-  if (!trimmedTeam) return res.status(400).json({ error: 'Takım gereklidir.' });
 
   const retroId = uuidv4();
   const votes = parseInt(max_votes, 10) || 3;
   const shortCode = createUniqueShortCode();
-  const insertRetro = db.prepare('INSERT INTO retros (id, title, max_votes, created_by, short_code, team) VALUES (?, ?, ?, ?, ?, ?)');
+  const insertRetro = db.prepare('INSERT INTO retros (id, title, max_votes, created_by, short_code) VALUES (?, ?, ?, ?, ?)');
   const insertColumn = db.prepare('INSERT INTO columns (id, retro_id, name, sort_order) VALUES (?, ?, ?, ?)');
 
   db.transaction(() => {
-    insertRetro.run(retroId, title, votes, req.user.id, shortCode, trimmedTeam);
+    insertRetro.run(retroId, title, votes, req.user.id, shortCode);
     columns.forEach((colName, idx) => { insertColumn.run(uuidv4(), retroId, colName, idx); });
   })();
 
-  res.status(201).json({ id: retroId, title, short_code: shortCode, team: trimmedTeam });
+  res.status(201).json({ id: retroId, title, short_code: shortCode });
 });
 
 // GET /api/retros/:id
@@ -635,20 +614,15 @@ router.delete('/retros/:id/actions/:actionId', requireAuth, (req, res) => {
 
 // GET /api/action-items/open — open (not done) action items across the
 // caller's own retros (all retros if admin), for the "open actions" view.
-// Each item is annotated with its retro's team (nullable — the nexus
-// setup has several teams sharing this instance, and the client
-// filters/groups by this so one team's view isn't drowned out by the
-// other four). Team comes straight from retros.team, set explicitly
-// at creation — not inferred from whoever happened to create the retro.
 router.get('/action-items/open', requireAuth, (req, res) => {
   const isAdmin = req.user.role === 'admin';
   const query = isAdmin
-    ? `SELECT a.*, r.title AS retro_title, r.status AS retro_status, r.team AS team
+    ? `SELECT a.*, r.title AS retro_title, r.status AS retro_status
        FROM action_items a
        JOIN retros r ON r.id = a.retro_id
        WHERE a.done = 0
        ORDER BY (a.due_date IS NULL), a.due_date ASC, a.created_at ASC`
-    : `SELECT a.*, r.title AS retro_title, r.status AS retro_status, r.team AS team
+    : `SELECT a.*, r.title AS retro_title, r.status AS retro_status
        FROM action_items a
        JOIN retros r ON r.id = a.retro_id
        WHERE a.done = 0 AND r.created_by = ?

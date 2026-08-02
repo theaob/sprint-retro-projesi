@@ -15,17 +15,11 @@ export async function registerUser(username, password = 'password123') {
   return res.body; // { token, user }
 }
 
-/** Default team label for tests that don't care which team a retro belongs
- * to — retro creation requires a non-empty team string. */
-export function ensureDefaultTeam() {
-  return 'Test Team';
-}
-
 /** Creates a retro owned by the given session's user; returns the created retro. */
-export async function createRetro(session, title, columns = ['İyi Giden', 'Geliştirilmeli'], team = null) {
+export async function createRetro(session, title, columns = ['İyi Giden', 'Geliştirilmeli']) {
   const res = await request(app)
     .post('/api/retros')
     .set('Authorization', `Bearer ${session.token}`)
-    .send({ title, columns, max_votes: 3, team: team || ensureDefaultTeam() });
+    .send({ title, columns, max_votes: 3 });
   return res.body;
 }

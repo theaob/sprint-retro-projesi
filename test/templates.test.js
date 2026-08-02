@@ -110,47 +110,4 @@ describe('retro templates', () => {
     expect(deleteRes.status).toBe(404);
   });
 
-  it('scopes a team-specific template to that team, alongside the global ones', async () => {
-    const memberA = await registerUser('templates-member-a');
-    await request(app).put(`/api/users/${memberA.user.id}`).set('Authorization', `Bearer ${admin.token}`).send({ team: 'Templates Test Team A' });
-    const memberB = await registerUser('templates-member-b');
-    await request(app).put(`/api/users/${memberB.user.id}`).set('Authorization', `Bearer ${admin.token}`).send({ team: 'Templates Test Team B' });
-
-    const created = await request(app)
-      .post('/api/templates')
-      .set('Authorization', `Bearer ${admin.token}`)
-      .send({ name: 'Team A Only Template', columns: ['A'], team: 'Templates Test Team A' });
-    expect(created.status).toBe(201);
-    expect(created.body.team).toBe('Templates Test Team A');
-
-    // Re-login: the token was issued before the team assignment, but
-    // team is read fresh from the DB per-request via loadUser, so no
-    // re-login is actually required — this just documents that fact.
-    const seenByA = await request(app).get('/api/templates').set('Authorization', `Bearer ${memberA.token}`);
-    expect(seenByA.body.map(t => t.name)).toContain('Team A Only Template');
-    expect(seenByA.body.map(t => t.name)).toContain('Standart'); // still sees globals too
-
-    const seenByB = await request(app).get('/api/templates').set('Authorization', `Bearer ${memberB.token}`);
-    expect(seenByB.body.map(t => t.name)).not.toContain('Team A Only Template');
-    expect(seenByB.body.map(t => t.name)).toContain('Standart');
-  });
-
-  it('leaves an untouched team alone on update, but allows explicitly clearing it', async () => {
-    const created = await request(app)
-      .post('/api/templates')
-      .set('Authorization', `Bearer ${admin.token}`)
-      .send({ name: 'Scope Preserve Template', columns: ['A'], team: 'Templates Test Team C' });
-
-    const renamedOnly = await request(app)
-      .put(`/api/templates/${created.body.id}`)
-      .set('Authorization', `Bearer ${admin.token}`)
-      .send({ name: 'Scope Preserve Template Renamed', columns: ['A'] });
-    expect(renamedOnly.body.team).toBe('Templates Test Team C');
-
-    const cleared = await request(app)
-      .put(`/api/templates/${created.body.id}`)
-      .set('Authorization', `Bearer ${admin.token}`)
-      .send({ name: 'Scope Preserve Template Renamed', columns: ['A'], team: null });
-    expect(cleared.body.team).toBeNull();
-  });
 });

@@ -41,8 +41,8 @@ export const api = {
 
   // Users (admin)
   listUsers: () => request('/users'),
-  createUser: (username, password, role, email, team) => request('/users', {
-    method: 'POST', body: JSON.stringify({ username, password, role, email, team })
+  createUser: (username, password, role, email) => request('/users', {
+    method: 'POST', body: JSON.stringify({ username, password, role, email })
   }),
   deleteUser: (id) => request(`/users/${id}`, { method: 'DELETE' }),
   updateUser: (id, data) => request(`/users/${id}`, {
@@ -54,18 +54,18 @@ export const api = {
 
   // Retro templates
   listTemplates: () => request('/templates'),
-  createTemplate: (name, columns, team) => request('/templates', {
-    method: 'POST', body: JSON.stringify({ name, columns, team })
+  createTemplate: (name, columns) => request('/templates', {
+    method: 'POST', body: JSON.stringify({ name, columns })
   }),
-  updateTemplate: (id, name, columns, team) => request(`/templates/${id}`, {
-    method: 'PUT', body: JSON.stringify({ name, columns, ...(team !== undefined ? { team } : {}) })
+  updateTemplate: (id, name, columns) => request(`/templates/${id}`, {
+    method: 'PUT', body: JSON.stringify({ name, columns })
   }),
   deleteTemplate: (id) => request(`/templates/${id}`, { method: 'DELETE' }),
 
   // Retros
   listRetros: () => request('/retros'),
-  createRetro: (title, columns, maxVotes, team) => request('/retros', {
-    method: 'POST', body: JSON.stringify({ title, columns, max_votes: maxVotes, team })
+  createRetro: (title, columns, maxVotes) => request('/retros', {
+    method: 'POST', body: JSON.stringify({ title, columns, max_votes: maxVotes })
   }),
   getRetro: (id) => request(`/retros/${id}?participant_id=${getParticipantId()}`),
   deleteRetro: (id) => request(`/retros/${id}`, { method: 'DELETE' }),

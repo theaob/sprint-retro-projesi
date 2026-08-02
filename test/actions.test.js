@@ -199,20 +199,4 @@ describe('GET /api/action-items/open', () => {
     expect(contents).toContain('Open item for other owner');
   });
 
-  it('annotates each item with its retro\'s own team, not the creator\'s', async () => {
-    // Same creator (owner), two different explicit teams — proves team
-    // comes from the retro's own team field, not from who happened to
-    // create it.
-    const retroX = await createRetro(owner, 'Team X Retro', undefined, 'Actions Test Team X');
-    await addAction(owner, retroX, 'Item for team X');
-
-    const retroY = await createRetro(owner, 'Team Y Retro', undefined, 'Actions Test Team Y');
-    await addAction(owner, retroY, 'Item for team Y');
-
-    const res = await request(app).get('/api/action-items/open').set('Authorization', `Bearer ${admin.token}`);
-    const itemX = res.body.find(a => a.content === 'Item for team X');
-    const itemY = res.body.find(a => a.content === 'Item for team Y');
-    expect(itemX.team).toBe('Actions Test Team X');
-    expect(itemY.team).toBe('Actions Test Team Y');
-  });
 });

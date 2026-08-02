@@ -20,21 +20,6 @@ describe('retros', () => {
     const retro = await createRetro(owner, 'Sprint 1 Retro', ['İyi Giden', 'Kötü Giden', 'Aksiyon']);
     expect(retro.id).toBeTruthy();
     expect(retro.short_code).toMatch(/^[a-z0-9]{6}$/);
-    expect(retro.team).toBeTruthy();
-  });
-
-  it('requires a team to create a retro', async () => {
-    const missing = await request(app)
-      .post('/api/retros')
-      .set('Authorization', `Bearer ${owner.token}`)
-      .send({ title: 'No Team Retro', columns: ['A'] });
-    expect(missing.status).toBe(400);
-
-    const valid = await request(app)
-      .post('/api/retros')
-      .set('Authorization', `Bearer ${owner.token}`)
-      .send({ title: 'Valid Team Retro', columns: ['A'], team: 'Some Team' });
-    expect(valid.status).toBe(201);
   });
 
   it('serves a retro with its columns and entries with no auth required (public board)', async () => {
@@ -93,8 +78,8 @@ describe('retros', () => {
     expect(allowed.status).toBe(200);
   });
 
-  it('annotates each retro in the list with its team name and open action-item count', async () => {
-    const retro = await createRetro(owner, 'Stat Card Test Retro', ['A'], 'Retros List Test Team');
+  it('annotates each retro in the list with its open action-item count', async () => {
+    const retro = await createRetro(owner, 'Stat Card Test Retro', ['A']);
 
     const fetched = await request(app).get(`/api/retros/${retro.id}`);
     const entry = await request(app).post(`/api/retros/${retro.id}/entries`).send({ column_id: fetched.body.columns[0].id, text: 'note' });
@@ -113,7 +98,6 @@ describe('retros', () => {
 
     const list = await request(app).get('/api/retros').set('Authorization', `Bearer ${admin.token}`);
     const inList = list.body.find(r => r.id === retro.id);
-    expect(inList.team).toBe('Retros List Test Team');
     expect(inList.open_actions).toBe(1);
   });
 });

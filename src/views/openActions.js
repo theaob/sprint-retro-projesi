@@ -1,15 +1,9 @@
 import { api } from '../api.js';
 import { escapeHtml, showToast, bindThemeEvents, renderSidebarNav, renderMobileTopbar, renderMobileNav, bindLogoutEvents } from '../utils.js';
 
-const TEAM_FILTER_KEY = 'retro_open_actions_team_filter';
-const NO_TEAM_VALUE = '__none__';
-
 /**
  * Open action items across the user's retros (all retros for admins) —
- * #/actions (requires login). This nexus setup has several teams sharing
- * one instance, so items are annotated with the retro creator's team and
- * filterable — a flat, unfiltered list mixes every team together, which
- * isn't meaningful to any one team's Scrum Master.
+ * #/actions (requires login).
  */
 export async function renderOpenActions(appEl) {
   const user = api.getUser();
@@ -25,7 +19,6 @@ export async function renderOpenActions(appEl) {
               <h1>✅ Açık Aksiyonlar</h1>
               <p class="subtitle">Tamamlanmamış aksiyon planı maddeleri, retrolarınız genelinde.</p>
             </div>
-            <div id="team-filter-container"></div>
           </div>
           <div id="open-actions-container">
             <div class="spinner" id="open-actions-spinner"></div>
@@ -39,7 +32,7 @@ export async function renderOpenActions(appEl) {
   bindThemeEvents();
   bindLogoutEvents(api);
 
-  await loadOpenActions(user);
+  await loadOpenActions();
 }
 
 function formatDueDate(dueDate) {
@@ -52,71 +45,24 @@ function formatDueDate(dueDate) {
   return { label, isOverdue };
 }
 
-async function loadOpenActions(user) {
+async function loadOpenActions() {
   const container = document.getElementById('open-actions-container');
-  const filterContainer = document.getElementById('team-filter-container');
   try {
     const items = await api.listOpenActionItems();
-
-    if (items.length === 0) {
-      filterContainer.innerHTML = '';
-      container.innerHTML = `
-        <div class="empty-state">
-          <div class="empty-state-icon">🎉</div>
-          <p class="empty-state-text">Açık aksiyon yok. Her şey tamam!</p>
-        </div>
-      `;
-      return;
-    }
-
-    const teams = [...new Set(items.map(i => i.team).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'tr'));
-    const hasTeamless = items.some(i => !i.team);
-    const bucketCount = teams.length + (hasTeamless ? 1 : 0);
-
-    // Only worth showing a filter when there's more than one bucket to
-    // pick from — a single-team account gets a plain, unfiltered list.
-    if (bucketCount > 1) {
-      const savedFilter = localStorage.getItem(TEAM_FILTER_KEY);
-      const defaultFilter = savedFilter ?? (user?.team && teams.includes(user.team) ? user.team : 'all');
-
-      filterContainer.innerHTML = `
-        <select class="input team-filter-select" id="team-filter-select">
-          <option value="all">Tüm Takımlar</option>
-          ${teams.map(t => `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join('')}
-          ${hasTeamless ? `<option value="${NO_TEAM_VALUE}">Takımsız</option>` : ''}
-        </select>
-      `;
-      const select = document.getElementById('team-filter-select');
-      select.value = defaultFilter;
-      select.addEventListener('change', () => {
-        localStorage.setItem(TEAM_FILTER_KEY, select.value);
-        renderList(items.filter(i => matchesTeamFilter(i, select.value)), bucketCount > 1);
-      });
-      renderList(items.filter(i => matchesTeamFilter(i, defaultFilter)), true);
-    } else {
-      filterContainer.innerHTML = '';
-      renderList(items, false);
-    }
+    renderList(items);
   } catch (err) {
-    filterContainer.innerHTML = '';
     container.innerHTML = `<p class="error-text">Aksiyonlar yüklenemedi: ${err.message}</p>`;
   }
 }
 
-function matchesTeamFilter(item, filterValue) {
-  if (filterValue === 'all') return true;
-  if (filterValue === NO_TEAM_VALUE) return !item.team;
-  return item.team === filterValue;
-}
-
-function renderList(items, showTeamBadge) {
+function renderList(items) {
   const container = document.getElementById('open-actions-container');
 
   if (items.length === 0) {
     container.innerHTML = `
       <div class="empty-state">
         <div class="empty-state-icon">🎉</div>
-        <p class="empty-state-text">Bu görünümde açık aksiyon yok.</p>
+        <p class="empty-state-text">Açık aksiyon yok. Her şey tamam!</p>
       </div>
     `;
     return;
@@ -135,7 +81,6 @@ function renderList(items, showTeamBadge) {
         <div class="open-action-content">🎯 ${escapeHtml(item.content)}</div>
         <div class="open-action-meta">
           <a href="#/retro/${item.retro_id}" class="open-action-retro-link">${escapeHtml(item.retro_title)}</a>
-          ${showTeamBadge ? `<span class="badge badge-team">${item.team ? escapeHtml(item.team) : 'Takımsız'}</span>` : ''}
           ${item.assignee ? `<span class="action-assignee">@${escapeHtml(item.assignee)}</span>` : ''}
           ${due ? `<span class="action-due-date${due.isOverdue ? ' action-due-date-overdue' : ''}">📅 ${due.label}${due.isOverdue ? ' (gecikti)' : ''}</span>` : ''}
         </div>
@@ -155,7 +100,7 @@ function renderList(items, showTeamBadge) {
           container.innerHTML = `
             <div class="empty-state">
               <div class="empty-state-icon">🎉</div>
-              <p class="empty-state-text">Bu görünümde açık aksiyon yok.</p>
+              <p class="empty-state-text">Açık aksiyon yok. Her şey tamam!</p>
             </div>
           `;
         }

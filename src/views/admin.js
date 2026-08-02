@@ -61,10 +61,6 @@ export async function renderAdmin(appEl) {
                 <input class="input" type="text" id="retro-title" placeholder="Örn: Sprint 14 Retro" required />
               </div>
               <div class="form-group">
-                <label for="retro-team">Takım</label>
-                <input class="input" type="text" id="retro-team" placeholder="Örn: Takım A" required />
-              </div>
-              <div class="form-group">
                 <label for="retro-max-votes">Kişi Başı Oy Hakkı</label>
                 <input class="input" type="number" id="retro-max-votes" value="3" min="1" max="20" required />
               </div>
@@ -164,7 +160,6 @@ export async function renderAdmin(appEl) {
   document.getElementById('create-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const title = document.getElementById('retro-title').value.trim();
-    const team = document.getElementById('retro-team').value.trim();
     const maxVotes = parseInt(document.getElementById('retro-max-votes').value, 10) || 3;
     const columns = Array.from(columnsList.querySelectorAll('.column-name-input'))
       .map(inp => inp.value.trim()).filter(Boolean);
@@ -173,17 +168,13 @@ export async function renderAdmin(appEl) {
       showToast('Başlık ve en az bir sütun gereklidir.', 'error');
       return;
     }
-    if (!team) {
-      showToast('Takım gereklidir.', 'error');
-      return;
-    }
 
     const btn = document.getElementById('create-retro-btn');
     btn.disabled = true;
     btn.textContent = 'Oluşturuluyor…';
 
     try {
-      const result = await api.createRetro(title, columns, maxVotes, team);
+      const result = await api.createRetro(title, columns, maxVotes);
       showToast('Retro oluşturuldu! ✨', 'success');
 
       // Hide section after creation
@@ -205,14 +196,10 @@ export async function renderAdmin(appEl) {
 function renderStatCards(retros, openActionsCount) {
   const statsEl = document.getElementById('stats-grid');
   const finishedCount = retros.filter(r => r.status === 'finished').length;
-  // No managed team registry anymore — this counts distinct teams with at
-  // least one retro, not every team that might exist in the org.
-  const teamCount = new Set(retros.map(r => r.team).filter(Boolean)).size;
   const stats = [
     { value: retros.length, label: 'Toplam Retro' },
     { value: openActionsCount, label: 'Açık Aksiyon' },
-    { value: finishedCount, label: 'Tamamlanan' },
-    { value: teamCount, label: 'Takım Sayısı' }
+    { value: finishedCount, label: 'Tamamlanan' }
   ];
   statsEl.innerHTML = stats.map(s => `
     <div class="stat-card">
@@ -248,7 +235,6 @@ async function loadDashboard() {
           <thead>
             <tr>
               <th>Başlık</th>
-              <th>Takım</th>
               <th>Tarih</th>
               <th>Aksiyon</th>
               <th>Durum</th>
@@ -272,7 +258,6 @@ async function loadDashboard() {
       const tr = document.createElement('tr');
       tr.innerHTML = `
         <td data-label="Başlık"><a href="#/retro/${retro.id}" class="retro-table-title">${escapeHtml(retro.title)}</a></td>
-        <td data-label="Takım" class="muted">${retro.team ? escapeHtml(retro.team) : '<span style="opacity:0.4">—</span>'}</td>
         <td data-label="Tarih" class="muted">${dateStr}</td>
         <td data-label="Aksiyon">${retro.open_actions > 0 ? `<span class="badge badge-team">${retro.open_actions} açık</span>` : '<span class="muted">—</span>'}</td>
         <td data-label="Durum"><span class="badge ${retro.status === 'finished' ? 'badge-self' : 'badge-admin'}">${retro.status === 'finished' ? 'Bitti' : 'Aktif'}</span></td>
