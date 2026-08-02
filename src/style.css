@@ -789,6 +789,8 @@ select.input { cursor: pointer; }
 }
 .column-name:focus { background: var(--bg-input); border: 1px solid var(--border-focus); box-shadow: 0 0 0 3px var(--accent-glow); }
 
+.column-header-right { display: flex; align-items: center; gap: 6px; flex-shrink: 0; }
+
 .column-count {
   font-size: 0.75rem;
   font-weight: 600;
@@ -797,6 +799,47 @@ select.input { cursor: pointer; }
   padding: 2px 10px;
   border-radius: 999px;
 }
+
+.column-manage { display: flex; gap: 2px; }
+.column-manage .btn-icon-sm { color: var(--text-muted); font-size: 0.9rem; }
+.column-manage .btn-icon-sm:hover:not(:disabled) { color: var(--text-primary); }
+
+/* "+ Add column" ghost card at the end of the board */
+.add-column-card {
+  flex: 0 0 calc(100vw - (var(--page-padding-x) * 2) - 32px);
+  max-width: 380px;
+  min-height: 64px;
+  align-self: flex-start;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px;
+  background: transparent;
+  border: 2px dashed var(--border-color);
+  border-radius: var(--radius-lg);
+  color: var(--text-muted);
+  font-family: var(--font-family);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  scroll-snap-align: center;
+}
+.add-column-card:hover {
+  border-color: var(--border-focus);
+  color: var(--text-primary);
+  background: var(--glass-2);
+}
+.add-column-card-open {
+  flex-direction: column;
+  align-items: stretch;
+  cursor: default;
+  border-style: solid;
+  background: var(--bg-card);
+}
+.add-column-card-open .add-column-card-actions { display: flex; gap: 8px; margin-top: 10px; }
+.add-column-card-open .add-column-card-actions .btn { flex: 1; }
 
 .column-body {
   padding: 16px;
@@ -966,6 +1009,7 @@ select.input { cursor: pointer; }
   h2 { font-size: 1.5rem; }
 
   .column { flex: 0 0 340px; scroll-snap-align: start; }
+  .add-column-card { flex: 0 0 340px; scroll-snap-align: start; max-width: none; }
 
   .retro-header { flex-direction: row; align-items: center; justify-content: space-between; }
   .retro-title { font-size: 1.75rem; }

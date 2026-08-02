@@ -64,7 +64,15 @@ export const api = {
   renameColumn: (retroId, colId, name) => request(`/retros/${retroId}/columns/${colId}`, {
     method: 'PUT', body: JSON.stringify({ name })
   }),
-
+  addColumn: (retroId, name) => request(`/retros/${retroId}/columns`, {
+    method: 'POST', body: JSON.stringify({ name })
+  }),
+  deleteColumn: (retroId, colId) => request(`/retros/${retroId}/columns/${colId}`, {
+    method: 'DELETE'
+  }),
+  reorderColumns: (retroId, columnIds) => request(`/retros/${retroId}/columns/reorder`, {
+    method: 'PUT', body: JSON.stringify({ column_ids: columnIds })
+  }),
 
   // Entries
   addEntry: (retroId, columnId, text, author) => request(`/retros/${retroId}/entries`, {

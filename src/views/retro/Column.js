@@ -7,16 +7,34 @@ import { EntryCard } from './EntryCard.js';
 const html = htm.bind(h);
 
 export function Column({
-  col, allColumns, retroId, isAdmin, isFinished, isAdminOrOwner, votedEntryIds, voteMax, actionItems,
-  flashing, registerRef, onRename, onAddEntry, onVote, onUnvote, onEditEntry, onDeleteEntry, onMoveEntry
+  col, allColumns, retroId, isFinished, isAdminOrOwner, votedEntryIds, voteMax, actionItems,
+  flashing, registerRef, onRename, onAddEntry, onVote, onUnvote, onEditEntry, onDeleteEntry, onMoveEntry,
+  onDeleteColumn, onMoveColumn
 }) {
   const [name, setName] = useState(col.name);
   const [entryText, setEntryText] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const renameTimeout = useRef(null);
+  // Board reorganization (moving entries, renaming/adding/removing/reordering
+  // columns) is a Scrum Master (retro owner) / admin responsibility, same
+  // gating as entries and action items — not admin-only like it used to be
+  // for rename specifically (the server already allowed the owner too).
   const canMove = isAdminOrOwner && !isFinished;
   const otherColumns = allColumns.filter(c => c.id !== col.id);
+  const colIndex = allColumns.findIndex(c => c.id === col.id);
+  const isFirstColumn = colIndex <= 0;
+  const isLastColumn = colIndex === allColumns.length - 1;
+
+  const handleDeleteColumn = async () => {
+    if (allColumns.length <= 1) return;
+    if (!confirm(`"${col.name}" sütununu silmek istediğinize emin misiniz? İçindeki tüm maddeler de silinecek.`)) return;
+    try {
+      await onDeleteColumn(col.id);
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  };
 
   const handleDragOver = (e) => {
     if (!canMove) return;
@@ -88,10 +106,19 @@ export function Column({
           ref=${nameInputRef}
           class="column-name"
           value=${name}
-          readonly=${!(isAdmin && !isFinished)}
+          readonly=${!canMove}
           onInput=${handleNameInput}
         />
-        <span class="column-count">${col.entries.length}</span>
+        <div class="column-header-right">
+          <span class="column-count">${col.entries.length}</span>
+          ${canMove ? html`
+            <div class="column-manage">
+              <button class="btn btn-ghost btn-icon-sm" title="Sola taşı" disabled=${isFirstColumn} onClick=${() => onMoveColumn(col.id, 'left')}>‹</button>
+              <button class="btn btn-ghost btn-icon-sm" title="Sağa taşı" disabled=${isLastColumn} onClick=${() => onMoveColumn(col.id, 'right')}>›</button>
+              ${allColumns.length > 1 ? html`<button class="btn btn-ghost btn-icon-sm" title="Sütunu sil" onClick=${handleDeleteColumn}>🗑️</button>` : null}
+            </div>
+          ` : null}
+        </div>
       </div>
       <div class="column-body">
         ${sortedEntries.map(entry => html`

@@ -9,6 +9,7 @@ import { retroReducer, initialRetroState } from './reducer.js';
 import { Column } from './Column.js';
 import { BoardTabs } from './BoardTabs.js';
 import { ActionPlan } from './ActionPlan.js';
+import { AddColumn } from './AddColumn.js';
 
 const html = htm.bind(h);
 
@@ -39,6 +40,9 @@ export function RetroBoard({ retro: initialRetro, user, onWsConnected }) {
       onEntryMoved(entry) { dispatch({ type: 'entry:moved', entry }); },
       onEntryDeleted(entryId, columnId) { dispatch({ type: 'entry:deleted', entryId, columnId }); },
       onColumnRenamed({ columnId, name }) { dispatch({ type: 'column:renamed', columnId, name }); },
+      onColumnAdded(column) { dispatch({ type: 'column:added', column }); },
+      onColumnDeleted(columnId) { dispatch({ type: 'column:deleted', columnId }); },
+      onColumnsReordered(columnIds) { dispatch({ type: 'columns:reordered', columnIds }); },
       onStatusChanged(status) {
         if (status === 'finished') window.location.reload(); // simplest way to transition globally
       },
@@ -98,6 +102,32 @@ export function RetroBoard({ retro: initialRetro, user, onWsConnected }) {
   };
 
   const handleRename = (colId, name) => api.renameColumn(retro.id, colId, name);
+
+  const handleAddColumn = async (name) => {
+    const column = await api.addColumn(retro.id, name);
+    dispatch({ type: 'column:added', column });
+  };
+
+  const handleDeleteColumn = async (colId) => {
+    await api.deleteColumn(retro.id, colId);
+    dispatch({ type: 'column:deleted', columnId: colId });
+  };
+
+  const handleMoveColumn = async (colId, direction) => {
+    const index = retro.columns.findIndex(c => c.id === colId);
+    const targetIndex = direction === 'left' ? index - 1 : index + 1;
+    if (index === -1 || targetIndex < 0 || targetIndex >= retro.columns.length) return;
+
+    const newOrder = retro.columns.map(c => c.id);
+    [newOrder[index], newOrder[targetIndex]] = [newOrder[targetIndex], newOrder[index]];
+
+    try {
+      await api.reorderColumns(retro.id, newOrder);
+      dispatch({ type: 'columns:reordered', columnIds: newOrder });
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  };
 
   const handleAddEntry = async (colId, text) => {
     const entry = await api.addEntry(retro.id, colId, text, 'Anonim');
@@ -183,7 +213,6 @@ export function RetroBoard({ retro: initialRetro, user, onWsConnected }) {
           col=${col}
           allColumns=${retro.columns}
           retroId=${retro.id}
-          isAdmin=${user?.role === 'admin'}
           isFinished=${isFinished}
           isAdminOrOwner=${isAdminOrOwner}
           votedEntryIds=${retro.votedEntryIds}
@@ -198,8 +227,11 @@ export function RetroBoard({ retro: initialRetro, user, onWsConnected }) {
           onEditEntry=${handleEditEntry}
           onDeleteEntry=${handleDeleteEntry}
           onMoveEntry=${handleMoveEntry}
+          onDeleteColumn=${handleDeleteColumn}
+          onMoveColumn=${handleMoveColumn}
         />
       `)}
+      ${isAdminOrOwner && !isFinished ? html`<${AddColumn} onAdd=${handleAddColumn} />` : null}
     </div>
   `;
 }

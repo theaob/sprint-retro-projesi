@@ -60,6 +60,15 @@ export function createRetroSocket(retroId, handlers = {}) {
           case 'column:renamed':
             handlers.onColumnRenamed?.(msg);
             break;
+          case 'column:added':
+            handlers.onColumnAdded?.(msg.column);
+            break;
+          case 'column:deleted':
+            handlers.onColumnDeleted?.(msg.columnId);
+            break;
+          case 'columns:reordered':
+            handlers.onColumnsReordered?.(msg.columnIds);
+            break;
           case 'retro:status_changed':
             handlers.onStatusChanged?.(msg.status);
             break;

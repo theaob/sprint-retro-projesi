@@ -81,6 +81,26 @@ export function retroReducer(state, action) {
     case 'status:changed':
       return { ...state, status: action.status };
 
+    case 'column:added': {
+      // Same idempotency concern as entry:added/action:added.
+      const exists = state.columns.some(c => c.id === action.column.id);
+      if (exists) return state;
+      return { ...state, columns: [...state.columns, action.column] };
+    }
+
+    case 'column:deleted':
+      return { ...state, columns: state.columns.filter(c => c.id !== action.columnId) };
+
+    case 'columns:reordered': {
+      const byId = new Map(state.columns.map(c => [c.id, c]));
+      const reordered = action.columnIds.map(id => byId.get(id)).filter(Boolean);
+      // If the id list doesn't fully match what we have locally (stale
+      // client mid-refresh), keep the existing order rather than dropping
+      // columns from the board.
+      if (reordered.length !== state.columns.length) return state;
+      return { ...state, columns: reordered };
+    }
+
     case 'action:added': {
       // Same idempotency concern as entry:added — the adder's own dispatch
       // (fired right after the API call resolves) and the WS echo of that
