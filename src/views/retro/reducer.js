@@ -43,6 +43,22 @@ export function retroReducer(state, action) {
       };
     }
 
+    case 'entry:moved': {
+      const entry = action.entry;
+      // Filter-then-add per column, keyed on the entry's *current* column_id —
+      // naturally idempotent (unlike an append), so no separate dedup guard is
+      // needed against the local dispatch + WS echo landing twice.
+      return {
+        ...state,
+        columns: state.columns.map(c => {
+          const withoutEntry = c.entries.filter(e => e.id !== entry.id);
+          return c.id === entry.column_id
+            ? { ...c, entries: [...withoutEntry, entry] }
+            : { ...c, entries: withoutEntry };
+        })
+      };
+    }
+
     case 'entry:deleted': {
       const { entryId } = action;
       return {

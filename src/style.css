@@ -756,6 +756,12 @@ select.input { cursor: pointer; }
   box-shadow: 0 0 0 2px var(--accent-primary), var(--shadow-elevated);
 }
 
+/* Drop target while dragging an entry card over this column */
+.column.column-drag-over {
+  box-shadow: 0 0 0 2px var(--success), var(--shadow-elevated);
+  background: var(--bg-card-hover);
+}
+
 .column-header {
   display: flex;
   align-items: center;
@@ -816,20 +822,32 @@ select.input { cursor: pointer; }
   animation: slideIn 0.3s ease;
   box-shadow: 0 2px 8px var(--shadow-base);
 }
-.entry-card:hover { 
-  background: var(--glass-6); 
-  border-color: var(--glass-15); 
+.entry-card:hover {
+  background: var(--glass-6);
+  border-color: var(--glass-15);
   box-shadow: 0 4px 12px var(--shadow-mid);
   transform: translateY(-2px);
 }
+.entry-card[draggable="true"] { cursor: grab; }
+.entry-card[draggable="true"]:active { cursor: grabbing; }
 
 .entry-top { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 10px; }
 .entry-text { font-size: 0.9375rem; line-height: 1.5; flex: 1; min-width: 0; }
 
-.entry-manage { display: flex; gap: 2px; flex-shrink: 0; opacity: 0; transition: opacity var(--transition-fast); }
+.entry-manage { display: flex; gap: 2px; align-items: center; flex-shrink: 0; opacity: 0; transition: opacity var(--transition-fast); }
 .entry-card:hover .entry-manage { opacity: 1; }
 .entry-manage .btn-icon-sm { color: var(--text-muted); }
 .entry-manage .btn-icon-sm:hover { color: var(--text-primary); }
+
+.move-entry-select {
+  width: auto;
+  min-height: 28px;
+  padding: 2px 6px;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  border-color: var(--border-color);
+}
+.move-entry-select:hover { color: var(--text-primary); }
 
 /* Touch devices have no :hover — always show manage controls, not just on hover */
 @media (hover: none) {
@@ -1211,4 +1229,5 @@ select.input { cursor: pointer; }
   .btn-vote { min-height: 40px; padding: 8px 14px; }
   .toggle-pwd { padding: 10px 12px; margin-right: -12px; }
   .board-tab { padding: 8px 14px; }
+  .move-entry-select { min-height: 34px; font-size: 0.75rem; }
 }

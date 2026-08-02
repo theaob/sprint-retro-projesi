@@ -318,6 +318,30 @@ router.put('/retros/:id/entries/:entryId', requireAuth, (req, res) => {
   res.json(entry);
 });
 
+// PUT /api/retros/:id/entries/:entryId/move  — move entry to a different column (admin or retro owner)
+router.put('/retros/:id/entries/:entryId/move', requireAuth, (req, res) => {
+  const { column_id } = req.body;
+  if (!column_id) return res.status(400).json({ error: 'column_id gereklidir.' });
+
+  const isAdmin = req.user.role === 'admin';
+  const retro = db.prepare('SELECT created_by FROM retros WHERE id = ?').get(req.params.id);
+  if (!retro) return res.status(404).json({ error: 'Retro bulunamadı.' });
+  if (!isAdmin && retro.created_by !== req.user.id) {
+    return res.status(403).json({ error: 'Bu girdiyi taşıma yetkiniz yok.' });
+  }
+
+  const targetColumn = db.prepare('SELECT id FROM columns WHERE id = ? AND retro_id = ?').get(column_id, req.params.id);
+  if (!targetColumn) return res.status(400).json({ error: 'Hedef sütun bu retroya ait değil.' });
+
+  const result = db.prepare('UPDATE entries SET column_id = ? WHERE id = ? AND retro_id = ?')
+    .run(column_id, req.params.entryId, req.params.id);
+  if (result.changes === 0) return res.status(404).json({ error: 'Girdi bulunamadı.' });
+
+  const entry = db.prepare('SELECT * FROM entries WHERE id = ?').get(req.params.entryId);
+  broadcast(req.params.id, { type: 'entry:moved', entry });
+  res.json(entry);
+});
+
 // DELETE /api/retros/:id/entries/:entryId  — delete entry (admin or retro owner)
 router.delete('/retros/:id/entries/:entryId', requireAuth, (req, res) => {
   const isAdmin = req.user.role === 'admin';

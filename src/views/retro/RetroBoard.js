@@ -36,6 +36,7 @@ export function RetroBoard({ retro: initialRetro, user, onWsConnected }) {
       onEntryAdded(entry) { dispatch({ type: 'entry:added', entry }); },
       onEntryVoted(entry) { dispatch({ type: 'entry:voted', entry }); },
       onEntryEdited(entry) { dispatch({ type: 'entry:edited', entry }); },
+      onEntryMoved(entry) { dispatch({ type: 'entry:moved', entry }); },
       onEntryDeleted(entryId, columnId) { dispatch({ type: 'entry:deleted', entryId, columnId }); },
       onColumnRenamed({ columnId, name }) { dispatch({ type: 'column:renamed', columnId, name }); },
       onStatusChanged(status) {
@@ -133,6 +134,11 @@ export function RetroBoard({ retro: initialRetro, user, onWsConnected }) {
     dispatch({ type: 'entry:deleted', entryId, columnId });
   };
 
+  const handleMoveEntry = async (entryId, columnId) => {
+    const entry = await api.moveEntry(retro.id, entryId, columnId);
+    dispatch({ type: 'entry:moved', entry });
+  };
+
   const handleAddAction = async (entryId, content, assignee) => {
     const actionItem = await api.addActionItem(retro.id, entryId, content, assignee);
     dispatch({ type: 'action:added', actionItem });
@@ -175,6 +181,7 @@ export function RetroBoard({ retro: initialRetro, user, onWsConnected }) {
         <${Column}
           key=${col.id}
           col=${col}
+          allColumns=${retro.columns}
           retroId=${retro.id}
           isAdmin=${user?.role === 'admin'}
           isFinished=${isFinished}
@@ -190,6 +197,7 @@ export function RetroBoard({ retro: initialRetro, user, onWsConnected }) {
           onUnvote=${handleUnvote}
           onEditEntry=${handleEditEntry}
           onDeleteEntry=${handleDeleteEntry}
+          onMoveEntry=${handleMoveEntry}
         />
       `)}
     </div>

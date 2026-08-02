@@ -5,10 +5,11 @@ import { showToast } from '../../utils.js';
 
 const html = htm.bind(h);
 
-export function EntryCard({ entry, retroId, api, isVoted, voteFull, isFinished, actionItems, canManage, onVote, onUnvote, onEdit, onDelete }) {
+export function EntryCard({ entry, retroId, isVoted, voteFull, isFinished, actionItems, canManage, canMove, otherColumns, onVote, onUnvote, onEdit, onDelete, onMove }) {
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState(entry.text);
   const [bumping, setBumping] = useState(false);
+  const [moveSelectValue, setMoveSelectValue] = useState('');
   const prevVotes = useRef(entry.votes);
   const editInputRef = useRef(null);
 
@@ -66,11 +67,32 @@ export function EntryCard({ entry, retroId, api, isVoted, voteFull, isFinished, 
     }
   };
 
+  const handleDragStart = (e) => {
+    e.dataTransfer.setData('text/plain', entry.id);
+    e.dataTransfer.effectAllowed = 'move';
+  };
+
+  const handleMoveSelect = async (e) => {
+    const targetColumnId = e.currentTarget.value;
+    setMoveSelectValue(''); // reset — this is a one-shot action trigger, not persistent state
+    if (!targetColumnId) return;
+    try {
+      await onMove(entry.id, targetColumnId);
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  };
+
   const entryActions = actionItems.filter(a => a.entry_id === entry.id);
   const voteBtnClass = `btn btn-vote vote-btn${isVoted ? ' voted-active' : ''}`;
 
   return html`
-    <div class="entry-card" id="entry-${entry.id}">
+    <div
+      class="entry-card"
+      id="entry-${entry.id}"
+      draggable=${canMove && !editing}
+      onDragStart=${handleDragStart}
+    >
       <div class="entry-top">
         ${editing
           ? html`
@@ -91,6 +113,12 @@ export function EntryCard({ entry, retroId, api, isVoted, voteFull, isFinished, 
             <div class="entry-text">${entry.text}</div>
             ${canManage && !isFinished ? html`
               <div class="entry-manage">
+                ${canMove && otherColumns.length > 0 ? html`
+                  <select class="input move-entry-select" title="Sütun değiştir" value=${moveSelectValue} onChange=${handleMoveSelect}>
+                    <option value="" disabled>Taşı…</option>
+                    ${otherColumns.map(c => html`<option key=${c.id} value=${c.id}>${c.name}</option>`)}
+                  </select>
+                ` : null}
                 <button class="btn btn-ghost btn-icon-sm" title="Düzenle" onClick=${startEdit}>✏️</button>
                 <button class="btn btn-ghost btn-icon-sm" title="Sil" onClick=${handleDelete}>🗑️</button>
               </div>

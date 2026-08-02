@@ -51,6 +51,9 @@ export function createRetroSocket(retroId, handlers = {}) {
           case 'entry:edited':
             handlers.onEntryEdited?.(msg.entry);
             break;
+          case 'entry:moved':
+            handlers.onEntryMoved?.(msg.entry);
+            break;
           case 'entry:deleted':
             handlers.onEntryDeleted?.(msg.entryId, msg.columnId);
             break;

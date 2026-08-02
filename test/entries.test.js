@@ -3,7 +3,7 @@ import request from 'supertest';
 import { app, registerUser, createRetro } from './helpers.js';
 
 describe('entries', () => {
-  let owner, outsider, retro, columnId;
+  let owner, outsider, retro, columnId, secondColumnId;
 
   beforeAll(async () => {
     owner = await registerUser('entries-owner');
@@ -11,6 +11,7 @@ describe('entries', () => {
     retro = await createRetro(owner, 'Entries Test Retro');
     const fetched = await request(app).get(`/api/retros/${retro.id}`);
     columnId = fetched.body.columns[0].id;
+    secondColumnId = fetched.body.columns[1].id;
   });
 
   it('lets a guest (no auth) add an entry', async () => {
@@ -153,5 +154,53 @@ describe('entries', () => {
       .delete(`/api/retros/${retro.id}/entries/${entryId}`)
       .set('Authorization', `Bearer ${owner.token}`);
     expect(del.status).toBe(200);
+  });
+
+  it('requires auth to move an entry between columns', async () => {
+    const added = await request(app)
+      .post(`/api/retros/${retro.id}/entries`)
+      .send({ column_id: columnId, text: 'Move me (no auth)' });
+    const res = await request(app)
+      .put(`/api/retros/${retro.id}/entries/${added.body.id}/move`)
+      .send({ column_id: secondColumnId });
+    expect(res.status).toBe(401);
+  });
+
+  it('blocks a non-owner, non-admin from moving an entry', async () => {
+    const added = await request(app)
+      .post(`/api/retros/${retro.id}/entries`)
+      .send({ column_id: columnId, text: 'Move me (outsider)' });
+    const res = await request(app)
+      .put(`/api/retros/${retro.id}/entries/${added.body.id}/move`)
+      .set('Authorization', `Bearer ${outsider.token}`)
+      .send({ column_id: secondColumnId });
+    expect(res.status).toBe(403);
+  });
+
+  it('rejects moving an entry to a column from a different retro', async () => {
+    const otherRetro = await createRetro(owner, 'Other Retro');
+    const otherFetched = await request(app).get(`/api/retros/${otherRetro.id}`);
+    const foreignColumnId = otherFetched.body.columns[0].id;
+
+    const added = await request(app)
+      .post(`/api/retros/${retro.id}/entries`)
+      .send({ column_id: columnId, text: 'Move me (cross-retro)' });
+    const res = await request(app)
+      .put(`/api/retros/${retro.id}/entries/${added.body.id}/move`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .send({ column_id: foreignColumnId });
+    expect(res.status).toBe(400);
+  });
+
+  it('lets the owner move an entry to a different column in the same retro', async () => {
+    const added = await request(app)
+      .post(`/api/retros/${retro.id}/entries`)
+      .send({ column_id: columnId, text: 'Move me (owner)' });
+    const res = await request(app)
+      .put(`/api/retros/${retro.id}/entries/${added.body.id}/move`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .send({ column_id: secondColumnId });
+    expect(res.status).toBe(200);
+    expect(res.body.column_id).toBe(secondColumnId);
   });
 });

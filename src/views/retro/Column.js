@@ -7,13 +7,37 @@ import { EntryCard } from './EntryCard.js';
 const html = htm.bind(h);
 
 export function Column({
-  col, retroId, isAdmin, isFinished, isAdminOrOwner, votedEntryIds, voteMax, actionItems,
-  flashing, registerRef, onRename, onAddEntry, onVote, onUnvote, onEditEntry, onDeleteEntry
+  col, allColumns, retroId, isAdmin, isFinished, isAdminOrOwner, votedEntryIds, voteMax, actionItems,
+  flashing, registerRef, onRename, onAddEntry, onVote, onUnvote, onEditEntry, onDeleteEntry, onMoveEntry
 }) {
   const [name, setName] = useState(col.name);
   const [entryText, setEntryText] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [dragOver, setDragOver] = useState(false);
   const renameTimeout = useRef(null);
+  const canMove = isAdminOrOwner && !isFinished;
+  const otherColumns = allColumns.filter(c => c.id !== col.id);
+
+  const handleDragOver = (e) => {
+    if (!canMove) return;
+    e.preventDefault(); // required to allow a drop
+    setDragOver(true);
+  };
+
+  const handleDragLeave = (e) => {
+    // Only clear when actually leaving the column, not just moving between
+    // its children (which also fire dragleave/dragenter as the pointer
+    // crosses child element boundaries).
+    if (!e.currentTarget.contains(e.relatedTarget)) setDragOver(false);
+  };
+
+  const handleDrop = (e) => {
+    if (!canMove) return;
+    e.preventDefault();
+    setDragOver(false);
+    const entryId = e.dataTransfer.getData('text/plain');
+    if (entryId) onMoveEntry(entryId, col.id);
+  };
 
   // Column can be renamed elsewhere (another client, or a WS broadcast) —
   // stay in sync unless the user is actively typing in this input.
@@ -51,7 +75,14 @@ export function Column({
   const voteFull = votedEntryIds.length >= voteMax;
 
   return html`
-    <div class="column${flashing ? ' col-flash' : ''}" data-col-id=${col.id} ref=${(el) => registerRef(col.id, el)}>
+    <div
+      class="column${flashing ? ' col-flash' : ''}${dragOver ? ' column-drag-over' : ''}"
+      data-col-id=${col.id}
+      ref=${(el) => registerRef(col.id, el)}
+      onDragOver=${handleDragOver}
+      onDragLeave=${handleDragLeave}
+      onDrop=${handleDrop}
+    >
       <div class="column-header">
         <input
           ref=${nameInputRef}
@@ -73,10 +104,13 @@ export function Column({
             isFinished=${isFinished}
             actionItems=${actionItems}
             canManage=${isAdminOrOwner}
+            canMove=${canMove}
+            otherColumns=${otherColumns}
             onVote=${onVote}
             onUnvote=${onUnvote}
             onEdit=${onEditEntry}
             onDelete=${(id) => onDeleteEntry(id, col.id)}
+            onMove=${onMoveEntry}
           />
         `)}
       </div>

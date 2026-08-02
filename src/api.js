@@ -76,6 +76,9 @@ export const api = {
   deleteEntry: (retroId, entryId) => request(`/retros/${retroId}/entries/${entryId}`, {
     method: 'DELETE'
   }),
+  moveEntry: (retroId, entryId, columnId) => request(`/retros/${retroId}/entries/${entryId}/move`, {
+    method: 'PUT', body: JSON.stringify({ column_id: columnId })
+  }),
   voteEntry: (retroId, entryId) => request(`/retros/${retroId}/entries/${entryId}/vote`, {
     method: 'POST', body: JSON.stringify({ participant_id: getParticipantId() })
   }),
