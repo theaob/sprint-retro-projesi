@@ -47,7 +47,6 @@ export function RetroBoard({ retro: initialRetro, user, onWsConnected }) {
       onColumnRenamed({ columnId, name }) { dispatch({ type: 'column:renamed', columnId, name }); },
       onColumnAdded(column) { dispatch({ type: 'column:added', column }); },
       onColumnDeleted(columnId) { dispatch({ type: 'column:deleted', columnId }); },
-      onColumnsReordered(columnIds) { dispatch({ type: 'columns:reordered', columnIds }); },
       onStatusChanged(status) {
         if (status === 'finished') window.location.reload(); // simplest way to transition globally
       },
@@ -133,22 +132,6 @@ export function RetroBoard({ retro: initialRetro, user, onWsConnected }) {
   const handleDeleteColumn = async (colId) => {
     await api.deleteColumn(retro.id, colId);
     dispatch({ type: 'column:deleted', columnId: colId });
-  };
-
-  const handleMoveColumn = async (colId, direction) => {
-    const index = retro.columns.findIndex(c => c.id === colId);
-    const targetIndex = direction === 'left' ? index - 1 : index + 1;
-    if (index === -1 || targetIndex < 0 || targetIndex >= retro.columns.length) return;
-
-    const newOrder = retro.columns.map(c => c.id);
-    [newOrder[index], newOrder[targetIndex]] = [newOrder[targetIndex], newOrder[index]];
-
-    try {
-      await api.reorderColumns(retro.id, newOrder);
-      dispatch({ type: 'columns:reordered', columnIds: newOrder });
-    } catch (err) {
-      showToast(err.message, 'error');
-    }
   };
 
   const handleAddEntry = async (colId, text) => {
@@ -261,7 +244,6 @@ export function RetroBoard({ retro: initialRetro, user, onWsConnected }) {
           onDeleteEntry=${handleDeleteEntry}
           onMoveEntry=${handleMoveEntry}
           onDeleteColumn=${handleDeleteColumn}
-          onMoveColumn=${handleMoveColumn}
           typingName=${typingByColumn[col.id]}
           onTyping=${handleTyping}
         />

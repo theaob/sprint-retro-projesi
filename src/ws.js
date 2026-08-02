@@ -69,9 +69,6 @@ export function createRetroSocket(retroId, displayName, handlers = {}) {
           case 'column:deleted':
             handlers.onColumnDeleted?.(msg.columnId);
             break;
-          case 'columns:reordered':
-            handlers.onColumnsReordered?.(msg.columnIds);
-            break;
           case 'retro:status_changed':
             handlers.onStatusChanged?.(msg.status);
             break;

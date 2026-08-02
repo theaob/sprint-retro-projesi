@@ -902,13 +902,15 @@ select.input { cursor: pointer; }
 }
 
 /* Column accent rotation (1b mockup direction) — each column gets one of
-   four accent colors by index, carried via a custom property so both the
-   column title and its entry cards (a separate component) pick it up
-   without threading a color prop through every level. */
-.column.col-accent-0 { --col-accent: var(--accent-violet); --col-accent-text: var(--accent-violet-text); }
-.column.col-accent-1 { --col-accent: var(--accent-lime); --col-accent-text: var(--accent-lime-text); }
-.column.col-accent-2 { --col-accent: var(--accent-pink); --col-accent-text: var(--accent-pink-text); }
-.column.col-accent-3 { --col-accent: var(--accent-sky); --col-accent-text: var(--accent-sky-text); }
+   four accent colors by index, carried via a custom property so the
+   column title, its entry cards, and its mobile board-tab (all separate
+   components) pick it up without threading a color prop through every
+   level. Not scoped to .column specifically — .board-tab reuses the same
+   .col-accent-N classes so a lane's tab matches its lane. */
+.col-accent-0 { --col-accent: var(--accent-violet); --col-accent-text: var(--accent-violet-text); }
+.col-accent-1 { --col-accent: var(--accent-lime); --col-accent-text: var(--accent-lime-text); }
+.col-accent-2 { --col-accent: var(--accent-pink); --col-accent-text: var(--accent-pink-text); }
+.col-accent-3 { --col-accent: var(--accent-sky); --col-accent-text: var(--accent-sky-text); }
 
 /* Flash effect when new entry arrives from WS */
 .column.col-flash {
@@ -954,23 +956,6 @@ select.input { cursor: pointer; }
   font-weight: 600;
   color: var(--text-muted);
 }
-
-/* Reorder (‹ ›) is a single grouped control — one shared border reads as
-   one low-stakes affordance instead of two separate buttons. Delete is
-   deliberately kept apart with real spacing since it's destructive. */
-.column-reorder {
-  display: flex;
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-sm);
-  overflow: hidden;
-}
-.column-reorder .btn-icon-sm {
-  border: none;
-  border-radius: 0;
-  color: var(--text-muted);
-}
-.column-reorder .btn-icon-sm:not(:last-child) { border-right: 1px solid var(--border-color); }
-.column-reorder .btn-icon-sm:hover:not(:disabled) { color: var(--text-primary); background: var(--glass-5); }
 
 .column-delete-btn {
   color: var(--text-muted);
@@ -1244,7 +1229,11 @@ select.input { cursor: pointer; }
   h1 { font-size: 2rem; }
   h2 { font-size: 1.5rem; }
 
-  .column { flex: 0 0 340px; scroll-snap-align: start; }
+  /* flex-grow so lanes stretch to fill leftover width instead of leaving
+     empty space to the right when there's room (capped by the base rule's
+     max-width: 380px) — still shrinks/wraps to scroll once there's more
+     lanes than fit. */
+  .column { flex: 1 1 340px; scroll-snap-align: start; }
   .add-column-card { flex: 0 0 340px; scroll-snap-align: start; max-width: none; }
 
   .retro-header { flex-direction: row; align-items: center; justify-content: space-between; }
@@ -1480,6 +1469,14 @@ select.input { cursor: pointer; }
   gap: 8px;
 }
 
+/* Reflects the tab's own lane color (--col-accent-*, set by .col-accent-N
+   — same rotation classes Column.js applies to the lane itself) rather
+   than the generic app accent, so every tab matches its lane at a glance,
+   not just the active one. Colored text on a neutral border/background
+   when inactive; active adds a tinted background + colored border for
+   emphasis. Tint + colored text (not a solid fill) since the light
+   decorative --col-accent tones don't have enough contrast for white
+   text. */
 .board-tab {
   display: inline-flex;
   align-items: center;
@@ -1490,16 +1487,15 @@ select.input { cursor: pointer; }
   padding: 6px 14px;
   font-size: 0.75rem;
   font-weight: 600;
-  color: var(--text-secondary);
+  color: var(--col-accent-text, var(--text-secondary));
   cursor: pointer;
   white-space: nowrap;
   transition: all var(--transition-fast);
 }
 
 .board-tab.active {
-  background: var(--accent-primary);
-  color: var(--on-accent);
-  border-color: transparent;
+  background: color-mix(in oklch, var(--col-accent, var(--accent-primary)) 16%, var(--bg-card));
+  border-color: var(--col-accent, var(--accent-primary));
 }
 
 .board-tab .tab-count {
@@ -1510,7 +1506,7 @@ select.input { cursor: pointer; }
 }
 
 .board-tab.active .tab-count {
-  background: rgba(255, 255, 255, 0.2);
+  background: color-mix(in oklch, var(--col-accent, var(--accent-primary)) 25%, transparent);
 }
 
 /* ── Users Table Mobile Card-Layout ───────────────────────── */

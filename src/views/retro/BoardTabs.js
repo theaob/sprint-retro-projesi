@@ -57,10 +57,10 @@ export function BoardTabs({ columns, boardRef, getColumnEl }) {
   return html`
     <div class="board-tabs-container">
       <div class="board-tabs">
-        ${columns.map(col => html`
+        ${columns.map((col, i) => html`
           <button
             key=${col.id}
-            class="board-tab${col.id === activeColId ? ' active' : ''}"
+            class="board-tab col-accent-${i % 4}${col.id === activeColId ? ' active' : ''}"
             onClick=${() => handleTabClick(col.id)}
           >
             <span class="tab-name-text">${col.name}</span>

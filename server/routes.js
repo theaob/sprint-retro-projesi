@@ -414,35 +414,6 @@ router.delete('/retros/:id', requireAuth, (req, res) => {
   res.json({ success: true });
 });
 
-// PUT /api/retros/:id/columns/reorder  — reorder columns (admin or owner only)
-// Registered before the /:colId rename route below — otherwise Express would
-// match "reorder" as a wildcard colId and this route would never be reached.
-router.put('/retros/:id/columns/reorder', requireAuth, (req, res) => {
-  const { column_ids } = req.body;
-  if (!Array.isArray(column_ids) || column_ids.length === 0) {
-    return res.status(400).json({ error: 'column_ids gereklidir.' });
-  }
-
-  const isAdmin = req.user.role === 'admin';
-  const retro = db.prepare('SELECT created_by FROM retros WHERE id = ?').get(req.params.id);
-  if (!retro) return res.status(404).json({ error: 'Retro bulunamadı.' });
-  if (!isAdmin && retro.created_by !== req.user.id) {
-    return res.status(403).json({ error: 'Bu retroyu düzenleme yetkiniz yok.' });
-  }
-
-  const existing = db.prepare('SELECT id FROM columns WHERE retro_id = ?').all(req.params.id).map(c => c.id);
-  const sameSet = existing.length === column_ids.length && existing.every(id => column_ids.includes(id));
-  if (!sameSet) return res.status(400).json({ error: 'Geçersiz sütun listesi.' });
-
-  const updateStmt = db.prepare('UPDATE columns SET sort_order = ? WHERE id = ?');
-  db.transaction(() => {
-    column_ids.forEach((colId, idx) => { updateStmt.run(idx, colId); });
-  })();
-
-  broadcast(req.params.id, { type: 'columns:reordered', columnIds: column_ids });
-  res.json({ success: true });
-});
-
 // PUT /api/retros/:id/columns/:colId  — rename column (admin or owner only)
 router.put('/retros/:id/columns/:colId', requireAuth, (req, res) => {
   const { name } = req.body;

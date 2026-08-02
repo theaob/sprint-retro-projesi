@@ -76,58 +76,16 @@ describe('column CRUD', () => {
     expect(res.status).toBe(400);
   });
 
-  it('requires auth to reorder columns', async () => {
-    const fetched = await request(app).get(`/api/retros/${retro.id}`);
-    const ids = fetched.body.columns.map(c => c.id).reverse();
-    const res = await request(app).put(`/api/retros/${retro.id}/columns/reorder`).send({ column_ids: ids });
-    expect(res.status).toBe(401);
-  });
-
-  it('blocks a non-owner, non-admin from reordering columns', async () => {
-    const fetched = await request(app).get(`/api/retros/${retro.id}`);
-    const ids = fetched.body.columns.map(c => c.id).reverse();
-    const res = await request(app)
-      .put(`/api/retros/${retro.id}/columns/reorder`)
-      .set('Authorization', `Bearer ${outsider.token}`)
-      .send({ column_ids: ids });
-    expect(res.status).toBe(403);
-  });
-
-  it('rejects a reorder list that does not match the existing column set', async () => {
+  it('a literal colId of "reorder" 404s cleanly now that the reorder route is gone', async () => {
+    // Regression guard for the inverse of the bug this route ordering used
+    // to protect against: with the reorder endpoint removed, a request to
+    // .../columns/reorder now falls through to the rename route's :colId
+    // wildcard and should 404 (no column literally named "reorder"), not
+    // silently succeed or throw.
     const res = await request(app)
       .put(`/api/retros/${retro.id}/columns/reorder`)
       .set('Authorization', `Bearer ${owner.token}`)
-      .send({ column_ids: ['not-a-real-id'] });
-    expect(res.status).toBe(400);
-  });
-
-  it('lets the owner reorder columns', async () => {
-    const fetched = await request(app).get(`/api/retros/${retro.id}`);
-    const originalIds = fetched.body.columns.map(c => c.id);
-    const reversedIds = [...originalIds].reverse();
-
-    const res = await request(app)
-      .put(`/api/retros/${retro.id}/columns/reorder`)
-      .set('Authorization', `Bearer ${owner.token}`)
-      .send({ column_ids: reversedIds });
-    expect(res.status).toBe(200);
-
-    const after = await request(app).get(`/api/retros/${retro.id}`);
-    expect(after.body.columns.map(c => c.id)).toEqual(reversedIds);
-  });
-
-  it('the reorder route is reachable and not shadowed by the rename route\'s wildcard', async () => {
-    // Regression guard: PUT .../columns/reorder must not be swallowed by
-    // PUT .../columns/:colId (rename) matching "reorder" as a colId.
-    const fetched = await request(app).get(`/api/retros/${retro.id}`);
-    const ids = fetched.body.columns.map(c => c.id);
-    const res = await request(app)
-      .put(`/api/retros/${retro.id}/columns/reorder`)
-      .set('Authorization', `Bearer ${owner.token}`)
-      .send({ column_ids: ids });
-    // A 200 here (not a 404 "Sütun bulunamadı" from the rename route
-    // treating "reorder" as a colId) proves the correct route matched.
-    expect(res.status).toBe(200);
-    expect(res.body).toEqual({ success: true });
+      .send({ name: 'Should 404' });
+    expect(res.status).toBe(404);
   });
 });

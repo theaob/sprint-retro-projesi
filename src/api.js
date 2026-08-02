@@ -90,9 +90,6 @@ export const api = {
   deleteColumn: (retroId, colId) => request(`/retros/${retroId}/columns/${colId}`, {
     method: 'DELETE'
   }),
-  reorderColumns: (retroId, columnIds) => request(`/retros/${retroId}/columns/reorder`, {
-    method: 'PUT', body: JSON.stringify({ column_ids: columnIds })
-  }),
 
   // Entries
   addEntry: (retroId, columnId, text, author) => request(`/retros/${retroId}/entries`, {
