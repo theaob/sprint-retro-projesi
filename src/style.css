@@ -1503,6 +1503,145 @@ select.input { cursor: pointer; }
   max-width: 260px;
 }
 
+/* ── Death Star Ending ───────────────────────────────────────────
+   Star Wars Death-Star-explosion pastiche (deathStarEnding.js): a
+   shaded sphere idles in a CSS-gradient starfield, explodes into a
+   burst of radial particles, then a yellow "opening crawl"-style
+   message scrolls up in 3D perspective. Built from generic shapes
+   and an adapted phrase, not reproduced film assets or typeface. */
+.deathstar-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  overflow: hidden;
+  background: #000;
+}
+
+.deathstar-stars {
+  position: absolute;
+  inset: 0;
+  background-image:
+    radial-gradient(1.5px 1.5px at 10% 20%, #fff, transparent),
+    radial-gradient(1px 1px at 80% 10%, #fff, transparent),
+    radial-gradient(1px 1px at 25% 65%, #fff, transparent),
+    radial-gradient(1.5px 1.5px at 60% 80%, #fff, transparent),
+    radial-gradient(1px 1px at 90% 50%, #fff, transparent),
+    radial-gradient(1px 1px at 45% 35%, #fff, transparent),
+    radial-gradient(1.5px 1.5px at 15% 90%, #fff, transparent),
+    radial-gradient(1px 1px at 70% 25%, #fff, transparent),
+    radial-gradient(1px 1px at 35% 5%, #fff, transparent),
+    radial-gradient(1.5px 1.5px at 95% 85%, #fff, transparent),
+    radial-gradient(1px 1px at 5% 45%, #fff, transparent),
+    radial-gradient(1px 1px at 55% 55%, #fff, transparent);
+  background-size: 300px 300px;
+  background-repeat: repeat;
+  opacity: 0.9;
+}
+
+.deathstar-sphere {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #a8a8a8, #5c5c5c 60%, #333 100%);
+  box-shadow: inset -22px -22px 40px rgba(0, 0, 0, 0.55);
+  transform: translate(-50%, -50%);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+.deathstar-sphere::after {
+  content: '';
+  position: absolute;
+  top: 38%;
+  left: -4%;
+  right: -4%;
+  height: 3px;
+  background: rgba(0, 0, 0, 0.35);
+}
+.deathstar-dish {
+  position: absolute;
+  top: 20%;
+  left: 16%;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 40% 40%, #2c2c2c, #4c4c4c 70%, #6c6c6c 100%);
+  box-shadow: inset 4px 4px 8px rgba(0, 0, 0, 0.6);
+}
+.deathstar-overlay.deathstar-exploding .deathstar-sphere {
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(1.4);
+}
+
+.deathstar-flash {
+  position: absolute;
+  inset: 0;
+  background: #fff;
+  opacity: 0;
+  pointer-events: none;
+}
+.deathstar-overlay.deathstar-exploding .deathstar-flash {
+  animation: deathstar-flash 0.6s ease-out forwards;
+}
+@keyframes deathstar-flash {
+  0% { opacity: 0; }
+  15% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.deathstar-particle {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff, #ffb347 40%, #ff5e1a 70%, transparent 100%);
+  transform: translate(-50%, -50%);
+  animation: deathstar-particle-fly 0.9s ease-out forwards;
+}
+@keyframes deathstar-particle-fly {
+  to {
+    transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(0.2);
+    opacity: 0;
+  }
+}
+
+.deathstar-crawl-wrap {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  overflow: hidden;
+  perspective: 350px;
+  perspective-origin: 50% 100%;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  padding-bottom: 8%;
+}
+.deathstar-overlay.deathstar-crawl-visible .deathstar-crawl-wrap {
+  opacity: 1;
+}
+
+.deathstar-crawl-text {
+  color: #ffe81f;
+  font-family: Arial, 'Helvetica Neue', sans-serif;
+  font-weight: 700;
+  font-size: 2rem;
+  text-align: center;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  line-height: 1.4;
+  margin: 0;
+  transform-origin: 50% 100%;
+  transform: rotateX(30deg) translateY(60%);
+  animation: deathstar-crawl-scroll 3.4s ease-in forwards;
+}
+@keyframes deathstar-crawl-scroll {
+  from { transform: rotateX(30deg) translateY(60%); opacity: 1; }
+  to { transform: rotateX(30deg) translateY(-140%) scale(0.6); opacity: 0; }
+}
+
 /* ── Responsive ──────────────────────────────────────────────── */
 @media (min-width: 768px) {
   :root {
