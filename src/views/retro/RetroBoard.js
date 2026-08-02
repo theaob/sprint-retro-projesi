@@ -9,6 +9,7 @@ import { retroReducer, initialRetroState } from './reducer.js';
 import { Column } from './Column.js';
 import { BoardTabs } from './BoardTabs.js';
 import { AddColumn } from './AddColumn.js';
+import { showRetroShutdownScreen } from './shutdownScreen.js';
 
 const html = htm.bind(h);
 const TYPING_EXPIRY_MS = 3000;
@@ -47,7 +48,9 @@ export function RetroBoard({ retro: initialRetro, user, onWsConnected }) {
       onColumnAdded(column) { dispatch({ type: 'column:added', column }); },
       onColumnDeleted(columnId) { dispatch({ type: 'column:deleted', columnId }); },
       onStatusChanged(status) {
-        if (status === 'finished') window.location.reload(); // simplest way to transition globally
+        // Reload is still how every client picks up the finished-state UI —
+        // the shutdown screen just delays that reload long enough to play.
+        if (status === 'finished') showRetroShutdownScreen(() => window.location.reload());
       },
       onPresenceUpdate(users) { setPresenceUsers(users); },
       onTyping(columnId, name) {

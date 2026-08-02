@@ -1237,6 +1237,102 @@ select.input { cursor: pointer; }
   100% { transform: translateY(-115vh) rotate(25deg); opacity: 0; }
 }
 
+/* ── Retro Shutdown Screen ───────────────────────────────────────
+   A Windows 95-shutdown pastiche shown to every client when a retro
+   finishes (see shutdownScreen.js), right before the page reload that
+   picks up the finished-state UI. Deliberately its own fixed visual
+   world — hardcoded colors, not the app's theme tokens — since it's a
+   one-off homage, not a themed surface. Skipped entirely (not shown
+   statically) under prefers-reduced-motion, same as vote-celebration. */
+.win95-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  background: #008080;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: Tahoma, 'Segoe UI', sans-serif;
+  overflow: hidden;
+}
+
+.win95-dialog {
+  width: min(320px, 86vw);
+  background: #c0c0c0;
+  border: 2px solid #dfdfdf;
+  box-shadow:
+    inset -1px -1px 0 #0a0a0a,
+    inset 1px 1px 0 #ffffff,
+    inset -2px -2px 0 #808080,
+    inset 2px 2px 0 #dfdfdf;
+  animation: win95-dialog-out 0.3s ease 1.5s forwards;
+}
+
+.win95-titlebar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 3px 4px 3px 6px;
+  background: linear-gradient(90deg, #000080, #1084d0);
+}
+
+.win95-titlebar-text { font-size: 0.8rem; font-weight: 700; color: #fff; letter-spacing: 0.2px; }
+.win95-titlebar-buttons { display: flex; gap: 2px; }
+.win95-titlebar-btn {
+  width: 16px;
+  height: 14px;
+  background: #c0c0c0;
+  color: #000;
+  font-size: 0.65rem;
+  line-height: 14px;
+  text-align: center;
+  border: 1px solid #808080;
+  box-shadow: inset -1px -1px 0 #0a0a0a, inset 1px 1px 0 #fff;
+}
+
+.win95-dialog-body {
+  padding: 22px 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+}
+
+.win95-hourglass {
+  font-size: 2rem;
+  display: inline-block;
+  animation: win95-hourglass-flip 1s steps(2) infinite;
+}
+
+.win95-dialog-body p { margin: 0; font-size: 0.8rem; color: #000; }
+
+.win95-black-screen {
+  position: absolute;
+  inset: 0;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  animation: win95-black-in 0.4s ease 1.5s forwards;
+}
+
+.win95-safe-text {
+  color: #fff;
+  font-size: 1rem;
+  letter-spacing: 0.3px;
+  padding: 0 24px;
+  text-align: center;
+}
+
+@keyframes win95-dialog-out { to { opacity: 0; transform: scale(0.94); } }
+@keyframes win95-black-in { to { opacity: 1; } }
+@keyframes win95-hourglass-flip {
+  0%, 100% { transform: rotate(0deg); }
+  50% { transform: rotate(180deg); }
+}
+
 /* ── Responsive ──────────────────────────────────────────────── */
 @media (min-width: 768px) {
   :root {
