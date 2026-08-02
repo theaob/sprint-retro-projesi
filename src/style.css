@@ -1333,6 +1333,51 @@ select.input { cursor: pointer; }
   50% { transform: rotate(180deg); }
 }
 
+/* ── Solitaire Cascade ───────────────────────────────────────────
+   Windows 98 Solitaire-win pastiche: cards bounce down a felt-green
+   background under JS-driven physics (solitaireCascade.js sets each
+   card's transform per animation frame — no CSS animation/keyframes
+   needed here, just the static card look). */
+.solitaire-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  background: #076324;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.solitaire-card {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 56px;
+  height: 78px;
+  background: #fdfdf6;
+  border: 1px solid #222;
+  border-radius: 6px;
+  box-shadow: 1px 2px 4px rgba(0, 0, 0, 0.4);
+  will-change: transform;
+}
+
+.solitaire-card-corner {
+  position: absolute;
+  font-size: 0.8rem;
+  font-weight: 700;
+  line-height: 1;
+  font-family: Tahoma, sans-serif;
+}
+.solitaire-card-corner-top { top: 4px; left: 4px; }
+.solitaire-card-corner-bottom { bottom: 4px; right: 4px; transform: rotate(180deg); }
+
+.solitaire-card-suit {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 1.6rem;
+}
+
 /* ── Responsive ──────────────────────────────────────────────── */
 @media (min-width: 768px) {
   :root {

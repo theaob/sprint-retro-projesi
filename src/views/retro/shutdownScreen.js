@@ -1,17 +1,9 @@
 /**
- * A Windows 95-shutdown-styled transition, shown to every connected client
- * the instant a retro is finished (broadcast via retro:status_changed),
- * right before the page reloads to pick up the finished-state UI. Purely
- * decorative — skipped entirely under prefers-reduced-motion, same as
- * spawnVoteCelebration in utils.js, since the reload itself is the only
- * functionally necessary part.
+ * A Windows 95-shutdown-styled transition — one of the pool of retro-end
+ * animations in retroEndAnimations.js, which is the only caller and already
+ * handles the prefers-reduced-motion check before picking one to play.
  */
 export function showRetroShutdownScreen(onComplete) {
-  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    onComplete?.();
-    return;
-  }
-
   const overlay = document.createElement('div');
   overlay.className = 'win95-overlay';
   overlay.innerHTML = `
