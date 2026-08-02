@@ -17,6 +17,7 @@ const app = document.getElementById('app');
  * #/           → Public landing page (logged-in visitors bounce to #/app)
  * #/app        → Retro management dashboard (requires login)
  * #/login      → Login page
+ * #/register   → Same login page, opened straight into register mode
  * #/users      → User management (requires admin)
  * #/actions    → Open action items across retros (requires login)
  * #/retro/:id  → Retro board (public)
@@ -29,6 +30,8 @@ function router() {
     renderRetro(app, retroMatch[1]);
   } else if (hash === '#/login') {
     renderLogin(app);
+  } else if (hash === '#/register') {
+    renderLogin(app, { startInRegister: true });
   } else if (hash === '#/users') {
     if (!api.isAdmin()) {
       window.location.hash = '#/login';

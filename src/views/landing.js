@@ -11,6 +11,7 @@ export function renderLanding(appEl) {
           <div class="landing-brand">◆ Sprint Retro</div>
           <div class="landing-nav-links">
             <a href="#landing-features">Özellikler</a>
+            <a href="#/register" class="btn btn-ghost btn-sm">Kayıt Ol</a>
             <a href="#/login" class="btn btn-primary btn-sm">Giriş Yap</a>
           </div>
         </div>

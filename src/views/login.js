@@ -56,10 +56,12 @@ function showForcedPasswordChangeModal(appEl, token, user) {
 }
 
 /**
- * Login page — #/login
+ * Login page — #/login, or #/register to land straight on the register
+ * form (same page, just a different starting mode — the toggle link
+ * still switches between the two either way).
  */
-export function renderLogin(appEl) {
-  let isRegistering = false;
+export function renderLogin(appEl, { startInRegister = false } = {}) {
+  let isRegistering = startInRegister;
 
   const updateUI = () => {
     appEl.innerHTML = `

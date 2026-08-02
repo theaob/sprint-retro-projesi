@@ -569,7 +569,13 @@ select.input { cursor: pointer; }
 .landing-page { background: var(--bg-primary); }
 
 .landing-nav { border-bottom: 1px solid var(--border-color); }
-.landing-nav-inner { display: flex; align-items: center; justify-content: space-between; padding: 18px 0; }
+/* padding-top/bottom only (not the `padding` shorthand) — this element
+   also carries .container, which supplies the horizontal padding via the
+   same property; a shorthand here would silently zero that out since
+   this rule comes later in the stylesheet. Same reasoning applies to
+   .landing-hero and .landing-cta below, both also combined with
+   .container in the markup. */
+.landing-nav-inner { display: flex; align-items: center; justify-content: space-between; padding-top: 18px; padding-bottom: 18px; }
 .landing-brand { font: 700 18px var(--font-display); color: var(--text-primary); }
 .landing-nav-links { display: flex; align-items: center; gap: 24px; }
 .landing-nav-links a:not(.btn) { font: 500 13.5px var(--font-family); color: var(--text-secondary); text-decoration: none; }
@@ -579,7 +585,8 @@ select.input { cursor: pointer; }
   display: flex;
   align-items: center;
   gap: 48px;
-  padding: 64px 0 72px;
+  padding-top: 64px;
+  padding-bottom: 72px;
 }
 .landing-hero-copy { flex: 1; min-width: 0; }
 .landing-eyebrow {
@@ -632,7 +639,7 @@ select.input { cursor: pointer; }
 .landing-feature-card h3 { font: 700 15px var(--font-display); color: var(--text-primary); margin-bottom: 6px; }
 .landing-feature-card p { font: 400 13px/1.5 var(--font-family); color: var(--text-secondary); }
 
-.landing-cta { padding: 72px 0; text-align: center; }
+.landing-cta { padding-top: 72px; padding-bottom: 72px; text-align: center; }
 .landing-cta-subcopy { font: 400 14px var(--font-family); color: var(--text-secondary); margin: 10px 0 26px; }
 .landing-cta-btn { padding: 15px 30px; font-size: 0.95rem; }
 
@@ -641,7 +648,7 @@ select.input { cursor: pointer; }
 .landing-footer-version { font: 400 12px var(--font-family); }
 
 @media (max-width: 900px) {
-  .landing-hero { flex-direction: column; padding: 40px 0 48px; }
+  .landing-hero { flex-direction: column; padding-top: 40px; padding-bottom: 48px; }
   .landing-headline { font-size: 2rem; }
   .landing-hero-preview { width: 100%; }
   .landing-preview-board { grid-template-columns: repeat(2, 1fr); }
