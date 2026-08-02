@@ -9,7 +9,7 @@ const html = htm.bind(h);
 export function Column({
   col, allColumns, retroId, isFinished, isAdminOrOwner, votedEntryIds, voteMax, actionItems,
   flashing, registerRef, onRename, onAddEntry, onVote, onUnvote, onEditEntry, onDeleteEntry, onMoveEntry,
-  onDeleteColumn, onMoveColumn
+  onDeleteColumn, onMoveColumn, typingName, onTyping
 }) {
   const [name, setName] = useState(col.name);
   const [entryText, setEntryText] = useState('');
@@ -141,6 +141,7 @@ export function Column({
           />
         `)}
       </div>
+      ${typingName ? html`<div class="typing-indicator">${typingName} yazıyor…</div>` : null}
       ${!isFinished ? html`
         <form class="add-entry-form" onSubmit=${handleAddEntry}>
           <input
@@ -149,7 +150,7 @@ export function Column({
             placeholder="Yeni madde ekle…"
             required
             value=${entryText}
-            onInput=${(e) => setEntryText(e.currentTarget.value)}
+            onInput=${(e) => { setEntryText(e.currentTarget.value); onTyping?.(col.id); }}
           />
           <button type="submit" class="btn btn-primary btn-sm" disabled=${submitting}>+</button>
         </form>

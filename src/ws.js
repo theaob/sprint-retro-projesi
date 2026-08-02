@@ -1,16 +1,19 @@
 /**
  * WebSocket client for real-time retro updates.
  * Usage:
- *   const ws = createRetroSocket(retroId, {
+ *   const ws = createRetroSocket(retroId, displayName, {
  *     onEntryAdded: (entry) => {},
  *     onEntryVoted: (entry) => {},
  *     onColumnRenamed: ({ columnId, name }) => {},
+ *     onPresenceUpdate: (users) => {},      // users: array of (name | null)
+ *     onTyping: (columnId, name) => {},
  *     onReconnect: () => {},
  *   });
+ *   ws.sendTyping(columnId); // throttled client-side, safe to call on every keystroke
  *   ws.close(); // cleanup
  */
 
-export function createRetroSocket(retroId, handlers = {}) {
+export function createRetroSocket(retroId, displayName, handlers = {}) {
   const protocol = location.protocol === 'https:' ? 'wss' : 'ws';
   const host = location.hostname;
   // In dev, Vite runs on 5173 but server is on 3000 — use server port
@@ -30,7 +33,7 @@ export function createRetroSocket(retroId, handlers = {}) {
 
     ws.onopen = () => {
       // Join the retro room
-      ws.send(JSON.stringify({ type: 'join', retroId }));
+      ws.send(JSON.stringify({ type: 'join', retroId, name: displayName || null }));
       // If this is a reconnection, notify so the page can refresh stale data
       if (hasConnectedBefore) {
         handlers.onReconnect?.();
@@ -81,6 +84,12 @@ export function createRetroSocket(retroId, handlers = {}) {
           case 'action:removed':
             handlers.onActionRemoved?.(msg.actionId, msg.retroId);
             break;
+          case 'presence:update':
+            handlers.onPresenceUpdate?.(msg.users);
+            break;
+          case 'typing':
+            handlers.onTyping?.(msg.columnId, msg.name);
+            break;
         }
       } catch (e) {
         // ignore
@@ -101,11 +110,23 @@ export function createRetroSocket(retroId, handlers = {}) {
 
   connect();
 
+  let lastTypingSentAt = 0;
+
   return {
     close() {
       closed = true;
       clearTimeout(reconnectTimer);
       ws?.close();
+    },
+    // Safe to call on every keystroke — throttled to at most once per 2s
+    // so a fast typist doesn't flood the room with messages.
+    sendTyping(columnId) {
+      const now = Date.now();
+      if (now - lastTypingSentAt < 2000) return;
+      lastTypingSentAt = now;
+      if (ws?.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: 'typing', retroId, columnId, name: displayName || null }));
+      }
     }
   };
 }

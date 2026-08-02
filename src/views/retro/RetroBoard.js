@@ -1,5 +1,5 @@
 import { h } from 'preact';
-import { useReducer, useEffect, useRef } from 'preact/hooks';
+import { useReducer, useEffect, useRef, useState } from 'preact/hooks';
 import htm from 'htm';
 import { api } from '../../api.js';
 import { exportRetroToExcel } from '../../export.js';
@@ -12,12 +12,17 @@ import { ActionPlan } from './ActionPlan.js';
 import { AddColumn } from './AddColumn.js';
 
 const html = htm.bind(h);
+const TYPING_EXPIRY_MS = 3000;
 
 export function RetroBoard({ retro: initialRetro, user, onWsConnected }) {
   const [retro, dispatch] = useReducer(retroReducer, initialRetro, initialRetroState);
+  const [presenceUsers, setPresenceUsers] = useState([]);
+  const [typingByColumn, setTypingByColumn] = useState({});
 
   const boardRef = useRef(null);
   const columnRefs = useRef(new Map());
+  const socketRef = useRef(null);
+  const typingTimers = useRef({});
   const registerColumnRef = (colId, el) => {
     if (el) columnRefs.current.set(colId, el);
     else columnRefs.current.delete(colId);
@@ -33,7 +38,7 @@ export function RetroBoard({ retro: initialRetro, user, onWsConnected }) {
   // WebSocket — bound once on mount. Dispatch is stable across renders, so
   // these handlers never see stale state despite only being wired up once.
   useEffect(() => {
-    const socket = createRetroSocket(retro.id, {
+    const socket = createRetroSocket(retro.id, user?.username, {
       onEntryAdded(entry) { dispatch({ type: 'entry:added', entry }); },
       onEntryVoted(entry) { dispatch({ type: 'entry:voted', entry }); },
       onEntryEdited(entry) { dispatch({ type: 'entry:edited', entry }); },
@@ -49,6 +54,18 @@ export function RetroBoard({ retro: initialRetro, user, onWsConnected }) {
       onActionAdded(actionItem) { dispatch({ type: 'action:added', actionItem }); },
       onActionUpdated(actionItem) { dispatch({ type: 'action:updated', actionItem }); },
       onActionRemoved(actionId) { dispatch({ type: 'action:removed', actionId }); },
+      onPresenceUpdate(users) { setPresenceUsers(users); },
+      onTyping(columnId, name) {
+        setTypingByColumn(prev => ({ ...prev, [columnId]: name }));
+        clearTimeout(typingTimers.current[columnId]);
+        typingTimers.current[columnId] = setTimeout(() => {
+          setTypingByColumn(prev => {
+            const next = { ...prev };
+            delete next[columnId];
+            return next;
+          });
+        }, TYPING_EXPIRY_MS);
+      },
       async onReconnect() {
         try {
           const fresh = await api.getRetro(retro.id);
@@ -58,6 +75,7 @@ export function RetroBoard({ retro: initialRetro, user, onWsConnected }) {
         }
       }
     });
+    socketRef.current = socket;
 
     // The ws-indicator lives in the app header, outside this component's own
     // tree (it's shared chrome across every view) — notify via callback.
@@ -66,10 +84,13 @@ export function RetroBoard({ retro: initialRetro, user, onWsConnected }) {
     return () => {
       socket.close();
       clearTimeout(connectedTimer);
+      Object.values(typingTimers.current).forEach(clearTimeout);
     };
     // Intentionally mount-only: retro.id is fixed for this component's
     // lifetime (a hash navigation fully remounts it), and dispatch is stable.
   }, []);
+
+  const handleTyping = (columnId) => socketRef.current?.sendTyping(columnId);
 
   // Column flash effect (new entry arrived via WS) — clear itself after 600ms.
   useEffect(() => {
@@ -192,6 +213,11 @@ export function RetroBoard({ retro: initialRetro, user, onWsConnected }) {
       <div>
         <h1 class="retro-title">${retro.title}</h1>
         <span class="badge-vote-limit">Kalan Oy Hakkı: ${remainingVotes}</span>
+        ${presenceUsers.length > 0 ? html`
+          <span class="presence-badge" title=${presenceUsers.map(n => n || 'Misafir').join(', ')}>
+            👀 ${presenceUsers.length}
+          </span>
+        ` : null}
       </div>
       <div class="retro-actions">
         <button class="btn btn-ghost btn-sm" onClick=${handleCopyLink}>📋 Bağlantı</button>
@@ -236,6 +262,8 @@ export function RetroBoard({ retro: initialRetro, user, onWsConnected }) {
           onMoveEntry=${handleMoveEntry}
           onDeleteColumn=${handleDeleteColumn}
           onMoveColumn=${handleMoveColumn}
+          typingName=${typingByColumn[col.id]}
+          onTyping=${handleTyping}
         />
       `)}
       ${isAdminOrOwner && !isFinished ? html`<${AddColumn} onAdd=${handleAddColumn} />` : null}
