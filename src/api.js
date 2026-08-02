@@ -41,8 +41,8 @@ export const api = {
 
   // Users (admin)
   listUsers: () => request('/users'),
-  createUser: (username, password, role, email, teamId) => request('/users', {
-    method: 'POST', body: JSON.stringify({ username, password, role, email, team_id: teamId })
+  createUser: (username, password, role, email, team) => request('/users', {
+    method: 'POST', body: JSON.stringify({ username, password, role, email, team })
   }),
   deleteUser: (id) => request(`/users/${id}`, { method: 'DELETE' }),
   updateUser: (id, data) => request(`/users/${id}`, {
@@ -52,30 +52,20 @@ export const api = {
     method: 'PUT', body: JSON.stringify({ password })
   }),
 
-  // Teams (admin manages, anyone reads)
-  listTeams: () => request('/teams'),
-  createTeam: (name) => request('/teams', {
-    method: 'POST', body: JSON.stringify({ name })
-  }),
-  updateTeam: (id, name) => request(`/teams/${id}`, {
-    method: 'PUT', body: JSON.stringify({ name })
-  }),
-  deleteTeam: (id) => request(`/teams/${id}`, { method: 'DELETE' }),
-
   // Retro templates
   listTemplates: () => request('/templates'),
-  createTemplate: (name, columns, teamId) => request('/templates', {
-    method: 'POST', body: JSON.stringify({ name, columns, team_id: teamId })
+  createTemplate: (name, columns, team) => request('/templates', {
+    method: 'POST', body: JSON.stringify({ name, columns, team })
   }),
-  updateTemplate: (id, name, columns, teamId) => request(`/templates/${id}`, {
-    method: 'PUT', body: JSON.stringify({ name, columns, ...(teamId !== undefined ? { team_id: teamId } : {}) })
+  updateTemplate: (id, name, columns, team) => request(`/templates/${id}`, {
+    method: 'PUT', body: JSON.stringify({ name, columns, ...(team !== undefined ? { team } : {}) })
   }),
   deleteTemplate: (id) => request(`/templates/${id}`, { method: 'DELETE' }),
 
   // Retros
   listRetros: () => request('/retros'),
-  createRetro: (title, columns, maxVotes, teamId) => request('/retros', {
-    method: 'POST', body: JSON.stringify({ title, columns, max_votes: maxVotes, team_id: teamId })
+  createRetro: (title, columns, maxVotes, team) => request('/retros', {
+    method: 'POST', body: JSON.stringify({ title, columns, max_votes: maxVotes, team })
   }),
   getRetro: (id) => request(`/retros/${id}?participant_id=${getParticipantId()}`),
   deleteRetro: (id) => request(`/retros/${id}`, { method: 'DELETE' }),

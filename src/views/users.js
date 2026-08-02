@@ -1,13 +1,6 @@
 import { api } from '../api.js';
 import { escapeHtml, showToast, bindThemeEvents, renderSidebarNav, renderMobileTopbar, renderMobileNav, bindLogoutEvents } from '../utils.js';
 
-function teamOptionsHtml(teams, selectedId = '') {
-  const options = teams.map(t =>
-    `<option value="${t.id}"${t.id === selectedId ? ' selected' : ''}>${escapeHtml(t.name)}</option>`
-  ).join('');
-  return `<option value=""${selectedId ? '' : ' selected'}>Takımsız</option>${options}`;
-}
-
 /**
  * User management page — #/users (admin only)
  */
@@ -47,11 +40,8 @@ export async function renderUsers(appEl) {
                   </select>
                 </div>
                 <div class="form-group">
-                  <div class="template-label-row">
-                    <label for="new-team">Takım</label>
-                    <button type="button" class="btn btn-ghost btn-sm" id="manage-teams-btn">🗂️ Takımları Yönet</button>
-                  </div>
-                  <select class="input" id="new-team"></select>
+                  <label for="new-team">Takım</label>
+                  <input class="input" type="text" id="new-team" placeholder="Örn: Takım A" />
                 </div>
               </div>
               <button type="submit" class="btn btn-primary" id="create-user-btn">Kullanıcı Oluştur</button>
@@ -72,26 +62,6 @@ export async function renderUsers(appEl) {
   bindThemeEvents();
   bindLogoutEvents(api);
 
-  let teams = [];
-  try {
-    teams = await api.listTeams();
-  } catch (err) {
-    showToast(`Takımlar yüklenemedi: ${err.message}`, 'error');
-  }
-  document.getElementById('new-team').innerHTML = teamOptionsHtml(teams);
-
-  document.getElementById('manage-teams-btn').addEventListener('click', () => {
-    showManageTeamsModal(teams, async (updated) => {
-      teams = updated;
-      document.getElementById('new-team').innerHTML = teamOptionsHtml(teams);
-      // The users table's "Düzenle" buttons close over whatever `teams`
-      // array was current when loadUsers last ran — re-render so a newly
-      // added/renamed/removed team shows up in the edit-user modal too,
-      // not just the create-form select above.
-      await loadUsers(currentUser, teams);
-    });
-  });
-
   // Form submit
   document.getElementById('create-user-form').addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -99,7 +69,7 @@ export async function renderUsers(appEl) {
     const email = document.getElementById('new-email').value.trim();
     const password = document.getElementById('new-password').value;
     const role = document.getElementById('new-role').value;
-    const teamId = document.getElementById('new-team').value || null;
+    const team = document.getElementById('new-team').value.trim() || null;
     const btn = document.getElementById('create-user-btn');
 
     if (!username || !password) {
@@ -115,13 +85,13 @@ export async function renderUsers(appEl) {
     btn.disabled = true;
     btn.textContent = 'Oluşturuluyor…';
     try {
-      await api.createUser(username, password, role, email, teamId);
+      await api.createUser(username, password, role, email, team);
       showToast('Kullanıcı oluşturuldu! ✅', 'success');
       document.getElementById('new-username').value = '';
       document.getElementById('new-email').value = '';
       document.getElementById('new-password').value = '';
       document.getElementById('new-team').value = '';
-      await loadUsers(currentUser, teams);
+      await loadUsers(currentUser);
     } catch (err) {
       showToast(err.message, 'error');
     } finally {
@@ -130,10 +100,10 @@ export async function renderUsers(appEl) {
     }
   });
 
-  await loadUsers(currentUser, teams);
+  await loadUsers(currentUser);
 }
 
-async function loadUsers(currentUser, teams) {
+async function loadUsers(currentUser) {
   const container = document.getElementById('users-list-container');
   try {
     const users = await api.listUsers();
@@ -179,7 +149,7 @@ async function loadUsers(currentUser, teams) {
         <td data-label="Oluşturulma" class="muted">${date}</td>
         <td data-label="İşlemler">
           <div class="user-actions">
-            <button class="btn btn-ghost btn-sm edit-user-btn" data-id="${user.id}" data-name="${escapeHtml(user.username)}" data-email="${escapeHtml(user.email || '')}" data-team-id="${user.team_id || ''}">✏️ Düzenle</button>
+            <button class="btn btn-ghost btn-sm edit-user-btn" data-id="${user.id}" data-name="${escapeHtml(user.username)}" data-email="${escapeHtml(user.email || '')}" data-team="${escapeHtml(user.team || '')}">✏️ Düzenle</button>
             <button class="btn btn-ghost btn-sm change-pwd-btn" data-id="${user.id}" data-name="${escapeHtml(user.username)}">🔒 Şifre</button>
             ${!isSelf ? `<button class="btn btn-danger btn-sm delete-user-btn" data-id="${user.id}" data-name="${escapeHtml(user.username)}">🗑️</button>` : ''}
           </div>
@@ -190,7 +160,7 @@ async function loadUsers(currentUser, teams) {
 
     // Edit user buttons
     tbody.querySelectorAll('.edit-user-btn').forEach(btn => {
-      btn.addEventListener('click', () => showEditUserModal(btn.dataset.id, btn.dataset.name, btn.dataset.email, btn.dataset.teamId, teams, currentUser));
+      btn.addEventListener('click', () => showEditUserModal(btn.dataset.id, btn.dataset.name, btn.dataset.email, btn.dataset.team, currentUser));
     });
 
     // Change password buttons
@@ -216,7 +186,7 @@ async function loadUsers(currentUser, teams) {
   }
 }
 
-function showEditUserModal(userId, username, email, teamId, teams, currentUser) {
+function showEditUserModal(userId, username, email, team, currentUser) {
   const existing = document.getElementById('edit-user-modal');
   if (existing) existing.remove();
 
@@ -236,7 +206,7 @@ function showEditUserModal(userId, username, email, teamId, teams, currentUser) 
       </div>
       <div class="form-group">
         <label for="edit-team">Takım</label>
-        <select class="input" id="edit-team">${teamOptionsHtml(teams, teamId)}</select>
+        <input class="input" type="text" id="edit-team" value="${escapeHtml(team)}" placeholder="Örn: Takım A" />
       </div>
       <div class="modal-actions">
         <button class="btn btn-ghost btn-sm" id="edit-cancel-btn">İptal</button>
@@ -254,7 +224,7 @@ function showEditUserModal(userId, username, email, teamId, teams, currentUser) 
   document.getElementById('edit-save-btn').addEventListener('click', async () => {
     const newUsername = document.getElementById('edit-username').value.trim();
     const newEmail = document.getElementById('edit-email').value.trim();
-    const newTeamId = document.getElementById('edit-team').value || null;
+    const newTeam = document.getElementById('edit-team').value.trim() || null;
 
     if (!newUsername) {
       showToast('Kullanıcı adı boş olamaz.', 'error');
@@ -262,10 +232,10 @@ function showEditUserModal(userId, username, email, teamId, teams, currentUser) 
     }
 
     try {
-      await api.updateUser(userId, { username: newUsername, email: newEmail, team_id: newTeamId });
+      await api.updateUser(userId, { username: newUsername, email: newEmail, team: newTeam });
       showToast('Kullanıcı güncellendi! ✅', 'success');
       overlay.remove();
-      await loadUsers(currentUser, teams);
+      await loadUsers(currentUser);
     } catch (err) {
       showToast(err.message, 'error');
     }
@@ -314,131 +284,4 @@ function showChangePwdModal(userId, username) {
       showToast(err.message, 'error');
     }
   });
-}
-
-/**
- * Admin-only team CRUD, mirroring admin.js's showManageTemplatesModal —
- * same add/edit-in-one-form pattern, just a name field instead of columns.
- */
-function showManageTeamsModal(initialTeams, onChange) {
-  const existing = document.getElementById('manage-teams-modal');
-  if (existing) existing.remove();
-
-  let teams = initialTeams;
-  let editingId = null;
-
-  const overlay = document.createElement('div');
-  overlay.className = 'modal-overlay';
-  overlay.id = 'manage-teams-modal';
-  overlay.innerHTML = `
-    <div class="modal template-manage-modal" role="dialog" aria-modal="true" aria-labelledby="manage-teams-title">
-      <h3 id="manage-teams-title">🗂️ Takımları Yönet</h3>
-      <div class="template-manage-list" id="team-manage-list"></div>
-      <form id="team-manage-form">
-        <div class="form-group">
-          <label for="team-name-input">Takım Adı</label>
-          <input class="input" type="text" id="team-name-input" required />
-        </div>
-        <div class="modal-actions">
-          <button type="button" class="btn btn-ghost btn-sm hidden" id="team-cancel-edit-btn">Düzenlemeyi İptal Et</button>
-          <button type="submit" class="btn btn-primary btn-sm" id="team-save-btn">Ekle</button>
-        </div>
-      </form>
-      <div class="modal-actions">
-        <button class="btn btn-ghost btn-sm" id="teams-modal-close-btn">Kapat</button>
-      </div>
-    </div>
-  `;
-  document.body.appendChild(overlay);
-
-  const listEl = document.getElementById('team-manage-list');
-  const nameInput = document.getElementById('team-name-input');
-  const saveBtn = document.getElementById('team-save-btn');
-  const cancelEditBtn = document.getElementById('team-cancel-edit-btn');
-
-  function resetForm() {
-    editingId = null;
-    nameInput.value = '';
-    saveBtn.textContent = 'Ekle';
-    cancelEditBtn.classList.add('hidden');
-  }
-
-  function renderList() {
-    listEl.innerHTML = teams.length === 0
-      ? '<p class="muted" style="padding:8px 0;">Henüz takım yok.</p>'
-      : teams.map(t => `
-          <div class="template-manage-row" data-id="${t.id}">
-            <div class="template-manage-row-name">${escapeHtml(t.name)}</div>
-            <div class="template-manage-row-actions">
-              <button type="button" class="btn btn-ghost btn-icon-sm edit-team-btn" data-id="${t.id}" title="Düzenle">✏️</button>
-              <button type="button" class="btn btn-ghost btn-icon-sm delete-team-btn" data-id="${t.id}" title="Sil">🗑️</button>
-            </div>
-          </div>
-        `).join('');
-
-    listEl.querySelectorAll('.edit-team-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const t = teams.find(x => x.id === btn.dataset.id);
-        if (!t) return;
-        editingId = t.id;
-        nameInput.value = t.name;
-        saveBtn.textContent = 'Güncelle';
-        cancelEditBtn.classList.remove('hidden');
-        nameInput.focus();
-      });
-    });
-
-    listEl.querySelectorAll('.delete-team-btn').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        const t = teams.find(x => x.id === btn.dataset.id);
-        if (!t || !confirm(`"${t.name}" takımını silmek istediğinize emin misiniz? Bu takıma atanmış kullanıcı/retro/şablonlar takımsız kalır.`)) return;
-        try {
-          await api.deleteTeam(t.id);
-          teams = teams.filter(x => x.id !== t.id);
-          if (editingId === t.id) resetForm();
-          renderList();
-          onChange(teams);
-        } catch (err) {
-          showToast(err.message, 'error');
-        }
-      });
-    });
-  }
-
-  cancelEditBtn.addEventListener('click', resetForm);
-
-  document.getElementById('team-manage-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const name = nameInput.value.trim();
-    if (!name) {
-      showToast('Takım adı gereklidir.', 'error');
-      return;
-    }
-
-    saveBtn.disabled = true;
-    try {
-      if (editingId) {
-        const updated = await api.updateTeam(editingId, name);
-        teams = teams.map(t => (t.id === editingId ? { ...t, ...updated } : t));
-        showToast('Takım güncellendi! ✅', 'success');
-      } else {
-        const created = await api.createTeam(name);
-        teams = [...teams, created];
-        showToast('Takım eklendi! ✅', 'success');
-      }
-      resetForm();
-      renderList();
-      onChange(teams);
-    } catch (err) {
-      showToast(err.message, 'error');
-    } finally {
-      saveBtn.disabled = false;
-    }
-  });
-
-  document.getElementById('teams-modal-close-btn').addEventListener('click', () => overlay.remove());
-  overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
-
-  resetForm();
-  renderList();
 }

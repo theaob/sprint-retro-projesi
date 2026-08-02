@@ -111,22 +111,20 @@ describe('retro templates', () => {
   });
 
   it('scopes a team-specific template to that team, alongside the global ones', async () => {
-    const teamA = await request(app).post('/api/teams').set('Authorization', `Bearer ${admin.token}`).send({ name: 'Templates Test Team A' });
-    const teamB = await request(app).post('/api/teams').set('Authorization', `Bearer ${admin.token}`).send({ name: 'Templates Test Team B' });
     const memberA = await registerUser('templates-member-a');
-    await request(app).put(`/api/users/${memberA.user.id}`).set('Authorization', `Bearer ${admin.token}`).send({ team_id: teamA.body.id });
+    await request(app).put(`/api/users/${memberA.user.id}`).set('Authorization', `Bearer ${admin.token}`).send({ team: 'Templates Test Team A' });
     const memberB = await registerUser('templates-member-b');
-    await request(app).put(`/api/users/${memberB.user.id}`).set('Authorization', `Bearer ${admin.token}`).send({ team_id: teamB.body.id });
+    await request(app).put(`/api/users/${memberB.user.id}`).set('Authorization', `Bearer ${admin.token}`).send({ team: 'Templates Test Team B' });
 
     const created = await request(app)
       .post('/api/templates')
       .set('Authorization', `Bearer ${admin.token}`)
-      .send({ name: 'Team A Only Template', columns: ['A'], team_id: teamA.body.id });
+      .send({ name: 'Team A Only Template', columns: ['A'], team: 'Templates Test Team A' });
     expect(created.status).toBe(201);
-    expect(created.body.team_id).toBe(teamA.body.id);
+    expect(created.body.team).toBe('Templates Test Team A');
 
     // Re-login: the token was issued before the team assignment, but
-    // team_id is read fresh from the DB per-request via loadUser, so no
+    // team is read fresh from the DB per-request via loadUser, so no
     // re-login is actually required — this just documents that fact.
     const seenByA = await request(app).get('/api/templates').set('Authorization', `Bearer ${memberA.token}`);
     expect(seenByA.body.map(t => t.name)).toContain('Team A Only Template');
@@ -137,23 +135,22 @@ describe('retro templates', () => {
     expect(seenByB.body.map(t => t.name)).toContain('Standart');
   });
 
-  it('leaves an untouched team_id alone on update, but allows explicitly clearing it', async () => {
-    const team = await request(app).post('/api/teams').set('Authorization', `Bearer ${admin.token}`).send({ name: 'Templates Test Team C' });
+  it('leaves an untouched team alone on update, but allows explicitly clearing it', async () => {
     const created = await request(app)
       .post('/api/templates')
       .set('Authorization', `Bearer ${admin.token}`)
-      .send({ name: 'Scope Preserve Template', columns: ['A'], team_id: team.body.id });
+      .send({ name: 'Scope Preserve Template', columns: ['A'], team: 'Templates Test Team C' });
 
     const renamedOnly = await request(app)
       .put(`/api/templates/${created.body.id}`)
       .set('Authorization', `Bearer ${admin.token}`)
       .send({ name: 'Scope Preserve Template Renamed', columns: ['A'] });
-    expect(renamedOnly.body.team_id).toBe(team.body.id);
+    expect(renamedOnly.body.team).toBe('Templates Test Team C');
 
     const cleared = await request(app)
       .put(`/api/templates/${created.body.id}`)
       .set('Authorization', `Bearer ${admin.token}`)
-      .send({ name: 'Scope Preserve Template Renamed', columns: ['A'], team_id: null });
-    expect(cleared.body.team_id).toBeNull();
+      .send({ name: 'Scope Preserve Template Renamed', columns: ['A'], team: null });
+    expect(cleared.body.team).toBeNull();
   });
 });

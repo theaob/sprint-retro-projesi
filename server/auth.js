@@ -17,8 +17,7 @@ export function loadUser(req, res, next) {
         db.prepare('DELETE FROM sessions WHERE token = ?').run(token);
       } else {
         req.user = db.prepare(`
-          SELECT u.id, u.username, u.role, u.team_id, t.name AS team, u.must_change_password
-          FROM users u LEFT JOIN teams t ON t.id = u.team_id WHERE u.id = ?
+          SELECT id, username, role, team, must_change_password FROM users WHERE id = ?
         `).get(session.user_id);
       }
     }

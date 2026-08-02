@@ -200,15 +200,13 @@ describe('GET /api/action-items/open', () => {
   });
 
   it('annotates each item with its retro\'s own team, not the creator\'s', async () => {
-    const teamX = await request(app).post('/api/teams').set('Authorization', `Bearer ${admin.token}`).send({ name: 'Actions Test Team X' });
-    const teamY = await request(app).post('/api/teams').set('Authorization', `Bearer ${admin.token}`).send({ name: 'Actions Test Team Y' });
-
     // Same creator (owner), two different explicit teams — proves team
-    // comes from the retro's own team_id, not from who happened to create it.
-    const retroX = await createRetro(owner, 'Team X Retro', undefined, teamX.body.id);
+    // comes from the retro's own team field, not from who happened to
+    // create it.
+    const retroX = await createRetro(owner, 'Team X Retro', undefined, 'Actions Test Team X');
     await addAction(owner, retroX, 'Item for team X');
 
-    const retroY = await createRetro(owner, 'Team Y Retro', undefined, teamY.body.id);
+    const retroY = await createRetro(owner, 'Team Y Retro', undefined, 'Actions Test Team Y');
     await addAction(owner, retroY, 'Item for team Y');
 
     const res = await request(app).get('/api/action-items/open').set('Authorization', `Bearer ${admin.token}`);
@@ -216,17 +214,5 @@ describe('GET /api/action-items/open', () => {
     const itemY = res.body.find(a => a.content === 'Item for team Y');
     expect(itemX.team).toBe('Actions Test Team X');
     expect(itemY.team).toBe('Actions Test Team Y');
-  });
-
-  it('falls back to a null team when the retro\'s team was later deleted', async () => {
-    const team = await request(app).post('/api/teams').set('Authorization', `Bearer ${admin.token}`).send({ name: 'Actions Test Team Temp' });
-    const retro = await createRetro(owner, 'Temp Team Retro', undefined, team.body.id);
-    await addAction(owner, retro, 'Item that outlives its team');
-
-    await request(app).delete(`/api/teams/${team.body.id}`).set('Authorization', `Bearer ${admin.token}`);
-
-    const res = await request(app).get('/api/action-items/open').set('Authorization', `Bearer ${admin.token}`);
-    const item = res.body.find(a => a.content === 'Item that outlives its team');
-    expect(item.team).toBeNull();
   });
 });

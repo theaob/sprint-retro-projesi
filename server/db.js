@@ -307,4 +307,44 @@ try {
   console.error('Migration error (teams):', err);
 }
 
+// Migration: demote the `teams` table back to a free-text `team` column on
+// users/retros/templates. A managed team entity with its own CRUD screen
+// turned out to be more machinery than the feature needed — team is just a
+// label. Keeps the one real fix from the teams-table era (a retro's team is
+// still set explicitly at creation, not inferred from its creator) while
+// dropping the separately-managed list.
+try {
+  const teamsTableExists = db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'teams'").get();
+  if (teamsTableExists) {
+    const usersInfo = db.pragma('table_info(users)');
+    const retrosInfo = db.pragma('table_info(retros)');
+    const templatesInfo = db.pragma('table_info(templates)');
+
+    if (!usersInfo.some((col) => col.name === 'team')) {
+      db.exec('ALTER TABLE users ADD COLUMN team TEXT;');
+      console.log('✅ Migration applied: added team back to users table.');
+    }
+    if (!retrosInfo.some((col) => col.name === 'team')) {
+      db.exec('ALTER TABLE retros ADD COLUMN team TEXT;');
+      console.log('✅ Migration applied: added team back to retros table.');
+    }
+    if (!templatesInfo.some((col) => col.name === 'team')) {
+      db.exec('ALTER TABLE templates ADD COLUMN team TEXT;');
+      console.log('✅ Migration applied: added team back to templates table.');
+    }
+
+    db.exec(`UPDATE users SET team = (SELECT name FROM teams WHERE teams.id = users.team_id) WHERE team_id IS NOT NULL;`);
+    db.exec(`UPDATE retros SET team = (SELECT name FROM teams WHERE teams.id = retros.team_id) WHERE team_id IS NOT NULL;`);
+    db.exec(`UPDATE templates SET team = (SELECT name FROM teams WHERE teams.id = templates.team_id) WHERE team_id IS NOT NULL;`);
+
+    db.exec('ALTER TABLE users DROP COLUMN team_id;');
+    db.exec('ALTER TABLE retros DROP COLUMN team_id;');
+    db.exec('ALTER TABLE templates DROP COLUMN team_id;');
+    db.exec('DROP TABLE teams;');
+    console.log('✅ Migration applied: dropped the teams table and team_id columns, backfilled free-text team.');
+  }
+} catch (err) {
+  console.error('Migration error (demote teams):', err);
+}
+
 export default db;
