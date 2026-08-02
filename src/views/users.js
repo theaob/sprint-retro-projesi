@@ -76,9 +76,14 @@ export async function renderUsers(appEl) {
   document.getElementById('new-team').innerHTML = teamOptionsHtml(teams);
 
   document.getElementById('manage-teams-btn').addEventListener('click', () => {
-    showManageTeamsModal(teams, (updated) => {
+    showManageTeamsModal(teams, async (updated) => {
       teams = updated;
       document.getElementById('new-team').innerHTML = teamOptionsHtml(teams);
+      // The users table's "Düzenle" buttons close over whatever `teams`
+      // array was current when loadUsers last ran — re-render so a newly
+      // added/renamed/removed team shows up in the edit-user modal too,
+      // not just the create-form select above.
+      await loadUsers(currentUser, teams);
     });
   });
 
