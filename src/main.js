@@ -3,6 +3,7 @@ import { renderAdmin } from './views/admin.js';
 import { renderRetro } from './views/retro/index.js';
 import { renderLogin } from './views/login.js';
 import { renderUsers } from './views/users.js';
+import { renderOpenActions } from './views/openActions.js';
 import { api } from './api.js';
 import { applyTheme } from './utils.js';
 
@@ -15,12 +16,14 @@ const app = document.getElementById('app');
  * #/           → Admin panel  (requires admin)
  * #/login      → Login page
  * #/users      → User management (requires admin)
+ * #/actions    → Open action items across retros (requires login)
  * #/retro/:id  → Retro board (public)
  */
 function router() {
   const hash = window.location.hash || '#/';
   const retroMatch = hash.match(/^#\/retro\/(.+)$/);
   const usersMatch = hash === '#/users';
+  const actionsMatch = hash === '#/actions';
   const loginMatch = hash === '#/login';
 
   if (retroMatch) {
@@ -33,6 +36,12 @@ function router() {
       return;
     }
     renderUsers(app);
+  } else if (actionsMatch) {
+    if (!api.getUser()) {
+      window.location.hash = '#/login';
+      return;
+    }
+    renderOpenActions(app);
   } else {
     // Admin panel — requires login
     if (!api.getUser()) {

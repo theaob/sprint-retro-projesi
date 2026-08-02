@@ -114,6 +114,14 @@ export function retroReducer(state, action) {
     case 'action:removed':
       return { ...state, action_items: (state.action_items || []).filter(a => a.id !== action.actionId) };
 
+    case 'action:updated': {
+      const updated = action.actionItem;
+      return {
+        ...state,
+        action_items: (state.action_items || []).map(a => (a.id === updated.id ? updated : a))
+      };
+    }
+
     // Local, optimistic — fired the instant the vote button is clicked, before
     // the API call resolves. The authoritative *count* still only ever comes
     // from the entry:voted broadcast; this only tracks "did I vote for this".

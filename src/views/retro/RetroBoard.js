@@ -47,6 +47,7 @@ export function RetroBoard({ retro: initialRetro, user, onWsConnected }) {
         if (status === 'finished') window.location.reload(); // simplest way to transition globally
       },
       onActionAdded(actionItem) { dispatch({ type: 'action:added', actionItem }); },
+      onActionUpdated(actionItem) { dispatch({ type: 'action:updated', actionItem }); },
       onActionRemoved(actionId) { dispatch({ type: 'action:removed', actionId }); },
       async onReconnect() {
         try {
@@ -169,14 +170,19 @@ export function RetroBoard({ retro: initialRetro, user, onWsConnected }) {
     dispatch({ type: 'entry:moved', entry });
   };
 
-  const handleAddAction = async (entryId, content, assignee) => {
-    const actionItem = await api.addActionItem(retro.id, entryId, content, assignee);
+  const handleAddAction = async (entryId, content, assignee, dueDate) => {
+    const actionItem = await api.addActionItem(retro.id, entryId, content, assignee, dueDate);
     dispatch({ type: 'action:added', actionItem });
   };
 
   const handleDeleteAction = async (actionId) => {
     await api.deleteActionItem(retro.id, actionId);
     dispatch({ type: 'action:removed', actionId });
+  };
+
+  const handleUpdateAction = async (actionId, updates) => {
+    const actionItem = await api.updateActionItem(retro.id, actionId, updates);
+    dispatch({ type: 'action:updated', actionItem });
   };
 
   const remainingVotes = Math.max(0, (retro.max_votes ?? 3) - retro.votedEntryIds.length);
@@ -201,6 +207,7 @@ export function RetroBoard({ retro: initialRetro, user, onWsConnected }) {
         isAdminOrOwner=${isAdminOrOwner}
         onAdd=${handleAddAction}
         onDelete=${handleDeleteAction}
+        onUpdate=${handleUpdateAction}
       />
     ` : null}
 

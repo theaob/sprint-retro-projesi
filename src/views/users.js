@@ -1,5 +1,5 @@
 import { api } from '../api.js';
-import { escapeHtml, showToast, renderThemeToggle, bindThemeEvents } from '../utils.js';
+import { escapeHtml, showToast, bindThemeEvents, renderAppHeader, renderMobileNav, bindLogoutEvents } from '../utils.js';
 
 /**
  * User management page — #/users (admin only)
@@ -8,7 +8,7 @@ export async function renderUsers(appEl) {
   const currentUser = api.getUser();
 
   appEl.innerHTML = `
-    ${renderHeader(currentUser)}
+    ${renderAppHeader(currentUser, 'users')}
     <main class="admin-page container">
       <h1>👥 Kullanıcı Yönetimi</h1>
       <p class="subtitle">Sisteme erişim yetkisi olan kullanıcıları yönetin.</p>
@@ -46,24 +46,12 @@ export async function renderUsers(appEl) {
         <div class="spinner" id="users-spinner"></div>
       </div>
     </main>
-    <div class="mobile-nav-bar">
-      <a href="#/" class="mobile-nav-item">
-        <span class="mobile-nav-icon">📋</span>
-        <span class="mobile-nav-label">Retrolar</span>
-      </a>
-      <a href="#/users" class="mobile-nav-item active">
-        <span class="mobile-nav-icon">👥</span>
-        <span class="mobile-nav-label">Kullanıcılar</span>
-      </a>
-      <button class="mobile-nav-item" id="mobile-logout-btn">
-        <span class="mobile-nav-icon">🚪</span>
-        <span class="mobile-nav-label">Çıkış</span>
-      </button>
-    </div>
+    ${renderMobileNav(currentUser, 'users')}
   `;
 
   // Theme events
   bindThemeEvents();
+  bindLogoutEvents(api);
 
   // Form submit
   document.getElementById('create-user-form').addEventListener('submit', async (e) => {
@@ -280,34 +268,3 @@ function showChangePwdModal(userId, username) {
   });
 }
 
-function renderHeader(user) {
-  return `
-    <header class="app-header">
-      <div class="container">
-        <nav class="header-nav">
-          <a href="#/" class="btn btn-ghost btn-sm">📋 Retrolar</a>
-          <a href="#/users" class="btn btn-ghost btn-sm active-nav">👥 Kullanıcılar</a>
-          <span class="nav-separator"></span>
-          <div class="user-chip">
-            <span class="user-chip-avatar">${user?.username?.[0]?.toUpperCase() || '?'}</span>
-            <span>${escapeHtml(user?.username || '')}</span>
-          </div>
-          ${renderThemeToggle()}
-          <span class="nav-separator"></span>
-          <button class="btn btn-ghost btn-sm" id="logout-btn">Çıkış</button>
-        </nav>
-      </div>
-    </header>
-  `;
-}
-
-
-
-// Bind logout after render
-document.addEventListener('click', async (e) => {
-  if (e.target?.id === 'logout-btn' || e.target?.closest('#mobile-logout-btn')) {
-    try { await api.logout(); } catch {}
-    api.clearSession();
-    window.location.hash = '#/login';
-  }
-});

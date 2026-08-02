@@ -1,5 +1,5 @@
 import { api } from '../api.js';
-import { escapeHtml, showToast, renderThemeToggle, bindThemeEvents } from '../utils.js';
+import { escapeHtml, showToast, bindThemeEvents, renderAppHeader, renderMobileNav, bindLogoutEvents } from '../utils.js';
 
 /**
  * Admin panel — #/
@@ -8,22 +8,7 @@ export async function renderAdmin(appEl) {
   const user = api.getUser();
 
   appEl.innerHTML = `
-    <header class="app-header">
-      <div class="container">
-        <nav class="header-nav">
-          <a href="#/" class="btn btn-ghost btn-sm active-nav">📋 Retrolar</a>
-          ${user?.role === 'admin' ? '<a href="#/users" class="btn btn-ghost btn-sm">👥 Kullanıcılar</a>' : ''}
-          <span class="nav-separator"></span>
-          <div class="user-chip">
-            <span class="user-chip-avatar">${user?.username?.[0]?.toUpperCase() || '?'}</span>
-            <span>${escapeHtml(user?.username || '')}</span>
-          </div>
-          ${renderThemeToggle()}
-          <span class="nav-separator"></span>
-          <button class="btn btn-ghost btn-sm" id="logout-btn">Çıkış</button>
-        </nav>
-      </div>
-    </header>
+    ${renderAppHeader(user, 'retros')}
     <main class="admin-page container">
       <div class="page-header">
         <div>
@@ -75,26 +60,12 @@ export async function renderAdmin(appEl) {
         <div class="spinner" id="retro-spinner"></div>
       </div>
     </main>
-    <div class="mobile-nav-bar">
-      <a href="#/" class="mobile-nav-item active">
-        <span class="mobile-nav-icon">📋</span>
-        <span class="mobile-nav-label">Retrolar</span>
-      </a>
-      ${user?.role === 'admin' ? `
-      <a href="#/users" class="mobile-nav-item">
-        <span class="mobile-nav-icon">👥</span>
-        <span class="mobile-nav-label">Kullanıcılar</span>
-      </a>
-      ` : ''}
-      <button class="mobile-nav-item" id="mobile-logout-btn">
-        <span class="mobile-nav-icon">🚪</span>
-        <span class="mobile-nav-label">Çıkış</span>
-      </button>
-    </div>
+    ${renderMobileNav(user, 'retros')}
   `;
 
   // Theme switcher
   bindThemeEvents();
+  bindLogoutEvents(api);
 
   // Toggle create section
   const toggleBtn = document.getElementById('toggle-create-btn');
@@ -107,16 +78,6 @@ export async function renderAdmin(appEl) {
       document.getElementById('retro-title').focus();
     }
   });
-
-  // Logout helpers
-  const handleLogout = async () => {
-    try { await api.logout(); } catch {}
-    api.clearSession();
-    window.location.hash = '#/login';
-  };
-
-  document.getElementById('logout-btn').addEventListener('click', handleLogout);
-  document.getElementById('mobile-logout-btn')?.addEventListener('click', handleLogout);
 
   // Templates
   const templates = [

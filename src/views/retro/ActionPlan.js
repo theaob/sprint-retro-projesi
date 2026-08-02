@@ -8,6 +8,7 @@ const html = htm.bind(h);
 function AddActionForm({ entryId, onAdd }) {
   const [content, setContent] = useState('');
   const [assignee, setAssignee] = useState('');
+  const [dueDate, setDueDate] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async (e) => {
@@ -15,9 +16,10 @@ function AddActionForm({ entryId, onAdd }) {
     if (!content.trim()) return;
     setSubmitting(true);
     try {
-      await onAdd(entryId, content.trim(), assignee.trim());
+      await onAdd(entryId, content.trim(), assignee.trim(), dueDate || null);
       setContent('');
       setAssignee('');
+      setDueDate('');
     } catch (err) {
       showToast(err.message, 'error');
     } finally {
@@ -31,26 +33,63 @@ function AddActionForm({ entryId, onAdd }) {
         value=${content} onInput=${(e) => setContent(e.currentTarget.value)} />
       <input type="text" class="input add-assignee-input" placeholder="Kişi (opsiyonel)"
         value=${assignee} onInput=${(e) => setAssignee(e.currentTarget.value)} />
+      <input type="date" class="input add-due-date-input" title="Son tarih (opsiyonel)"
+        value=${dueDate} onInput=${(e) => setDueDate(e.currentTarget.value)} />
       <button type="submit" class="btn btn-primary btn-sm" disabled=${submitting}>Ekle</button>
     </form>
   `;
 }
 
-export function ActionPlan({ columns, actionItems, isAdminOrOwner, onAdd, onDelete }) {
+function ActionItemRow({ item, isAdminOrOwner, onUpdate, onDelete }) {
+  const handleToggleDone = async () => {
+    try {
+      await onUpdate(item.id, { done: !item.done });
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  };
+
+  const handleDueDateChange = async (e) => {
+    try {
+      await onUpdate(item.id, { due_date: e.currentTarget.value || null });
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  };
+
+  const handleDelete = async () => {
+    try {
+      await onDelete(item.id);
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  };
+
+  const isDone = !!item.done;
+
+  return html`
+    <div class="action-item${isDone ? ' action-item-done' : ''}">
+      ${isAdminOrOwner ? html`
+        <input type="checkbox" class="action-done-checkbox" title="Tamamlandı"
+          checked=${isDone} onChange=${handleToggleDone} />
+      ` : (isDone ? html`<span class="action-done-check" title="Tamamlandı">✓</span>` : null)}
+      <span class="action-content">🎯 ${item.content}</span>
+      ${item.assignee ? html`<span class="action-assignee">@${item.assignee}</span>` : null}
+      ${isAdminOrOwner
+        ? html`<input type="date" class="action-due-date-input" value=${item.due_date || ''} onChange=${handleDueDateChange} />`
+        : (item.due_date ? html`<span class="action-due-date">📅 ${item.due_date}</span>` : null)}
+      ${isAdminOrOwner ? html`<button type="button" class="btn btn-ghost btn-icon-sm" onClick=${handleDelete}>✕</button>` : null}
+    </div>
+  `;
+}
+
+export function ActionPlan({ columns, actionItems, isAdminOrOwner, onAdd, onDelete, onUpdate }) {
   const [filter, setFilter] = useState('all');
 
   let entries = columns.flatMap(c => c.entries).filter(e => e.votes > 0);
   entries.sort((a, b) => b.votes - a.votes);
   if (filter === 'top3') entries = entries.slice(0, 3);
   else if (filter === 'top5') entries = entries.slice(0, 5);
-
-  const handleDelete = async (actionId) => {
-    try {
-      await onDelete(actionId);
-    } catch (err) {
-      showToast(err.message, 'error');
-    }
-  };
 
   return html`
     <div class="action-plan-section">
@@ -76,11 +115,7 @@ export function ActionPlan({ columns, actionItems, isAdminOrOwner, onAdd, onDele
                   </div>
                   <div class="action-list">
                     ${actions.map(a => html`
-                      <div class="action-item" key=${a.id}>
-                        <span class="action-content">🎯 ${a.content}</span>
-                        ${a.assignee ? html`<span class="action-assignee">@${a.assignee}</span>` : null}
-                        ${isAdminOrOwner ? html`<button type="button" class="btn btn-ghost btn-icon-sm" onClick=${() => handleDelete(a.id)}>✕</button>` : null}
-                      </div>
+                      <${ActionItemRow} key=${a.id} item=${a} isAdminOrOwner=${isAdminOrOwner} onUpdate=${onUpdate} onDelete=${onDelete} />
                     `)}
                   </div>
                   ${isAdminOrOwner ? html`<${AddActionForm} entryId=${entry.id} onAdd=${onAdd} />` : null}

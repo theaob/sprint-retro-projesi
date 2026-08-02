@@ -71,6 +71,8 @@ db.exec(`
     entry_id TEXT REFERENCES entries(id) ON DELETE CASCADE,
     content TEXT NOT NULL,
     assignee TEXT,
+    done INTEGER DEFAULT 0,
+    due_date TEXT,
     created_at TEXT DEFAULT (datetime('now'))
   );
 
@@ -203,6 +205,21 @@ try {
   }
 } catch (err) {
   console.error('Migration error (expires_at):', err);
+}
+
+// Migration: add done / due_date to action_items
+try {
+  const actionItemsInfo = db.pragma('table_info(action_items)');
+  if (!actionItemsInfo.some((col) => col.name === 'done')) {
+    db.exec('ALTER TABLE action_items ADD COLUMN done INTEGER DEFAULT 0;');
+    console.log('✅ Migration applied: added done to action_items table.');
+  }
+  if (!actionItemsInfo.some((col) => col.name === 'due_date')) {
+    db.exec('ALTER TABLE action_items ADD COLUMN due_date TEXT;');
+    console.log('✅ Migration applied: added due_date to action_items table.');
+  }
+} catch (err) {
+  console.error('Migration error (action_items done/due_date):', err);
 }
 
 export default db;

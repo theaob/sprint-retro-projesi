@@ -479,6 +479,20 @@ select.input { cursor: pointer; }
 .action-content { flex: 1; font-size: 0.875rem; }
 .action-assignee { font-size: 0.8rem; color: var(--text-secondary); background: var(--bg-card); padding: 2px 6px; border-radius: 4px; }
 
+.action-item-done .action-content { color: var(--text-muted); text-decoration: line-through; }
+.action-done-checkbox { width: 16px; height: 16px; accent-color: var(--success); cursor: pointer; flex-shrink: 0; }
+.action-done-check { color: var(--success); font-weight: 700; flex-shrink: 0; }
+.action-due-date-input {
+  width: auto;
+  min-height: 28px;
+  padding: 2px 6px;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  border-color: var(--border-color);
+  flex-shrink: 0;
+}
+.action-due-date { font-size: 0.75rem; color: var(--text-muted); flex-shrink: 0; white-space: nowrap; }
+
 .add-action-form {
   display: flex;
   flex-direction: column;
@@ -492,6 +506,7 @@ select.input { cursor: pointer; }
   .add-action-form { flex-direction: row; }
   .add-action-form .add-action-input { flex: 2; }
   .add-action-form .add-assignee-input { flex: 1; }
+  .add-action-form .add-due-date-input { flex: 1; }
   .add-action-form .btn { align-self: auto; }
 }
 
@@ -539,6 +554,34 @@ select.input { cursor: pointer; }
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* ── Open Actions Page ──────────────────────────────────────── */
+.open-actions-list { display: flex; flex-direction: column; gap: 12px; }
+
+.open-action-item {
+  padding: 18px 20px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.open-action-item .action-done-checkbox { margin-top: 3px; width: 18px; height: 18px; }
+
+.open-action-body { flex: 1; min-width: 0; }
+.open-action-content { font-size: 0.9375rem; margin-bottom: 8px; }
+.open-action-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+
+.open-action-retro-link {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--accent-primary-hover);
+  text-decoration: none;
+  background: var(--accent-glow);
+  padding: 2px 10px;
+  border-radius: 999px;
+}
+.open-action-retro-link:hover { text-decoration: underline; }
+
+.action-due-date-overdue { color: var(--danger); font-weight: 600; }
 
 /* ── Login Page ──────────────────────────────────────────────── */
 .login-page {

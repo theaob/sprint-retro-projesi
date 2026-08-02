@@ -75,6 +75,9 @@ export function createRetroSocket(retroId, handlers = {}) {
           case 'action:added':
             handlers.onActionAdded?.(msg.actionItem);
             break;
+          case 'action:updated':
+            handlers.onActionUpdated?.(msg.actionItem);
+            break;
           case 'action:removed':
             handlers.onActionRemoved?.(msg.actionId, msg.retroId);
             break;

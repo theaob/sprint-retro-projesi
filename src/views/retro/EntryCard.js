@@ -128,7 +128,8 @@ export function EntryCard({ entry, retroId, isVoted, voteFull, isFinished, actio
       ${entryActions.length > 0 ? html`
         <div class="entry-actions-list">
           ${entryActions.map(a => html`
-            <div class="action-item" key=${a.id}>
+            <div class="action-item${a.done ? ' action-item-done' : ''}" key=${a.id}>
+              ${a.done ? html`<span class="action-done-check" title="Tamamlandı">✓</span>` : null}
               <span class="action-content">🎯 ${a.content}</span>
               ${a.assignee ? html`<span class="user-chip-avatar" style="width:20px;height:20px;font-size:0.6rem;display:inline-flex;margin-left:4px;" title=${a.assignee}>${a.assignee[0].toUpperCase()}</span>` : null}
             </div>
