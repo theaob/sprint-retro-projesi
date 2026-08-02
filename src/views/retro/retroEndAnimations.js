@@ -1,13 +1,14 @@
 import { showRetroShutdownScreen } from './shutdownScreen.js';
 import { showSolitaireCascade } from './solitaireCascade.js';
+import { showMarioEnding } from './marioEnding.js';
 
 /**
- * Pool of nostalgic OS-moment animations shown to every client when a
+ * Pool of nostalgic OS/game-moment animations shown to every client when a
  * retro finishes — one is picked at random each time so it stays a
  * surprise. Add new ones here as they're built; each takes an onComplete
  * callback and is responsible for its own cleanup.
  */
-const ANIMATIONS = [showRetroShutdownScreen, showSolitaireCascade];
+const ANIMATIONS = [showRetroShutdownScreen, showSolitaireCascade, showMarioEnding];
 
 /**
  * Plays one randomly-chosen retro-end animation, then calls onComplete —

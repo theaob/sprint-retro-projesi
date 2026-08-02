@@ -1378,6 +1378,131 @@ select.input { cursor: pointer; }
   font-size: 1.6rem;
 }
 
+/* ── Mario Castle Ending ─────────────────────────────────────────
+   Super Mario Bros castle-ending pastiche (marioEnding.js): a hero
+   walks into a generic castle silhouette, then the screen cuts to
+   black for the "in another castle" reveal, typed out NES-scroll-
+   style. Built from generic shapes, not reproduced game sprites. */
+.mario-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 3000;
+  overflow: hidden;
+  font-family: 'Courier New', monospace;
+}
+
+.mario-scene {
+  position: absolute;
+  inset: 0;
+  background: #5c94fc;
+  transition: opacity 0.3s ease;
+}
+.mario-overlay.mario-cut-to-black .mario-scene { opacity: 0; }
+
+.mario-ground {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 18%;
+  background: #b53120;
+  border-top: 6px solid #7c1f10;
+}
+
+.mario-castle {
+  position: absolute;
+  right: 8%;
+  bottom: 18%;
+  width: 140px;
+  height: 120px;
+  background: #787878;
+  clip-path: polygon(
+    0% 100%, 0% 25%, 10% 25%, 10% 10%, 20% 10%, 20% 25%,
+    30% 25%, 30% 10%, 40% 10%, 40% 25%,
+    60% 25%, 60% 10%, 70% 10%, 70% 25%,
+    80% 25%, 80% 10%, 90% 10%, 90% 25%,
+    100% 25%, 100% 100%
+  );
+}
+.mario-castle::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 26px;
+  height: 40px;
+  background: #1a1a1a;
+  border-radius: 13px 13px 0 0;
+}
+
+.mario-player {
+  position: absolute;
+  bottom: 18%;
+  left: 5%;
+  width: 18px;
+  height: 24px;
+  background: #e94f37;
+  animation: mario-walk 1.3s linear forwards, mario-bob 0.25s steps(2) infinite;
+}
+
+@keyframes mario-walk { to { left: 78%; } }
+@keyframes mario-bob { 50% { transform: translateY(-3px); } }
+
+.mario-black-screen {
+  position: absolute;
+  inset: 0;
+  background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+  padding: 0 24px;
+}
+.mario-overlay.mario-cut-to-black .mario-black-screen { opacity: 1; }
+
+.mario-mushroom {
+  flex-shrink: 0;
+  width: 36px;
+  height: 40px;
+  position: relative;
+}
+.mario-mushroom::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 36px;
+  height: 22px;
+  background: #e94f37;
+  border-radius: 18px 18px 0 0;
+  box-shadow: inset -4px -4px 0 rgba(0, 0, 0, 0.15);
+}
+.mario-mushroom::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 8px;
+  width: 20px;
+  height: 18px;
+  background: #f4d7b5;
+  border-radius: 0 0 4px 4px;
+}
+
+.mario-message-text {
+  color: #fff;
+  font-size: 0.85rem;
+  font-weight: 700;
+  line-height: 1.7;
+  white-space: pre-line;
+  letter-spacing: 0.5px;
+  margin: 0;
+  max-width: 260px;
+}
+
 /* ── Responsive ──────────────────────────────────────────────── */
 @media (min-width: 768px) {
   :root {
