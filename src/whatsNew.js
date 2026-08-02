@@ -16,7 +16,6 @@ export function markWhatsNewSeen() {
 const FEATURES = [
   { icon: '🖱️', text: '<strong>Sürükle-bırak</strong> ile maddeleri sütunlar arasında taşıyın.' },
   { icon: '🗂️', text: 'Retro başladıktan sonra bile <strong>sütun ekleyin, silin veya yeniden sıralayın</strong>.' },
-  { icon: '✅', text: 'Aksiyon planına <strong>tamamlanma durumu ve son tarih</strong> ekleyin; tüm açık aksiyonları <strong>Açık Aksiyonlar</strong> sayfasında tek yerden görün.' },
   { icon: '👀', text: 'Panoda kimlerin bulunduğunu ve <strong>kimin yazmakta olduğunu</strong> anlık olarak görün.' },
   { icon: '🎨', text: 'Yöneticiler artık <strong>retro şablonlarını</strong> kod değişikliği olmadan düzenleyebilir.' },
   { icon: '🔒', text: 'Oy sınırları artık sunucu tarafında uygulanıyor; oturumlar ve şifreler için ek güvenlik önlemleri eklendi.' }

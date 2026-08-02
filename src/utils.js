@@ -74,13 +74,12 @@ export function bindThemeEvents() {
   });
 }
 
-/* ── Shared admin-area chrome (retros / actions / users) ────────
-   One source of truth for the header + mobile nav so the three pages'
+/* ── Shared admin-area chrome (retros / users) ────────
+   One source of truth for the header + mobile nav so the pages'
    link lists can't drift out of sync with each other. */
 
 const NAV_ITEMS = [
   { key: 'retros', href: '#/app', icon: '📋', label: 'Retrolar', adminOnly: false },
-  { key: 'actions', href: '#/actions', icon: '✅', label: 'Açık Aksiyonlar', adminOnly: false },
   { key: 'users', href: '#/users', icon: '👥', label: 'Kullanıcılar', adminOnly: true }
 ];
 

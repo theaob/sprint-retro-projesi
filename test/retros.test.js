@@ -78,26 +78,4 @@ describe('retros', () => {
     expect(allowed.status).toBe(200);
   });
 
-  it('annotates each retro in the list with its open action-item count', async () => {
-    const retro = await createRetro(owner, 'Stat Card Test Retro', ['A']);
-
-    const fetched = await request(app).get(`/api/retros/${retro.id}`);
-    const entry = await request(app).post(`/api/retros/${retro.id}/entries`).send({ column_id: fetched.body.columns[0].id, text: 'note' });
-    await request(app)
-      .post(`/api/retros/${retro.id}/entries/${entry.body.id}/actions`)
-      .set('Authorization', `Bearer ${owner.token}`)
-      .send({ content: 'Open one' });
-    const doneAction = await request(app)
-      .post(`/api/retros/${retro.id}/entries/${entry.body.id}/actions`)
-      .set('Authorization', `Bearer ${owner.token}`)
-      .send({ content: 'Done one' });
-    await request(app)
-      .put(`/api/retros/${retro.id}/actions/${doneAction.body.id}`)
-      .set('Authorization', `Bearer ${owner.token}`)
-      .send({ done: true });
-
-    const list = await request(app).get('/api/retros').set('Authorization', `Bearer ${admin.token}`);
-    const inList = list.body.find(r => r.id === retro.id);
-    expect(inList.open_actions).toBe(1);
-  });
 });

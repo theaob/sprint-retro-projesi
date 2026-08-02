@@ -3,7 +3,6 @@ import { renderAdmin } from './views/admin.js';
 import { renderRetro } from './views/retro/index.js';
 import { renderLogin } from './views/login.js';
 import { renderUsers } from './views/users.js';
-import { renderOpenActions } from './views/openActions.js';
 import { renderLanding } from './views/landing.js';
 import { api } from './api.js';
 import { applyTheme } from './utils.js';
@@ -19,7 +18,6 @@ const app = document.getElementById('app');
  * #/login      → Login page
  * #/register   → Same login page, opened straight into register mode
  * #/users      → User management (requires admin)
- * #/actions    → Open action items across retros (requires login)
  * #/retro/:id  → Retro board (public)
  */
 function router() {
@@ -38,12 +36,6 @@ function router() {
       return;
     }
     renderUsers(app);
-  } else if (hash === '#/actions') {
-    if (!api.getUser()) {
-      window.location.hash = '#/login';
-      return;
-    }
-    renderOpenActions(app);
   } else if (hash === '#/app') {
     if (!api.getUser()) {
       window.location.hash = '#/login';

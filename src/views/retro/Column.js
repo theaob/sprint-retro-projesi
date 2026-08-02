@@ -7,7 +7,7 @@ import { EntryCard } from './EntryCard.js';
 const html = htm.bind(h);
 
 export function Column({
-  col, allColumns, retroId, isFinished, isAdminOrOwner, votedEntryIds, voteMax, actionItems,
+  col, allColumns, retroId, isFinished, isAdminOrOwner, votedEntryIds, voteMax,
   flashing, registerRef, onRename, onAddEntry, onVote, onUnvote, onEditEntry, onDeleteEntry, onMoveEntry,
   onDeleteColumn, typingName, onTyping
 }) {
@@ -18,8 +18,8 @@ export function Column({
   const renameTimeout = useRef(null);
   // Board reorganization (moving entries, renaming/adding/removing columns)
   // is a Scrum Master (retro owner) / admin responsibility, same gating as
-  // entries and action items — not admin-only like it used to be for rename
-  // specifically (the server already allowed the owner too).
+  // entries — not admin-only like it used to be for rename specifically
+  // (the server already allowed the owner too).
   const canMove = isAdminOrOwner && !isFinished;
   const otherColumns = allColumns.filter(c => c.id !== col.id);
   const colIndex = allColumns.findIndex(c => c.id === col.id);
@@ -124,7 +124,6 @@ export function Column({
             isVoted=${votedEntryIds.includes(entry.id)}
             voteFull=${voteFull}
             isFinished=${isFinished}
-            actionItems=${actionItems}
             canManage=${isAdminOrOwner}
             canMove=${canMove}
             otherColumns=${otherColumns}

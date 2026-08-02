@@ -8,7 +8,6 @@ import { showToast } from '../../utils.js';
 import { retroReducer, initialRetroState } from './reducer.js';
 import { Column } from './Column.js';
 import { BoardTabs } from './BoardTabs.js';
-import { ActionPlan } from './ActionPlan.js';
 import { AddColumn } from './AddColumn.js';
 
 const html = htm.bind(h);
@@ -50,9 +49,6 @@ export function RetroBoard({ retro: initialRetro, user, onWsConnected }) {
       onStatusChanged(status) {
         if (status === 'finished') window.location.reload(); // simplest way to transition globally
       },
-      onActionAdded(actionItem) { dispatch({ type: 'action:added', actionItem }); },
-      onActionUpdated(actionItem) { dispatch({ type: 'action:updated', actionItem }); },
-      onActionRemoved(actionId) { dispatch({ type: 'action:removed', actionId }); },
       onPresenceUpdate(users) { setPresenceUsers(users); },
       onTyping(columnId, name) {
         setTypingByColumn(prev => ({ ...prev, [columnId]: name }));
@@ -174,21 +170,6 @@ export function RetroBoard({ retro: initialRetro, user, onWsConnected }) {
     dispatch({ type: 'entry:moved', entry });
   };
 
-  const handleAddAction = async (entryId, content, assignee, dueDate) => {
-    const actionItem = await api.addActionItem(retro.id, entryId, content, assignee, dueDate);
-    dispatch({ type: 'action:added', actionItem });
-  };
-
-  const handleDeleteAction = async (actionId) => {
-    await api.deleteActionItem(retro.id, actionId);
-    dispatch({ type: 'action:removed', actionId });
-  };
-
-  const handleUpdateAction = async (actionId, updates) => {
-    const actionItem = await api.updateActionItem(retro.id, actionId, updates);
-    dispatch({ type: 'action:updated', actionItem });
-  };
-
   const remainingVotes = Math.max(0, (retro.max_votes ?? 3) - retro.votedEntryIds.length);
 
   return html`
@@ -209,17 +190,6 @@ export function RetroBoard({ retro: initialRetro, user, onWsConnected }) {
       </div>
     </div>
 
-    ${isFinished ? html`
-      <${ActionPlan}
-        columns=${retro.columns}
-        actionItems=${retro.action_items}
-        isAdminOrOwner=${isAdminOrOwner}
-        onAdd=${handleAddAction}
-        onDelete=${handleDeleteAction}
-        onUpdate=${handleUpdateAction}
-      />
-    ` : null}
-
     <${BoardTabs} columns=${retro.columns} boardRef=${boardRef} getColumnEl=${getColumnEl} />
 
     <div class="board" ref=${boardRef}>
@@ -233,7 +203,6 @@ export function RetroBoard({ retro: initialRetro, user, onWsConnected }) {
           isAdminOrOwner=${isAdminOrOwner}
           votedEntryIds=${retro.votedEntryIds}
           voteMax=${retro.max_votes ?? 3}
-          actionItems=${retro.action_items || []}
           flashing=${retro.flashColumnId === col.id}
           registerRef=${registerColumnRef}
           onRename=${handleRename}

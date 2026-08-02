@@ -225,15 +225,10 @@ router.delete('/templates/:id', requireAdmin, (req, res) => {
    RETRO ROUTES
 ══════════════════════════════════════════════════════════════ */
 
-// GET /api/retros — each retro is annotated with its open (not-done)
-// action-item count, for the admin dashboard's table/stat cards.
+// GET /api/retros
 router.get('/retros', requireAuth, (req, res) => {
   const isAdmin = req.user.role === 'admin';
-  const baseQuery = `
-    SELECT r.*,
-      (SELECT COUNT(*) FROM action_items a WHERE a.retro_id = r.id AND a.done = 0) AS open_actions
-    FROM retros r
-  `;
+  const baseQuery = `SELECT r.* FROM retros r`;
   const query = isAdmin
     ? `${baseQuery} ORDER BY r.created_at DESC`
     : `${baseQuery} WHERE r.created_by = ? ORDER BY r.created_at DESC`;
@@ -286,7 +281,6 @@ router.get('/retros/:id', (req, res) => {
 
   const columns = db.prepare('SELECT * FROM columns WHERE retro_id = ? ORDER BY sort_order').all(req.params.id);
   const entries = db.prepare('SELECT * FROM entries WHERE retro_id = ? ORDER BY created_at').all(req.params.id);
-  const actionItems = db.prepare('SELECT * FROM action_items WHERE retro_id = ? ORDER BY created_at').all(req.params.id);
 
   const columnData = columns.map(col => ({
     ...col,
@@ -302,7 +296,7 @@ router.get('/retros/:id', (req, res) => {
         .all(req.params.id, participantId).map(v => v.entry_id)
     : [];
 
-  res.json({ ...retro, columns: columnData, action_items: actionItems, voted_entry_ids: votedEntryIds });
+  res.json({ ...retro, columns: columnData, voted_entry_ids: votedEntryIds });
 });
 
 // DELETE /api/retros/:id  — admin or owner only
@@ -540,96 +534,6 @@ router.put('/retros/:id/status', requireAuth, (req, res) => {
 
   broadcast(req.params.id, { type: 'retro:status_changed', status });
   res.json({ success: true, status });
-});
-
-// POST /api/retros/:id/entries/:entryId/actions — Scrum Master (retro owner) or admin only
-router.post('/retros/:id/entries/:entryId/actions', requireAuth, (req, res) => {
-  const { content, assignee, due_date } = req.body;
-  if (!content) return res.status(400).json({ error: 'Aksiyon içeriği gereklidir.' });
-
-  const isAdmin = req.user.role === 'admin';
-  const retro = db.prepare('SELECT created_by FROM retros WHERE id = ?').get(req.params.id);
-  if (!retro) return res.status(404).json({ error: 'Retro bulunamadı.' });
-  if (!isAdmin && retro.created_by !== req.user.id) {
-    return res.status(403).json({ error: 'Aksiyon ekleme yetkiniz yok. Bu işlem Scrum Master\'a aittir.' });
-  }
-
-  const actionId = uuidv4();
-  db.prepare('INSERT INTO action_items (id, retro_id, entry_id, content, assignee, due_date) VALUES (?, ?, ?, ?, ?, ?)')
-    .run(actionId, req.params.id, req.params.entryId, content, assignee || null, due_date || null);
-
-  const actionItem = {
-    id: actionId, retro_id: req.params.id, entry_id: req.params.entryId,
-    content, assignee: assignee || null, due_date: due_date || null, done: 0
-  };
-
-  broadcast(req.params.id, { type: 'action:added', actionItem });
-  res.status(201).json(actionItem);
-});
-
-// PUT /api/retros/:id/actions/:actionId — update done/due_date (Scrum Master or admin only)
-router.put('/retros/:id/actions/:actionId', requireAuth, (req, res) => {
-  const { done, due_date } = req.body;
-  if (done === undefined && due_date === undefined) {
-    return res.status(400).json({ error: 'Güncellenecek bir alan gereklidir.' });
-  }
-
-  const isAdmin = req.user.role === 'admin';
-  const retro = db.prepare('SELECT created_by FROM retros WHERE id = ?').get(req.params.id);
-  if (!retro) return res.status(404).json({ error: 'Retro bulunamadı.' });
-  if (!isAdmin && retro.created_by !== req.user.id) {
-    return res.status(403).json({ error: 'Aksiyon güncelleme yetkiniz yok. Bu işlem Scrum Master\'a aittir.' });
-  }
-
-  const existing = db.prepare('SELECT * FROM action_items WHERE id = ? AND retro_id = ?').get(req.params.actionId, req.params.id);
-  if (!existing) return res.status(404).json({ error: 'Aksiyon bulunamadı.' });
-
-  const nextDone = done !== undefined ? (done ? 1 : 0) : existing.done;
-  const nextDueDate = due_date !== undefined ? (due_date || null) : existing.due_date;
-
-  db.prepare('UPDATE action_items SET done = ?, due_date = ? WHERE id = ?').run(nextDone, nextDueDate, req.params.actionId);
-
-  const actionItem = db.prepare('SELECT * FROM action_items WHERE id = ?').get(req.params.actionId);
-  broadcast(req.params.id, { type: 'action:updated', actionItem });
-  res.json(actionItem);
-});
-
-// DELETE /api/retros/:id/actions/:actionId — Scrum Master (retro owner) or admin only
-router.delete('/retros/:id/actions/:actionId', requireAuth, (req, res) => {
-  const isAdmin = req.user.role === 'admin';
-  const retro = db.prepare('SELECT created_by FROM retros WHERE id = ?').get(req.params.id);
-  if (!retro) return res.status(404).json({ error: 'Retro bulunamadı.' });
-  if (!isAdmin && retro.created_by !== req.user.id) {
-    return res.status(403).json({ error: 'Aksiyon silme yetkiniz yok. Bu işlem Scrum Master\'a aittir.' });
-  }
-
-  const result = db.prepare('DELETE FROM action_items WHERE id = ? AND retro_id = ?')
-    .run(req.params.actionId, req.params.id);
-
-  if (result.changes === 0) return res.status(404).json({ error: 'Aksiyon bulunamadı.' });
-
-  broadcast(req.params.id, { type: 'action:removed', actionId: req.params.actionId, retroId: req.params.id });
-  res.json({ success: true });
-});
-
-// GET /api/action-items/open — open (not done) action items across the
-// caller's own retros (all retros if admin), for the "open actions" view.
-router.get('/action-items/open', requireAuth, (req, res) => {
-  const isAdmin = req.user.role === 'admin';
-  const query = isAdmin
-    ? `SELECT a.*, r.title AS retro_title, r.status AS retro_status
-       FROM action_items a
-       JOIN retros r ON r.id = a.retro_id
-       WHERE a.done = 0
-       ORDER BY (a.due_date IS NULL), a.due_date ASC, a.created_at ASC`
-    : `SELECT a.*, r.title AS retro_title, r.status AS retro_status
-       FROM action_items a
-       JOIN retros r ON r.id = a.retro_id
-       WHERE a.done = 0 AND r.created_by = ?
-       ORDER BY (a.due_date IS NULL), a.due_date ASC, a.created_at ASC`;
-
-  const items = isAdmin ? db.prepare(query).all() : db.prepare(query).all(req.user.id);
-  res.json(items);
 });
 
 export default router;

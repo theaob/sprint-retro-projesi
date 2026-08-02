@@ -82,7 +82,7 @@ export function retroReducer(state, action) {
       return { ...state, status: action.status };
 
     case 'column:added': {
-      // Same idempotency concern as entry:added/action:added.
+      // Same idempotency concern as entry:added.
       const exists = state.columns.some(c => c.id === action.column.id);
       if (exists) return state;
       return { ...state, columns: [...state.columns, action.column] };
@@ -90,27 +90,6 @@ export function retroReducer(state, action) {
 
     case 'column:deleted':
       return { ...state, columns: state.columns.filter(c => c.id !== action.columnId) };
-
-    case 'action:added': {
-      // Same idempotency concern as entry:added — the adder's own dispatch
-      // (fired right after the API call resolves) and the WS echo of that
-      // same broadcast (servers don't exclude the sender) would otherwise
-      // both append it.
-      const exists = (state.action_items || []).some(a => a.id === action.actionItem.id);
-      if (exists) return state;
-      return { ...state, action_items: [...(state.action_items || []), action.actionItem] };
-    }
-
-    case 'action:removed':
-      return { ...state, action_items: (state.action_items || []).filter(a => a.id !== action.actionId) };
-
-    case 'action:updated': {
-      const updated = action.actionItem;
-      return {
-        ...state,
-        action_items: (state.action_items || []).map(a => (a.id === updated.id ? updated : a))
-      };
-    }
 
     // Local, optimistic — fired the instant the vote button is clicked, before
     // the API call resolves. The authoritative *count* still only ever comes
@@ -132,7 +111,7 @@ export function retroReducer(state, action) {
     // Full replace — used after an onReconnect re-fetch to catch up on
     // anything missed while the socket was down.
     case 'refresh':
-      return { ...state, columns: action.retro.columns, action_items: action.retro.action_items };
+      return { ...state, columns: action.retro.columns };
 
     default:
       return state;

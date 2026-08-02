@@ -193,12 +193,11 @@ export async function renderAdmin(appEl) {
   await loadDashboard();
 }
 
-function renderStatCards(retros, openActionsCount) {
+function renderStatCards(retros) {
   const statsEl = document.getElementById('stats-grid');
   const finishedCount = retros.filter(r => r.status === 'finished').length;
   const stats = [
     { value: retros.length, label: 'Toplam Retro' },
-    { value: openActionsCount, label: 'Açık Aksiyon' },
     { value: finishedCount, label: 'Tamamlanan' }
   ];
   statsEl.innerHTML = stats.map(s => `
@@ -212,12 +211,9 @@ function renderStatCards(retros, openActionsCount) {
 async function loadDashboard() {
   const container = document.getElementById('retro-list-container');
   try {
-    const [retros, openActions] = await Promise.all([
-      api.listRetros(),
-      api.listOpenActionItems().catch(() => [])
-    ]);
+    const retros = await api.listRetros();
 
-    renderStatCards(retros, openActions.length);
+    renderStatCards(retros);
 
     if (retros.length === 0) {
       container.innerHTML = `
@@ -236,7 +232,6 @@ async function loadDashboard() {
             <tr>
               <th>Başlık</th>
               <th>Tarih</th>
-              <th>Aksiyon</th>
               <th>Durum</th>
               <th>İşlemler</th>
             </tr>
@@ -259,7 +254,6 @@ async function loadDashboard() {
       tr.innerHTML = `
         <td data-label="Başlık"><a href="#/retro/${retro.id}" class="retro-table-title">${escapeHtml(retro.title)}</a></td>
         <td data-label="Tarih" class="muted">${dateStr}</td>
-        <td data-label="Aksiyon">${retro.open_actions > 0 ? `<span class="badge badge-team">${retro.open_actions} açık</span>` : '<span class="muted">—</span>'}</td>
         <td data-label="Durum"><span class="badge ${retro.status === 'finished' ? 'badge-self' : 'badge-admin'}">${retro.status === 'finished' ? 'Bitti' : 'Aktif'}</span></td>
         <td data-label="İşlemler">
           <div class="user-actions">

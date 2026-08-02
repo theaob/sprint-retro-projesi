@@ -371,4 +371,17 @@ try {
   console.error('Migration error (drop team):', err);
 }
 
+// Migration: drop action-item tracking entirely — no more turning entries
+// into action items, no assignee/due-date/done tracking, no cross-retro
+// Open Actions rollup.
+try {
+  const tableExists = db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name = 'action_items'").get();
+  if (tableExists) {
+    db.exec('DROP TABLE action_items;');
+    console.log('✅ Migration applied: dropped the action_items table.');
+  }
+} catch (err) {
+  console.error('Migration error (drop action_items):', err);
+}
+
 export default db;

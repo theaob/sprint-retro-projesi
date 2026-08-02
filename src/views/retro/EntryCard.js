@@ -5,7 +5,7 @@ import { showToast } from '../../utils.js';
 
 const html = htm.bind(h);
 
-export function EntryCard({ entry, retroId, isVoted, voteFull, isFinished, actionItems, canManage, canMove, otherColumns, onVote, onUnvote, onEdit, onDelete, onMove }) {
+export function EntryCard({ entry, retroId, isVoted, voteFull, isFinished, canManage, canMove, otherColumns, onVote, onUnvote, onEdit, onDelete, onMove }) {
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState(entry.text);
   const [bumping, setBumping] = useState(false);
@@ -83,7 +83,6 @@ export function EntryCard({ entry, retroId, isVoted, voteFull, isFinished, actio
     }
   };
 
-  const entryActions = actionItems.filter(a => a.entry_id === entry.id);
   const voteBtnClass = `btn btn-vote vote-btn${isVoted ? ' voted-active' : ''}`;
 
   return html`
@@ -125,17 +124,6 @@ export function EntryCard({ entry, retroId, isVoted, voteFull, isFinished, actio
             ` : null}
           `}
       </div>
-      ${entryActions.length > 0 ? html`
-        <div class="entry-actions-list">
-          ${entryActions.map(a => html`
-            <div class="action-item${a.done ? ' action-item-done' : ''}" key=${a.id}>
-              ${a.done ? html`<span class="action-done-check" title="Tamamlandı">✓</span>` : null}
-              <span class="action-content">🎯 ${a.content}</span>
-              ${a.assignee ? html`<span class="user-chip-avatar" style="width:20px;height:20px;font-size:0.6rem;display:inline-flex;margin-left:4px;" title=${a.assignee}>${a.assignee[0].toUpperCase()}</span>` : null}
-            </div>
-          `)}
-        </div>
-      ` : null}
       <div class="entry-footer">
         <button class=${voteBtnClass} disabled=${isFinished} onClick=${handleVoteClick}>
           <span class="vote-badge">

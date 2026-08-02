@@ -101,20 +101,10 @@ export const api = {
     method: 'POST', body: JSON.stringify({ participant_id: getParticipantId() })
   }),
 
-  // Actions & Status
+  // Status
   updateRetroStatus: (retroId, status) => request(`/retros/${retroId}/status`, {
     method: 'PUT', body: JSON.stringify({ status })
   }),
-  addActionItem: (retroId, entryId, content, assignee, dueDate) => request(`/retros/${retroId}/entries/${entryId}/actions`, {
-    method: 'POST', body: JSON.stringify({ content, assignee, due_date: dueDate })
-  }),
-  updateActionItem: (retroId, actionId, updates) => request(`/retros/${retroId}/actions/${actionId}`, {
-    method: 'PUT', body: JSON.stringify(updates)
-  }),
-  deleteActionItem: (retroId, actionId) => request(`/retros/${retroId}/actions/${actionId}`, {
-    method: 'DELETE'
-  }),
-  listOpenActionItems: () => request('/action-items/open'),
 
   // Auth helpers
   getUser: () => {
