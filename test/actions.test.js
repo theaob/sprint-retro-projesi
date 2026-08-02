@@ -199,24 +199,34 @@ describe('GET /api/action-items/open', () => {
     expect(contents).toContain('Open item for other owner');
   });
 
-  it('annotates each item with the retro creator\'s team, null when unset', async () => {
-    // owner/otherOwner were registered without a team — self-registration
-    // doesn't accept one, only an admin assigning it after the fact.
-    await request(app)
-      .put(`/api/users/${owner.user.id}`)
-      .set('Authorization', `Bearer ${admin.token}`)
-      .send({ team: 'Takım A' });
+  it('annotates each item with its retro\'s own team, not the creator\'s', async () => {
+    const teamX = await request(app).post('/api/teams').set('Authorization', `Bearer ${admin.token}`).send({ name: 'Actions Test Team X' });
+    const teamY = await request(app).post('/api/teams').set('Authorization', `Bearer ${admin.token}`).send({ name: 'Actions Test Team Y' });
 
-    const retro = await createRetro(owner, 'Team-tagged Retro');
-    await addAction(owner, retro, 'Item for a team-tagged retro');
+    // Same creator (owner), two different explicit teams — proves team
+    // comes from the retro's own team_id, not from who happened to create it.
+    const retroX = await createRetro(owner, 'Team X Retro', undefined, teamX.body.id);
+    await addAction(owner, retroX, 'Item for team X');
 
-    const otherRetro = await createRetro(otherOwner, 'Teamless Retro');
-    await addAction(otherOwner, otherRetro, 'Item for a teamless retro');
+    const retroY = await createRetro(owner, 'Team Y Retro', undefined, teamY.body.id);
+    await addAction(owner, retroY, 'Item for team Y');
 
     const res = await request(app).get('/api/action-items/open').set('Authorization', `Bearer ${admin.token}`);
-    const tagged = res.body.find(a => a.content === 'Item for a team-tagged retro');
-    const untagged = res.body.find(a => a.content === 'Item for a teamless retro');
-    expect(tagged.team).toBe('Takım A');
-    expect(untagged.team).toBeNull();
+    const itemX = res.body.find(a => a.content === 'Item for team X');
+    const itemY = res.body.find(a => a.content === 'Item for team Y');
+    expect(itemX.team).toBe('Actions Test Team X');
+    expect(itemY.team).toBe('Actions Test Team Y');
+  });
+
+  it('falls back to a null team when the retro\'s team was later deleted', async () => {
+    const team = await request(app).post('/api/teams').set('Authorization', `Bearer ${admin.token}`).send({ name: 'Actions Test Team Temp' });
+    const retro = await createRetro(owner, 'Temp Team Retro', undefined, team.body.id);
+    await addAction(owner, retro, 'Item that outlives its team');
+
+    await request(app).delete(`/api/teams/${team.body.id}`).set('Authorization', `Bearer ${admin.token}`);
+
+    const res = await request(app).get('/api/action-items/open').set('Authorization', `Bearer ${admin.token}`);
+    const item = res.body.find(a => a.content === 'Item that outlives its team');
+    expect(item.team).toBeNull();
   });
 });

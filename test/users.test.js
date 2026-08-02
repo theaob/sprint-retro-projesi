@@ -49,33 +49,46 @@ describe('user management (admin only)', () => {
     expect(res.status).toBe(400);
   });
 
-  it('lets an admin assign a team at creation and update it later', async () => {
+  it('lets an admin assign a team at creation and update it later, resolving the team name', async () => {
+    const teamA = await request(app).post('/api/teams').set('Authorization', `Bearer ${admin.token}`).send({ name: 'Users Test Team A' });
+    const teamB = await request(app).post('/api/teams').set('Authorization', `Bearer ${admin.token}`).send({ name: 'Users Test Team B' });
+
     const created = await request(app)
       .post('/api/users')
       .set('Authorization', `Bearer ${admin.token}`)
-      .send({ username: 'team-user', password: 'password123', role: 'user', team: 'Takım A' });
+      .send({ username: 'team-user', password: 'password123', role: 'user', team_id: teamA.body.id });
     expect(created.status).toBe(201);
-    expect(created.body.team).toBe('Takım A');
+    expect(created.body.team_id).toBe(teamA.body.id);
+    expect(created.body.team).toBe('Users Test Team A');
 
     const listed = await request(app).get('/api/users').set('Authorization', `Bearer ${admin.token}`);
     const inList = listed.body.find(u => u.id === created.body.id);
-    expect(inList.team).toBe('Takım A');
+    expect(inList.team).toBe('Users Test Team A');
 
     const updated = await request(app)
       .put(`/api/users/${created.body.id}`)
       .set('Authorization', `Bearer ${admin.token}`)
-      .send({ team: 'Takım B' });
+      .send({ team_id: teamB.body.id });
     expect(updated.status).toBe(200);
-    expect(updated.body.team).toBe('Takım B');
+    expect(updated.body.team).toBe('Users Test Team B');
 
     const cleared = await request(app)
       .put(`/api/users/${created.body.id}`)
       .set('Authorization', `Bearer ${admin.token}`)
-      .send({ team: '' });
+      .send({ team_id: null });
     expect(cleared.status).toBe(200);
+    expect(cleared.body.team_id).toBeNull();
     expect(cleared.body.team).toBeNull();
 
     await request(app).delete(`/api/users/${created.body.id}`).set('Authorization', `Bearer ${admin.token}`);
+  });
+
+  it('rejects an unknown team_id', async () => {
+    const res = await request(app)
+      .post('/api/users')
+      .set('Authorization', `Bearer ${admin.token}`)
+      .send({ username: 'bad-team-user', password: 'password123', team_id: 'not-a-real-team' });
+    expect(res.status).toBe(400);
   });
 
   it('defaults team to null when not provided', async () => {
@@ -84,6 +97,7 @@ describe('user management (admin only)', () => {
       .set('Authorization', `Bearer ${admin.token}`)
       .send({ username: 'no-team-user', password: 'password123' });
     expect(created.status).toBe(201);
+    expect(created.body.team_id).toBeNull();
     expect(created.body.team).toBeNull();
 
     await request(app).delete(`/api/users/${created.body.id}`).set('Authorization', `Bearer ${admin.token}`);

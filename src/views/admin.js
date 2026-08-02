@@ -56,6 +56,10 @@ export async function renderAdmin(appEl) {
             <input class="input" type="text" id="retro-title" placeholder="Örn: Sprint 14 Retro" required />
           </div>
           <div class="form-group">
+            <label for="retro-team">Takım</label>
+            <select class="input" id="retro-team" required></select>
+          </div>
+          <div class="form-group">
             <label for="retro-max-votes">Kişi Başı Oy Hakkı</label>
             <input class="input" type="number" id="retro-max-votes" value="3" min="1" max="20" required />
           </div>
@@ -149,10 +153,21 @@ export async function renderAdmin(appEl) {
     });
   });
 
+  const teamSelect = document.getElementById('retro-team');
+  try {
+    const teams = await api.listTeams();
+    teamSelect.innerHTML = teams.length > 0
+      ? teams.map(t => `<option value="${t.id}">${escapeHtml(t.name)}</option>`).join('')
+      : '<option value="" disabled selected>Önce bir takım oluşturun (Kullanıcılar sayfası)</option>';
+  } catch (err) {
+    showToast(`Takımlar yüklenemedi: ${err.message}`, 'error');
+  }
+
   // Create retro
   document.getElementById('create-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const title = document.getElementById('retro-title').value.trim();
+    const teamId = teamSelect.value;
     const maxVotes = parseInt(document.getElementById('retro-max-votes').value, 10) || 3;
     const columns = Array.from(columnsList.querySelectorAll('.column-name-input'))
       .map(inp => inp.value.trim()).filter(Boolean);
@@ -161,13 +176,17 @@ export async function renderAdmin(appEl) {
       showToast('Başlık ve en az bir sütun gereklidir.', 'error');
       return;
     }
+    if (!teamId) {
+      showToast('Takım gereklidir.', 'error');
+      return;
+    }
 
     const btn = document.getElementById('create-retro-btn');
     btn.disabled = true;
     btn.textContent = 'Oluşturuluyor…';
 
     try {
-      const result = await api.createRetro(title, columns, maxVotes);
+      const result = await api.createRetro(title, columns, maxVotes, teamId);
       showToast('Retro oluşturuldu! ✨', 'success');
       
       // Hide section after creation

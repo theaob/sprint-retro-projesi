@@ -249,18 +249,62 @@ try {
   console.error('Migration error (action_items done/due_date):', err);
 }
 
-// Migration: add team to users — this nexus setup has several teams
-// sharing one instance, and retros/action items need to be attributable
-// to a team (via their creator) instead of reading as one undifferentiated
-// pile across everyone.
+// Migration: promote the free-text users.team to a first-class `teams`
+// table, referenced from users/retros/templates. Free text invited
+// duplicates ("Takım A" vs "takım a"), and inferring a retro's team from
+// its creator (the previous approach) misattributes retros whenever a
+// Scrum Master covers for another team. Backfills teams from whatever
+// distinct team strings already exist, then drops the old column —
+// users.team was only introduced earlier this same release, so there's
+// no real deployment depending on it yet.
 try {
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS teams (
+      id TEXT PRIMARY KEY,
+      name TEXT UNIQUE NOT NULL,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+  `);
+
   const usersInfo = db.pragma('table_info(users)');
-  if (!usersInfo.some((col) => col.name === 'team')) {
-    db.exec('ALTER TABLE users ADD COLUMN team TEXT;');
-    console.log('✅ Migration applied: added team to users table.');
+  const retrosInfo = db.pragma('table_info(retros)');
+  const templatesInfo = db.pragma('table_info(templates)');
+
+  if (!usersInfo.some((col) => col.name === 'team_id')) {
+    db.exec('ALTER TABLE users ADD COLUMN team_id TEXT REFERENCES teams(id) ON DELETE SET NULL;');
+    console.log('✅ Migration applied: added team_id to users table.');
+  }
+  if (!retrosInfo.some((col) => col.name === 'team_id')) {
+    db.exec('ALTER TABLE retros ADD COLUMN team_id TEXT REFERENCES teams(id) ON DELETE SET NULL;');
+    console.log('✅ Migration applied: added team_id to retros table.');
+  }
+  if (!templatesInfo.some((col) => col.name === 'team_id')) {
+    db.exec('ALTER TABLE templates ADD COLUMN team_id TEXT REFERENCES teams(id) ON DELETE SET NULL;');
+    console.log('✅ Migration applied: added team_id to templates table.');
+  }
+
+  // Backfill: still has the old `team` string column to read from?
+  if (usersInfo.some((col) => col.name === 'team')) {
+    const distinctTeamNames = db.prepare("SELECT DISTINCT team FROM users WHERE team IS NOT NULL AND team != ''").all();
+    const insertTeam = db.prepare('INSERT OR IGNORE INTO teams (id, name) VALUES (?, ?)');
+    const assignUserTeam = db.prepare(`
+      UPDATE users SET team_id = (SELECT id FROM teams WHERE name = ?) WHERE team = ? AND team_id IS NULL
+    `);
+    db.transaction(() => {
+      for (const row of distinctTeamNames) {
+        insertTeam.run(uuidv4(), row.team);
+        assignUserTeam.run(row.team, row.team);
+      }
+    })();
+    if (distinctTeamNames.length > 0) {
+      console.log(`✅ Backfilled ${distinctTeamNames.length} team(s) from the old users.team column.`);
+    }
+
+    db.exec('ALTER TABLE users DROP COLUMN team;');
+    console.log('✅ Migration applied: dropped the old users.team text column.');
   }
 } catch (err) {
-  console.error('Migration error (users team):', err);
+  console.error('Migration error (teams):', err);
 }
 
 export default db;

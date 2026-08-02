@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import request from 'supertest';
-import { app, loginAdmin, registerUser, createRetro } from './helpers.js';
+import { app, loginAdmin, registerUser, createRetro, ensureDefaultTeam } from './helpers.js';
 
 describe('retros', () => {
   let admin, owner, outsider;
@@ -20,6 +20,28 @@ describe('retros', () => {
     const retro = await createRetro(owner, 'Sprint 1 Retro', ['İyi Giden', 'Kötü Giden', 'Aksiyon']);
     expect(retro.id).toBeTruthy();
     expect(retro.short_code).toMatch(/^[a-z0-9]{6}$/);
+    expect(retro.team_id).toBeTruthy();
+  });
+
+  it('requires a valid team_id to create a retro', async () => {
+    const missing = await request(app)
+      .post('/api/retros')
+      .set('Authorization', `Bearer ${owner.token}`)
+      .send({ title: 'No Team Retro', columns: ['A'] });
+    expect(missing.status).toBe(400);
+
+    const invalid = await request(app)
+      .post('/api/retros')
+      .set('Authorization', `Bearer ${owner.token}`)
+      .send({ title: 'Bad Team Retro', columns: ['A'], team_id: 'not-a-real-team' });
+    expect(invalid.status).toBe(400);
+
+    const teamId = await ensureDefaultTeam();
+    const valid = await request(app)
+      .post('/api/retros')
+      .set('Authorization', `Bearer ${owner.token}`)
+      .send({ title: 'Valid Team Retro', columns: ['A'], team_id: teamId });
+    expect(valid.status).toBe(201);
   });
 
   it('serves a retro with its columns and entries with no auth required (public board)', async () => {

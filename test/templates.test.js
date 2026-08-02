@@ -109,4 +109,51 @@ describe('retro templates', () => {
       .set('Authorization', `Bearer ${admin.token}`);
     expect(deleteRes.status).toBe(404);
   });
+
+  it('scopes a team-specific template to that team, alongside the global ones', async () => {
+    const teamA = await request(app).post('/api/teams').set('Authorization', `Bearer ${admin.token}`).send({ name: 'Templates Test Team A' });
+    const teamB = await request(app).post('/api/teams').set('Authorization', `Bearer ${admin.token}`).send({ name: 'Templates Test Team B' });
+    const memberA = await registerUser('templates-member-a');
+    await request(app).put(`/api/users/${memberA.user.id}`).set('Authorization', `Bearer ${admin.token}`).send({ team_id: teamA.body.id });
+    const memberB = await registerUser('templates-member-b');
+    await request(app).put(`/api/users/${memberB.user.id}`).set('Authorization', `Bearer ${admin.token}`).send({ team_id: teamB.body.id });
+
+    const created = await request(app)
+      .post('/api/templates')
+      .set('Authorization', `Bearer ${admin.token}`)
+      .send({ name: 'Team A Only Template', columns: ['A'], team_id: teamA.body.id });
+    expect(created.status).toBe(201);
+    expect(created.body.team_id).toBe(teamA.body.id);
+
+    // Re-login: the token was issued before the team assignment, but
+    // team_id is read fresh from the DB per-request via loadUser, so no
+    // re-login is actually required — this just documents that fact.
+    const seenByA = await request(app).get('/api/templates').set('Authorization', `Bearer ${memberA.token}`);
+    expect(seenByA.body.map(t => t.name)).toContain('Team A Only Template');
+    expect(seenByA.body.map(t => t.name)).toContain('Standart'); // still sees globals too
+
+    const seenByB = await request(app).get('/api/templates').set('Authorization', `Bearer ${memberB.token}`);
+    expect(seenByB.body.map(t => t.name)).not.toContain('Team A Only Template');
+    expect(seenByB.body.map(t => t.name)).toContain('Standart');
+  });
+
+  it('leaves an untouched team_id alone on update, but allows explicitly clearing it', async () => {
+    const team = await request(app).post('/api/teams').set('Authorization', `Bearer ${admin.token}`).send({ name: 'Templates Test Team C' });
+    const created = await request(app)
+      .post('/api/templates')
+      .set('Authorization', `Bearer ${admin.token}`)
+      .send({ name: 'Scope Preserve Template', columns: ['A'], team_id: team.body.id });
+
+    const renamedOnly = await request(app)
+      .put(`/api/templates/${created.body.id}`)
+      .set('Authorization', `Bearer ${admin.token}`)
+      .send({ name: 'Scope Preserve Template Renamed', columns: ['A'] });
+    expect(renamedOnly.body.team_id).toBe(team.body.id);
+
+    const cleared = await request(app)
+      .put(`/api/templates/${created.body.id}`)
+      .set('Authorization', `Bearer ${admin.token}`)
+      .send({ name: 'Scope Preserve Template Renamed', columns: ['A'], team_id: null });
+    expect(cleared.body.team_id).toBeNull();
+  });
 });
