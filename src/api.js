@@ -52,6 +52,16 @@ export const api = {
     method: 'PUT', body: JSON.stringify({ password })
   }),
 
+  // Retro templates
+  listTemplates: () => request('/templates'),
+  createTemplate: (name, columns) => request('/templates', {
+    method: 'POST', body: JSON.stringify({ name, columns })
+  }),
+  updateTemplate: (id, name, columns) => request(`/templates/${id}`, {
+    method: 'PUT', body: JSON.stringify({ name, columns })
+  }),
+  deleteTemplate: (id) => request(`/templates/${id}`, { method: 'DELETE' }),
+
   // Retros
   listRetros: () => request('/retros'),
   createRetro: (title, columns, maxVotes) => request('/retros', {

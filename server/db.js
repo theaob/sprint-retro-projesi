@@ -84,6 +84,14 @@ db.exec(`
     created_at TEXT DEFAULT (datetime('now'))
   );
   CREATE UNIQUE INDEX IF NOT EXISTS idx_votes_unique ON votes(retro_id, entry_id, participant_id);
+
+  CREATE TABLE IF NOT EXISTS templates (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    columns TEXT NOT NULL,
+    sort_order INTEGER DEFAULT 0,
+    created_at TEXT DEFAULT (datetime('now'))
+  );
 `);
 
 // Seed default admin if none exists
@@ -93,6 +101,25 @@ if (!adminExists) {
   db.prepare('INSERT INTO users (id, username, password_hash, role, must_change_password) VALUES (?, ?, ?, ?, 1)')
     .run(uuidv4(), 'admin', hash, 'admin');
   console.log('✅ Default admin created: admin / admin (must change password on first login)');
+}
+
+// Seed the built-in retro templates if the table is empty — preserves the
+// exact same defaults that used to be a hardcoded array in admin.js, now
+// just editable by admins instead of requiring a code change.
+const templateCount = db.prepare('SELECT COUNT(*) as count FROM templates').get().count;
+if (templateCount === 0) {
+  const defaultTemplates = [
+    { name: 'Standart', cols: ['İyi Giden', 'Geliştirilmeli', 'Aksiyon'] },
+    { name: 'GBI', cols: ['Good', 'Bad', 'Improvement'] },
+    { name: 'Mad/Sad/Glad', cols: ['Mad 😠', 'Sad 😢', 'Glad 😃', 'Aksiyon 🚀'] },
+    { name: 'Start/Stop/Continue', cols: ['Start 🟢', 'Stop 🔴', 'Continue 🟡'] },
+    { name: '4Ls', cols: ['Liked 👍', 'Learned 🧠', 'Lacked 👎', 'Longed For 🥺'] }
+  ];
+  const insertTemplate = db.prepare('INSERT INTO templates (id, name, columns, sort_order) VALUES (?, ?, ?, ?)');
+  db.transaction(() => {
+    defaultTemplates.forEach((t, idx) => { insertTemplate.run(uuidv4(), t.name, JSON.stringify(t.cols), idx); });
+  })();
+  console.log(`✅ Seeded ${defaultTemplates.length} default retro templates.`);
 }
 
 // Migration: add columns safely

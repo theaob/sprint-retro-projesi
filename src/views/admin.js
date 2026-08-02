@@ -1,6 +1,35 @@
 import { api } from '../api.js';
 import { escapeHtml, showToast, bindThemeEvents, renderAppHeader, renderMobileNav, bindLogoutEvents } from '../utils.js';
 
+function createColumnInputRow(value = '') {
+  const row = document.createElement('div');
+  row.className = 'column-input-row';
+  row.innerHTML = `
+    <input class="input column-name-input" type="text" value="${escapeHtml(value)}" placeholder="Sütun adı" required />
+    <button type="button" class="btn btn-ghost btn-icon remove-col-btn" title="Kaldır">✕</button>
+  `;
+  return row;
+}
+
+/** Wires up add/remove-row behavior for a columns-input-list + its "add column" button. */
+function wireColumnsList(listEl, addBtnEl) {
+  addBtnEl.addEventListener('click', () => {
+    const row = createColumnInputRow();
+    listEl.appendChild(row);
+    row.querySelector('.input').focus();
+  });
+  listEl.addEventListener('click', (e) => {
+    if (e.target.classList.contains('remove-col-btn')) {
+      const rows = listEl.querySelectorAll('.column-input-row');
+      if (rows.length > 1) {
+        e.target.closest('.column-input-row').remove();
+      } else {
+        showToast('En az bir sütun gereklidir.', 'error');
+      }
+    }
+  });
+}
+
 /**
  * Admin panel — #/
  */
@@ -30,7 +59,10 @@ export async function renderAdmin(appEl) {
             <input class="input" type="number" id="retro-max-votes" value="3" min="1" max="20" required />
           </div>
           <div class="form-group">
-            <label>Şablon Seç</label>
+            <div class="template-label-row">
+              <label>Şablon Seç</label>
+              ${user?.role === 'admin' ? `<button type="button" class="btn btn-ghost btn-sm" id="manage-templates-btn">🗂️ Şablonları Yönet</button>` : ''}
+            </div>
             <div class="template-options" id="template-options"></div>
           </div>
           <div class="form-group">
@@ -79,61 +111,39 @@ export async function renderAdmin(appEl) {
     }
   });
 
-  // Templates
-  const templates = [
-    { name: 'Standart', cols: ['İyi Giden', 'Geliştirilmeli', 'Aksiyon'] },
-    { name: 'GBI', cols: ['Good', 'Bad', 'Improvement'] },
-    { name: 'Mad/Sad/Glad', cols: ['Mad 😠', 'Sad 😢', 'Glad 😃', 'Aksiyon 🚀'] },
-    { name: 'Start/Stop/Continue', cols: ['Start 🟢', 'Stop 🔴', 'Continue 🟡'] },
-    { name: '4Ls', cols: ['Liked 👍', 'Learned 🧠', 'Lacked 👎', 'Longed For 🥺'] },
-  ];
+  // Templates — server-side, admin-editable (see manage-templates-btn below)
+  const columnsList = document.getElementById('columns-list');
+  wireColumnsList(columnsList, document.getElementById('add-column-btn'));
 
   const templateContainer = document.getElementById('template-options');
-  templateContainer.innerHTML = templates.map(t => 
-    `<button type="button" class="btn btn-ghost btn-sm template-btn" data-cols="${escapeHtml(t.cols.join('|'))}">${escapeHtml(t.name)}</button>`
-  ).join('');
+  function renderTemplateButtons(templates) {
+    templateContainer.innerHTML = templates.map(t =>
+      `<button type="button" class="btn btn-ghost btn-sm template-btn" data-cols="${escapeHtml(t.columns.join('|'))}">${escapeHtml(t.name)}</button>`
+    ).join('');
+  }
 
   templateContainer.addEventListener('click', (e) => {
     const btn = e.target.closest('.template-btn');
     if (!btn) return;
     const cols = btn.dataset.cols.split('|');
-    
-    const columnsList = document.getElementById('columns-list');
+
     columnsList.innerHTML = '';
-    cols.forEach(colName => {
-      const row = document.createElement('div');
-      row.className = 'column-input-row';
-      row.innerHTML = `
-        <input class="input column-name-input" type="text" value="${escapeHtml(colName)}" placeholder="Sütun adı" required />
-        <button type="button" class="btn btn-ghost btn-icon remove-col-btn" title="Kaldır">✕</button>
-      `;
-      columnsList.appendChild(row);
+    cols.forEach(colName => { columnsList.appendChild(createColumnInputRow(colName)); });
+  });
+
+  let templates = [];
+  try {
+    templates = await api.listTemplates();
+  } catch (err) {
+    showToast(`Şablonlar yüklenemedi: ${err.message}`, 'error');
+  }
+  renderTemplateButtons(templates);
+
+  document.getElementById('manage-templates-btn')?.addEventListener('click', () => {
+    showManageTemplatesModal(templates, (updated) => {
+      templates = updated;
+      renderTemplateButtons(templates);
     });
-  });
-
-  // Add column
-  const columnsList = document.getElementById('columns-list');
-  document.getElementById('add-column-btn').addEventListener('click', () => {
-    const row = document.createElement('div');
-    row.className = 'column-input-row';
-    row.innerHTML = `
-      <input class="input column-name-input" type="text" placeholder="Sütun adı" required />
-      <button type="button" class="btn btn-ghost btn-icon remove-col-btn" title="Kaldır">✕</button>
-    `;
-    columnsList.appendChild(row);
-    row.querySelector('.input').focus();
-  });
-
-  // Remove column (delegate)
-  columnsList.addEventListener('click', (e) => {
-    if (e.target.classList.contains('remove-col-btn')) {
-      const rows = columnsList.querySelectorAll('.column-input-row');
-      if (rows.length > 1) {
-        e.target.closest('.column-input-row').remove();
-      } else {
-        showToast('En az bir sütun gereklidir.', 'error');
-      }
-    }
   });
 
   // Create retro
@@ -192,7 +202,7 @@ async function loadRetroList() {
     const listEl = document.getElementById('retro-list');
 
     retros.forEach(retro => {
-      const date = new Date(retro.created_at + 'Z');
+      const date = new Date(`${retro.created_at}Z`);
       const dateStr = date.toLocaleDateString('tr-TR', {
         year: 'numeric', month: 'long', day: 'numeric',
         hour: '2-digit', minute: '2-digit'
@@ -249,4 +259,148 @@ async function loadRetroList() {
   }
 }
 
+/**
+ * Admin-only template CRUD. A single add/edit form doubles for both —
+ * clicking "edit" on a row pre-fills it and switches the submit button
+ * to "update" mode, matching the app's existing lightweight admin-modal
+ * pattern (see users.js's edit/change-password modals).
+ */
+function showManageTemplatesModal(initialTemplates, onChange) {
+  const existing = document.getElementById('manage-templates-modal');
+  if (existing) existing.remove();
 
+  let templates = initialTemplates;
+  let editingId = null;
+
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.id = 'manage-templates-modal';
+  overlay.innerHTML = `
+    <div class="modal template-manage-modal" role="dialog" aria-modal="true" aria-labelledby="manage-templates-title">
+      <h3 id="manage-templates-title">🗂️ Şablonları Yönet</h3>
+      <div class="template-manage-list" id="template-manage-list"></div>
+      <form id="template-manage-form">
+        <div class="form-group">
+          <label for="template-name-input">Şablon Adı</label>
+          <input class="input" type="text" id="template-name-input" required />
+        </div>
+        <div class="form-group">
+          <label>Sütunlar</label>
+          <div class="columns-input-list" id="template-columns-list"></div>
+          <button type="button" class="btn btn-ghost btn-sm" id="template-add-column-btn">+ Sütun Ekle</button>
+        </div>
+        <div class="modal-actions">
+          <button type="button" class="btn btn-ghost btn-sm hidden" id="template-cancel-edit-btn">Düzenlemeyi İptal Et</button>
+          <button type="submit" class="btn btn-primary btn-sm" id="template-save-btn">Ekle</button>
+        </div>
+      </form>
+      <div class="modal-actions">
+        <button class="btn btn-ghost btn-sm" id="templates-modal-close-btn">Kapat</button>
+      </div>
+    </div>
+  `;
+  document.body.appendChild(overlay);
+
+  const listEl = document.getElementById('template-manage-list');
+  const nameInput = document.getElementById('template-name-input');
+  const columnsListEl = document.getElementById('template-columns-list');
+  const saveBtn = document.getElementById('template-save-btn');
+  const cancelEditBtn = document.getElementById('template-cancel-edit-btn');
+
+  wireColumnsList(columnsListEl, document.getElementById('template-add-column-btn'));
+
+  function resetForm() {
+    editingId = null;
+    nameInput.value = '';
+    columnsListEl.innerHTML = '';
+    columnsListEl.appendChild(createColumnInputRow());
+    saveBtn.textContent = 'Ekle';
+    cancelEditBtn.classList.add('hidden');
+  }
+
+  function renderList() {
+    listEl.innerHTML = templates.length === 0
+      ? '<p class="muted" style="padding:8px 0;">Henüz şablon yok.</p>'
+      : templates.map(t => `
+          <div class="template-manage-row" data-id="${t.id}">
+            <div class="template-manage-row-info">
+              <div class="template-manage-row-name">${escapeHtml(t.name)}</div>
+              <div class="template-manage-row-cols">${t.columns.map(c => `<span class="action-assignee">${escapeHtml(c)}</span>`).join(' ')}</div>
+            </div>
+            <div class="template-manage-row-actions">
+              <button type="button" class="btn btn-ghost btn-icon-sm edit-template-btn" data-id="${t.id}" title="Düzenle">✏️</button>
+              <button type="button" class="btn btn-ghost btn-icon-sm delete-template-btn" data-id="${t.id}" title="Sil">🗑️</button>
+            </div>
+          </div>
+        `).join('');
+
+    listEl.querySelectorAll('.edit-template-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const t = templates.find(x => x.id === btn.dataset.id);
+        if (!t) return;
+        editingId = t.id;
+        nameInput.value = t.name;
+        columnsListEl.innerHTML = '';
+        t.columns.forEach(c => { columnsListEl.appendChild(createColumnInputRow(c)); });
+        saveBtn.textContent = 'Güncelle';
+        cancelEditBtn.classList.remove('hidden');
+        nameInput.focus();
+      });
+    });
+
+    listEl.querySelectorAll('.delete-template-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const t = templates.find(x => x.id === btn.dataset.id);
+        if (!t || !confirm(`"${t.name}" şablonunu silmek istediğinize emin misiniz?`)) return;
+        try {
+          await api.deleteTemplate(t.id);
+          templates = templates.filter(x => x.id !== t.id);
+          if (editingId === t.id) resetForm();
+          renderList();
+          onChange(templates);
+        } catch (err) {
+          showToast(err.message, 'error');
+        }
+      });
+    });
+  }
+
+  cancelEditBtn.addEventListener('click', resetForm);
+
+  document.getElementById('template-manage-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const name = nameInput.value.trim();
+    const columns = Array.from(columnsListEl.querySelectorAll('.column-name-input'))
+      .map(inp => inp.value.trim()).filter(Boolean);
+    if (!name || columns.length === 0) {
+      showToast('Şablon adı ve en az bir sütun gereklidir.', 'error');
+      return;
+    }
+
+    saveBtn.disabled = true;
+    try {
+      if (editingId) {
+        const updated = await api.updateTemplate(editingId, name, columns);
+        templates = templates.map(t => (t.id === editingId ? { ...t, ...updated } : t));
+        showToast('Şablon güncellendi! ✅', 'success');
+      } else {
+        const created = await api.createTemplate(name, columns);
+        templates = [...templates, created];
+        showToast('Şablon eklendi! ✅', 'success');
+      }
+      resetForm();
+      renderList();
+      onChange(templates);
+    } catch (err) {
+      showToast(err.message, 'error');
+    } finally {
+      saveBtn.disabled = false;
+    }
+  });
+
+  document.getElementById('templates-modal-close-btn').addEventListener('click', () => overlay.remove());
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+
+  resetForm();
+  renderList();
+}

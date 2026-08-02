@@ -161,6 +161,64 @@ router.put('/users/:id', requireAdmin, (req, res) => {
 });
 
 /* ══════════════════════════════════════════════════════════════
+   RETRO TEMPLATES — a global, shared resource (not scoped to a single
+   retro's owner), so management is admin-only like user management.
+   Any authenticated user can read them, for the create-retro form.
+══════════════════════════════════════════════════════════════ */
+
+function validateTemplateBody(body) {
+  const { name, columns } = body;
+  if (!name || !name.trim()) return 'Şablon adı gereklidir.';
+  if (!Array.isArray(columns) || columns.length === 0 || columns.some(c => !c || !c.trim())) {
+    return 'En az bir geçerli sütun gereklidir.';
+  }
+  return null;
+}
+
+// GET /api/templates
+router.get('/templates', requireAuth, (req, res) => {
+  const templates = db.prepare('SELECT * FROM templates ORDER BY sort_order').all();
+  res.json(templates.map(t => ({ ...t, columns: JSON.parse(t.columns) })));
+});
+
+// POST /api/templates
+router.post('/templates', requireAdmin, (req, res) => {
+  const error = validateTemplateBody(req.body);
+  if (error) return res.status(400).json({ error });
+
+  const { name, columns } = req.body;
+  const trimmedColumns = columns.map(c => c.trim());
+  const id = uuidv4();
+  const sortOrder = db.prepare('SELECT COALESCE(MAX(sort_order), -1) + 1 as next FROM templates').get().next;
+
+  db.prepare('INSERT INTO templates (id, name, columns, sort_order) VALUES (?, ?, ?, ?)')
+    .run(id, name.trim(), JSON.stringify(trimmedColumns), sortOrder);
+
+  res.status(201).json({ id, name: name.trim(), columns: trimmedColumns, sort_order: sortOrder });
+});
+
+// PUT /api/templates/:id
+router.put('/templates/:id', requireAdmin, (req, res) => {
+  const error = validateTemplateBody(req.body);
+  if (error) return res.status(400).json({ error });
+
+  const { name, columns } = req.body;
+  const trimmedColumns = columns.map(c => c.trim());
+  const result = db.prepare('UPDATE templates SET name = ?, columns = ? WHERE id = ?')
+    .run(name.trim(), JSON.stringify(trimmedColumns), req.params.id);
+
+  if (result.changes === 0) return res.status(404).json({ error: 'Şablon bulunamadı.' });
+  res.json({ id: req.params.id, name: name.trim(), columns: trimmedColumns });
+});
+
+// DELETE /api/templates/:id
+router.delete('/templates/:id', requireAdmin, (req, res) => {
+  const result = db.prepare('DELETE FROM templates WHERE id = ?').run(req.params.id);
+  if (result.changes === 0) return res.status(404).json({ error: 'Şablon bulunamadı.' });
+  res.json({ success: true });
+});
+
+/* ══════════════════════════════════════════════════════════════
    RETRO ROUTES
 ══════════════════════════════════════════════════════════════ */
 

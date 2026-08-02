@@ -460,8 +460,24 @@ select.input { cursor: pointer; }
 .create-section { padding: 24px; margin-bottom: 48px; }
 .create-form { display: flex; flex-direction: column; gap: 16px; }
 
+.template-label-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .template-options { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 4px; }
 .template-btn { font-size: 0.75rem; padding: 4px 10px; min-height: 28px; border-radius: 999px; }
+
+.template-manage-modal { max-width: 560px; }
+.template-manage-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; max-height: 240px; overflow-y: auto; }
+.template-manage-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  background: var(--bg-input);
+  border-radius: var(--radius-sm);
+}
+.template-manage-row-name { font-weight: 600; font-size: 0.9rem; margin-bottom: 4px; }
+.template-manage-row-cols { display: flex; flex-wrap: wrap; gap: 4px; }
+.template-manage-row-actions { display: flex; gap: 2px; flex-shrink: 0; }
 
 .columns-input-list { display: flex; flex-direction: column; gap: 10px; }
 .column-input-row { display: flex; gap: 8px; align-items: center; animation: slideIn 0.3s ease; }
