@@ -58,7 +58,7 @@ router.post('/auth/login', loginLimiter, (req, res) => {
 
   const token = createSession(user.id);
 
-  res.json({ token, user: { id: user.id, username: user.username, role: user.role, must_change_password: !!user.must_change_password } });
+  res.json({ token, user: { id: user.id, username: user.username, role: user.role, team: user.team || null, must_change_password: !!user.must_change_password } });
 });
 
 // POST /api/auth/register — public
@@ -77,7 +77,7 @@ router.post('/auth/register', registerLimiter, (req, res) => {
   // Auto-login after registration
   const token = createSession(id);
 
-  res.status(201).json({ token, user: { id, username, role: 'user', must_change_password: false } });
+  res.status(201).json({ token, user: { id, username, role: 'user', team: null, must_change_password: false } });
 });
 
 // POST /api/auth/logout
@@ -98,13 +98,13 @@ router.get('/auth/me', requireAuth, (req, res) => {
 
 // GET /api/users  — list all users
 router.get('/users', requireAdmin, (req, res) => {
-  const users = db.prepare('SELECT id, username, email, role, created_at FROM users ORDER BY created_at DESC').all();
+  const users = db.prepare('SELECT id, username, email, role, team, created_at FROM users ORDER BY created_at DESC').all();
   res.json(users);
 });
 
 // POST /api/users  — create user
 router.post('/users', requireAdmin, (req, res) => {
-  const { username, password, role = 'user', email } = req.body;
+  const { username, password, role = 'user', email, team } = req.body;
   if (!username || !password) return res.status(400).json({ error: 'Kullanıcı adı ve şifre gereklidir.' });
   if (password.length < 6) return res.status(400).json({ error: 'Şifre en az 6 karakter olmalıdır.' });
   if (!['admin', 'user'].includes(role)) return res.status(400).json({ error: 'Geçersiz rol.' });
@@ -114,8 +114,9 @@ router.post('/users', requireAdmin, (req, res) => {
 
   const id = uuidv4();
   const hash = bcrypt.hashSync(password, 10);
-  db.prepare('INSERT INTO users (id, username, password_hash, role, email) VALUES (?, ?, ?, ?, ?)').run(id, username, hash, role, email || null);
-  res.status(201).json({ id, username, role, email: email || null });
+  const teamValue = team?.trim() || null;
+  db.prepare('INSERT INTO users (id, username, password_hash, role, email, team) VALUES (?, ?, ?, ?, ?, ?)').run(id, username, hash, role, email || null, teamValue);
+  res.status(201).json({ id, username, role, email: email || null, team: teamValue });
 });
 
 // DELETE /api/users/:id
@@ -143,7 +144,7 @@ router.put('/users/:id/password', requireAuth, (req, res) => {
 
 // PUT /api/users/:id  — update user details (admin only)
 router.put('/users/:id', requireAdmin, (req, res) => {
-  const { email, username } = req.body;
+  const { email, username, team } = req.body;
   const user = db.prepare('SELECT id FROM users WHERE id = ?').get(req.params.id);
   if (!user) return res.status(404).json({ error: 'Kullanıcı bulunamadı.' });
 
@@ -155,8 +156,11 @@ router.put('/users/:id', requireAdmin, (req, res) => {
   if (email !== undefined) {
     db.prepare('UPDATE users SET email = ? WHERE id = ?').run(email.trim() || null, req.params.id);
   }
+  if (team !== undefined) {
+    db.prepare('UPDATE users SET team = ? WHERE id = ?').run(team.trim() || null, req.params.id);
+  }
 
-  const updated = db.prepare('SELECT id, username, email, role, created_at FROM users WHERE id = ?').get(req.params.id);
+  const updated = db.prepare('SELECT id, username, email, role, team, created_at FROM users WHERE id = ?').get(req.params.id);
   res.json(updated);
 });
 
@@ -637,17 +641,23 @@ router.delete('/retros/:id/actions/:actionId', requireAuth, (req, res) => {
 
 // GET /api/action-items/open — open (not done) action items across the
 // caller's own retros (all retros if admin), for the "open actions" view.
+// Each item is annotated with the retro creator's team (nullable — the
+// nexus setup has several teams sharing this instance, and the client
+// filters/groups by this so one team's view isn't drowned out by the
+// other four).
 router.get('/action-items/open', requireAuth, (req, res) => {
   const isAdmin = req.user.role === 'admin';
   const query = isAdmin
-    ? `SELECT a.*, r.title AS retro_title, r.status AS retro_status
+    ? `SELECT a.*, r.title AS retro_title, r.status AS retro_status, u.team AS team
        FROM action_items a
        JOIN retros r ON r.id = a.retro_id
+       LEFT JOIN users u ON u.id = r.created_by
        WHERE a.done = 0
        ORDER BY (a.due_date IS NULL), a.due_date ASC, a.created_at ASC`
-    : `SELECT a.*, r.title AS retro_title, r.status AS retro_status
+    : `SELECT a.*, r.title AS retro_title, r.status AS retro_status, u.team AS team
        FROM action_items a
        JOIN retros r ON r.id = a.retro_id
+       LEFT JOIN users u ON u.id = r.created_by
        WHERE a.done = 0 AND r.created_by = ?
        ORDER BY (a.due_date IS NULL), a.due_date ASC, a.created_at ASC`;
 

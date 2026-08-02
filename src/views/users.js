@@ -36,6 +36,10 @@ export async function renderUsers(appEl) {
                 <option value="admin">Admin</option>
               </select>
             </div>
+            <div class="form-group">
+              <label for="new-team">Takım</label>
+              <input class="input" type="text" id="new-team" placeholder="Örn: Takım A" />
+            </div>
           </div>
           <button type="submit" class="btn btn-primary" id="create-user-btn">Kullanıcı Oluştur</button>
         </form>
@@ -60,6 +64,7 @@ export async function renderUsers(appEl) {
     const email = document.getElementById('new-email').value.trim();
     const password = document.getElementById('new-password').value;
     const role = document.getElementById('new-role').value;
+    const team = document.getElementById('new-team').value.trim();
     const btn = document.getElementById('create-user-btn');
 
     if (!username || !password) {
@@ -75,11 +80,12 @@ export async function renderUsers(appEl) {
     btn.disabled = true;
     btn.textContent = 'Oluşturuluyor…';
     try {
-      await api.createUser(username, password, role, email);
+      await api.createUser(username, password, role, email, team);
       showToast('Kullanıcı oluşturuldu! ✅', 'success');
       document.getElementById('new-username').value = '';
       document.getElementById('new-email').value = '';
       document.getElementById('new-password').value = '';
+      document.getElementById('new-team').value = '';
       await loadUsers(currentUser);
     } catch (err) {
       showToast(err.message, 'error');
@@ -107,6 +113,7 @@ async function loadUsers(currentUser) {
           <th>Kullanıcı Adı</th>
           <th>E-posta</th>
           <th>Rol</th>
+          <th>Takım</th>
           <th>Oluşturulma</th>
           <th>İşlemler</th>
         </tr>
@@ -133,10 +140,11 @@ async function loadUsers(currentUser) {
         </td>
         <td data-label="E-posta" class="muted">${user.email ? escapeHtml(user.email) : '<span style="opacity:0.4">—</span>'}</td>
         <td data-label="Rol"><span class="badge badge-${user.role}">${user.role === 'admin' ? '🔑 Admin' : '👤 Kullanıcı'}</span></td>
+        <td data-label="Takım" class="muted">${user.team ? escapeHtml(user.team) : '<span style="opacity:0.4">—</span>'}</td>
         <td data-label="Oluşturulma" class="muted">${date}</td>
         <td data-label="İşlemler">
           <div class="user-actions">
-            <button class="btn btn-ghost btn-sm edit-user-btn" data-id="${user.id}" data-name="${escapeHtml(user.username)}" data-email="${escapeHtml(user.email || '')}">✏️ Düzenle</button>
+            <button class="btn btn-ghost btn-sm edit-user-btn" data-id="${user.id}" data-name="${escapeHtml(user.username)}" data-email="${escapeHtml(user.email || '')}" data-team="${escapeHtml(user.team || '')}">✏️ Düzenle</button>
             <button class="btn btn-ghost btn-sm change-pwd-btn" data-id="${user.id}" data-name="${escapeHtml(user.username)}">🔒 Şifre</button>
             ${!isSelf ? `<button class="btn btn-danger btn-sm delete-user-btn" data-id="${user.id}" data-name="${escapeHtml(user.username)}">🗑️</button>` : ''}
           </div>
@@ -147,7 +155,7 @@ async function loadUsers(currentUser) {
 
     // Edit user buttons
     tbody.querySelectorAll('.edit-user-btn').forEach(btn => {
-      btn.addEventListener('click', () => showEditUserModal(btn.dataset.id, btn.dataset.name, btn.dataset.email, currentUser));
+      btn.addEventListener('click', () => showEditUserModal(btn.dataset.id, btn.dataset.name, btn.dataset.email, btn.dataset.team, currentUser));
     });
 
     // Change password buttons
@@ -173,7 +181,7 @@ async function loadUsers(currentUser) {
   }
 }
 
-function showEditUserModal(userId, username, email, currentUser) {
+function showEditUserModal(userId, username, email, team, currentUser) {
   const existing = document.getElementById('edit-user-modal');
   if (existing) existing.remove();
 
@@ -187,9 +195,13 @@ function showEditUserModal(userId, username, email, currentUser) {
         <label for="edit-username">Kullanıcı Adı</label>
         <input class="input" type="text" id="edit-username" value="${escapeHtml(username)}" />
       </div>
-      <div class="form-group">
+      <div class="form-group" style="margin-bottom: 16px;">
         <label for="edit-email">E-posta</label>
         <input class="input" type="email" id="edit-email" value="${escapeHtml(email)}" placeholder="ornek@email.com" />
+      </div>
+      <div class="form-group">
+        <label for="edit-team">Takım</label>
+        <input class="input" type="text" id="edit-team" value="${escapeHtml(team)}" placeholder="Örn: Takım A" />
       </div>
       <div class="modal-actions">
         <button class="btn btn-ghost btn-sm" id="edit-cancel-btn">İptal</button>
@@ -207,6 +219,7 @@ function showEditUserModal(userId, username, email, currentUser) {
   document.getElementById('edit-save-btn').addEventListener('click', async () => {
     const newUsername = document.getElementById('edit-username').value.trim();
     const newEmail = document.getElementById('edit-email').value.trim();
+    const newTeam = document.getElementById('edit-team').value.trim();
 
     if (!newUsername) {
       showToast('Kullanıcı adı boş olamaz.', 'error');
@@ -214,7 +227,7 @@ function showEditUserModal(userId, username, email, currentUser) {
     }
 
     try {
-      await api.updateUser(userId, { username: newUsername, email: newEmail });
+      await api.updateUser(userId, { username: newUsername, email: newEmail, team: newTeam });
       showToast('Kullanıcı güncellendi! ✅', 'success');
       overlay.remove();
       await loadUsers(currentUser);

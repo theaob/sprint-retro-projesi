@@ -731,7 +731,18 @@ select.input { cursor: pointer; }
 .badge-admin { background: var(--accent-glow); color: var(--accent-primary-hover); border: 1px solid var(--border-focus); }
 .badge-user  { background: rgba(107, 114, 128, 0.15); color: var(--text-secondary); border: 1px solid var(--border-color); }
 .badge-self  { background: rgba(34, 197, 94, 0.1); color: var(--success); border: 1px solid rgba(34, 197, 94, 0.25); }
+.badge-team  { background: var(--glass-6); color: var(--text-secondary); border: 1px solid var(--border-color); font-weight: 600; }
 .badge-vote-limit { background: var(--accent-primary); color: var(--on-accent); padding: 4px 10px; border-radius: 999px; font-size: 0.75rem; font-weight: 600; }
+
+/* Team filter on the Open Actions page — sits in the page-header's
+   action slot, sized down from the default .input so it doesn't read as
+   heavy as a form field. */
+.team-filter-select {
+  width: auto;
+  min-height: 36px;
+  padding: 6px 12px;
+  font-size: 0.85rem;
+}
 
 .presence-badge {
   display: inline-flex;

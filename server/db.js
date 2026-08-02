@@ -249,4 +249,18 @@ try {
   console.error('Migration error (action_items done/due_date):', err);
 }
 
+// Migration: add team to users — this nexus setup has several teams
+// sharing one instance, and retros/action items need to be attributable
+// to a team (via their creator) instead of reading as one undifferentiated
+// pile across everyone.
+try {
+  const usersInfo = db.pragma('table_info(users)');
+  if (!usersInfo.some((col) => col.name === 'team')) {
+    db.exec('ALTER TABLE users ADD COLUMN team TEXT;');
+    console.log('✅ Migration applied: added team to users table.');
+  }
+} catch (err) {
+  console.error('Migration error (users team):', err);
+}
+
 export default db;

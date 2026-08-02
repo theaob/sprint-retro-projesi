@@ -198,4 +198,25 @@ describe('GET /api/action-items/open', () => {
     expect(contents).toContain('Open item for owner');
     expect(contents).toContain('Open item for other owner');
   });
+
+  it('annotates each item with the retro creator\'s team, null when unset', async () => {
+    // owner/otherOwner were registered without a team — self-registration
+    // doesn't accept one, only an admin assigning it after the fact.
+    await request(app)
+      .put(`/api/users/${owner.user.id}`)
+      .set('Authorization', `Bearer ${admin.token}`)
+      .send({ team: 'Takım A' });
+
+    const retro = await createRetro(owner, 'Team-tagged Retro');
+    await addAction(owner, retro, 'Item for a team-tagged retro');
+
+    const otherRetro = await createRetro(otherOwner, 'Teamless Retro');
+    await addAction(otherOwner, otherRetro, 'Item for a teamless retro');
+
+    const res = await request(app).get('/api/action-items/open').set('Authorization', `Bearer ${admin.token}`);
+    const tagged = res.body.find(a => a.content === 'Item for a team-tagged retro');
+    const untagged = res.body.find(a => a.content === 'Item for a teamless retro');
+    expect(tagged.team).toBe('Takım A');
+    expect(untagged.team).toBeNull();
+  });
 });

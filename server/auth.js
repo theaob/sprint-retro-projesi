@@ -16,7 +16,7 @@ export function loadUser(req, res, next) {
         // Expired — clean it up lazily and treat the request as unauthenticated.
         db.prepare('DELETE FROM sessions WHERE token = ?').run(token);
       } else {
-        req.user = db.prepare('SELECT id, username, role, must_change_password FROM users WHERE id = ?').get(session.user_id);
+        req.user = db.prepare('SELECT id, username, role, team, must_change_password FROM users WHERE id = ?').get(session.user_id);
       }
     }
   }
