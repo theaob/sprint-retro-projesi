@@ -587,8 +587,25 @@ select.input { cursor: pointer; }
   gap: 48px;
   padding-top: 64px;
   padding-bottom: 72px;
+  position: relative;
+  overflow: hidden;
 }
-.landing-hero-copy { flex: 1; min-width: 0; }
+.landing-hero-copy { flex: 1; min-width: 0; position: relative; z-index: 1; }
+.landing-quip { margin-top: 14px; font: 400 12.5px var(--font-family); color: var(--text-muted); }
+
+/* Soft drifting glow behind the hero — purely decorative, clipped to the
+   hero's own bounds by its overflow:hidden above. */
+.landing-glow {
+  position: absolute;
+  top: -20%;
+  right: -8%;
+  width: 480px;
+  height: 480px;
+  background: radial-gradient(circle, var(--accent-glow-hover) 0%, transparent 70%);
+  filter: blur(40px);
+  pointer-events: none;
+  z-index: 0;
+}
 .landing-eyebrow {
   display: inline-block;
   font: 600 11.5px var(--font-display);
@@ -610,6 +627,8 @@ select.input { cursor: pointer; }
   border-radius: var(--radius-lg);
   padding: 20px;
   box-shadow: var(--shadow-elevated);
+  position: relative;
+  z-index: 1;
 }
 .landing-preview-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
 .landing-preview-header span:first-child { font: 700 13px var(--font-display); color: var(--text-primary); }
@@ -655,6 +674,54 @@ select.input { cursor: pointer; }
   .landing-features-grid { grid-template-columns: 1fr; }
   .landing-nav-links { gap: 14px; }
   .landing-nav-links a:not(.btn) { display: none; }
+}
+
+/* ── Landing Page Motion ─────────────────────────────────────────
+   Entrance animation, drifting background glow, pulsing CTAs, and
+   scroll-triggered feature-card reveals (JS toggles .landing-reveal-
+   visible via IntersectionObserver in landing.js). All gated behind
+   prefers-reduced-motion: no-preference — the reduce block below forces
+   full, static visibility so nothing stays invisible for anyone who's
+   opted out of motion. */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes landing-fade-up {
+    from { opacity: 0; transform: translateY(18px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .landing-anim {
+    opacity: 0;
+    animation: landing-fade-up 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  @keyframes landing-glow-drift {
+    0%, 100% { transform: translate(-8%, -8%) scale(1); }
+    50% { transform: translate(8%, 6%) scale(1.15); }
+  }
+  .landing-glow {
+    animation: landing-glow-drift 14s ease-in-out infinite;
+  }
+
+  @keyframes landing-pulse-glow {
+    0%, 100% { box-shadow: 0 0 0 0 var(--accent-glow-hover); }
+    50% { box-shadow: 0 0 0 10px transparent; }
+  }
+  .landing-pulse {
+    animation: landing-pulse-glow 2.2s ease-in-out infinite;
+  }
+
+  .landing-reveal {
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+  .landing-reveal-visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-anim, .landing-reveal { opacity: 1; transform: none; }
 }
 
 /* ── Login Page ──────────────────────────────────────────────── */
