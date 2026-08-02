@@ -1,5 +1,6 @@
 import { api } from '../api.js';
 import { escapeHtml, showToast, bindThemeEvents, renderAppHeader, renderMobileNav, bindLogoutEvents } from '../utils.js';
+import { shouldShowWhatsNew, showWhatsNewModal } from '../whatsNew.js';
 
 function createColumnInputRow(value = '') {
   const row = document.createElement('div');
@@ -98,6 +99,8 @@ export async function renderAdmin(appEl) {
   // Theme switcher
   bindThemeEvents();
   bindLogoutEvents(api);
+
+  if (shouldShowWhatsNew()) showWhatsNewModal();
 
   // Toggle create section
   const toggleBtn = document.getElementById('toggle-create-btn');

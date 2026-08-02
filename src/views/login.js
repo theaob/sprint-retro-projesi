@@ -111,6 +111,8 @@ export function renderLogin(appEl) {
               Varsayılan: <code>admin</code> / <code>admin</code>
             </div>
           ` : ''}
+
+          <div class="login-version-tag">Sprint Retro v${typeof APP_VERSION !== 'undefined' ? APP_VERSION : ''}</div>
         </div>
       </div>
     `;

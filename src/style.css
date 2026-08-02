@@ -668,6 +668,14 @@ select.input { cursor: pointer; }
   font-family: monospace;
 }
 
+.login-version-tag {
+  margin-top: 12px;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-align: center;
+  letter-spacing: 0.02em;
+}
+
 /* ── Users Table ─────────────────────────────────────────────── */
 .users-table-wrap { overflow-x: auto; border-radius: var(--radius-md); border: 1px solid var(--border-color); }
 
@@ -1043,6 +1051,48 @@ select.input { cursor: pointer; }
 
 .modal h3 { margin-bottom: 16px; }
 .modal-actions { display: flex; gap: 12px; justify-content: flex-end; margin-top: 24px; }
+
+/* ── What's New modal ────────────────────────────────────────── */
+.whats-new-modal { position: relative; max-width: 520px; }
+
+.whats-new-badge {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: var(--accent-gradient);
+  color: #fff;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: var(--radius-xl);
+  letter-spacing: 0.02em;
+}
+
+.whats-new-list {
+  list-style: none;
+  margin: 20px 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.whats-new-list li {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+.whats-new-icon {
+  font-size: 1.25rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.whats-new-list strong { color: var(--text-primary); }
 
 /* ── Toast ───────────────────────────────────────────────────── */
 .toast {
