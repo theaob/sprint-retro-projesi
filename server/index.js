@@ -89,5 +89,5 @@ wss.on('close', () => {
 setBroadcast(broadcast);
 
 server.listen(PORT, () => {
-  console.log(`🚀 Sprint Retro server running on http://localhost:${PORT}`);
+  console.log(`🚀 Retro Runway server running on http://localhost:${PORT}`);
 });

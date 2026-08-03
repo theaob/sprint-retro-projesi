@@ -1,6 +1,6 @@
 {
-  "name": "Sprint Retro",
-  "short_name": "Retro",
+  "name": "Retro Runway",
+  "short_name": "Retro Runway",
   "description": "Sprint Retrospective meeting tool — create retros, gather feedback, vote, and export results.",
   "start_url": "/",
   "display": "standalone",

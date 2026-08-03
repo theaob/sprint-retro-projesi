@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════
-   Sprint Retro — Design System & Global Styles
+   Retro Runway — Design System & Global Styles
    ═══════════════════════════════════════════════════════════════ */
 
 /* ── CSS Variables ───────────────────────────────────────────── */
@@ -508,7 +508,7 @@ select.input { cursor: pointer; }
    .landing-hero and .landing-cta below, both also combined with
    .container in the markup. */
 .landing-nav-inner { display: flex; align-items: center; justify-content: space-between; padding-top: 18px; padding-bottom: 18px; }
-.landing-brand { font: 700 18px var(--font-display); color: var(--text-primary); }
+.landing-brand { display: flex; align-items: center; gap: 10px; font: 700 18px var(--font-display); color: var(--text-primary); }
 .landing-nav-links { display: flex; align-items: center; gap: 24px; }
 .landing-nav-links a:not(.btn) { font: 500 13.5px var(--font-family); color: var(--text-secondary); text-decoration: none; }
 .landing-nav-links a:not(.btn):hover { color: var(--text-primary); }
@@ -596,6 +596,8 @@ select.input { cursor: pointer; }
 
 .landing-footer { border-top: 1px solid var(--border-color); padding: 22px 0; }
 .landing-footer-inner { display: flex; align-items: center; justify-content: space-between; font: 500 12.5px var(--font-display); color: var(--text-muted); }
+.landing-footer-brand { display: flex; align-items: center; gap: 8px; }
+.landing-footer-brand .brand-mark { width: 16px; }
 .landing-footer-version { font: 400 12px var(--font-family); }
 
 @media (max-width: 900px) {
@@ -2144,10 +2146,15 @@ select.input { cursor: pointer; }
 }
 
 .sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font: 700 15px var(--font-display);
   color: #f1f4f8;
   padding: 0 8px 20px;
 }
+
+.brand-mark { width: 22px; height: auto; flex-shrink: 0; }
 
 .sidebar-nav-links { display: flex; flex-direction: column; gap: 2px; }
 
@@ -2212,7 +2219,7 @@ select.input { cursor: pointer; }
   padding: 14px var(--page-padding-x);
   border-bottom: 1px solid var(--border-color);
 }
-.mobile-topbar-brand { font: 700 15px var(--font-display); color: var(--text-primary); }
+.mobile-topbar-brand { display: flex; align-items: center; gap: 8px; font: 700 15px var(--font-display); color: var(--text-primary); }
 
 @media (min-width: 768px) {
   .app-shell { display: flex; }

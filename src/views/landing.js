@@ -1,3 +1,5 @@
+import { renderBrandMark } from '../utils.js';
+
 /**
  * Public landing page — #/. Logged-in visitors never see this (main.js's
  * router bounces them to #/app); this is only ever rendered for a signed-
@@ -8,7 +10,7 @@ export function renderLanding(appEl) {
     <div class="landing-page">
       <nav class="landing-nav">
         <div class="container landing-nav-inner">
-          <div class="landing-brand">◆ Sprint Retro</div>
+          <div class="landing-brand">${renderBrandMark()}<span>Retro Runway</span></div>
           <div class="landing-nav-links">
             <a href="#landing-features">Özellikler</a>
             <a href="#/register" class="btn btn-ghost btn-sm">Kayıt Ol</a>
@@ -22,17 +24,17 @@ export function renderLanding(appEl) {
         <div class="landing-hero-copy">
           <span class="landing-eyebrow landing-anim" style="animation-delay:0ms">Scrum Master'lar ve facilitator'lar için</span>
           <h1 class="landing-headline landing-anim" style="animation-delay:80ms">Takımınızın gerçekten<br>sahiplendiği retrolar.</h1>
-          <p class="landing-subcopy landing-anim" style="animation-delay:160ms">En önemli maddelere oy verin, aksiyonları anında sahiplerine atayın ve retro biter bitmez elinizde net bir özet olsun — dağınık bir post-it duvarı değil.</p>
+          <p class="landing-subcopy landing-anim" style="animation-delay:160ms">Sınırlı oy hakkınızla en önemli maddelere işaret edin, ekibinizle aynı panoda gerçek zamanlı çalışın ve retro bittiğinde şık bir kapanışla noktayı koyun — dağınık bir post-it duvarı değil.</p>
           <div class="landing-hero-actions landing-anim" style="animation-delay:240ms">
             <a href="#/login" class="btn btn-primary landing-pulse">Giriş Yap</a>
             <a href="#landing-features" class="btn btn-ghost">Nasıl çalışır?</a>
           </div>
-          <p class="landing-quip landing-anim" style="animation-delay:320ms">VoteRun'da olduğu gibi oy verip kaçmak yok — burada retro gerçekten bitiyor. 🏃💨</p>
+          <p class="landing-quip landing-anim" style="animation-delay:320ms">VoteRun'da olduğu gibi oy verip kaçmak yok — burada retro gerçekten bitiyor, üstelik sürpriz bir final animasyonuyla. 🏃💨</p>
         </div>
         <div class="landing-hero-preview landing-anim" style="animation-delay:200ms" aria-hidden="true">
           <div class="landing-preview-header">
             <span>Sprint 24 — 4Ls</span>
-            <span class="landing-preview-timer">06:15</span>
+            <span class="landing-preview-timer">👀 4 çevrimiçi</span>
           </div>
           <div class="landing-preview-board">
             <div class="landing-preview-col landing-preview-col-0"><div class="landing-preview-note">Hızlı tasarım incelemeleri</div></div>
@@ -49,13 +51,13 @@ export function renderLanding(appEl) {
           <div class="landing-features-grid">
             <div class="landing-feature-card landing-reveal">
               <div class="landing-feature-icon landing-feature-icon-0">🗳️</div>
-              <h3>Oylama ve aksiyonlar</h3>
-              <p>Herkes en önemli maddelere oy versin; retro biterken net aksiyon maddeleri ve sorumlularla ayrılın.</p>
+              <h3>Odaklı oylama</h3>
+              <p>Herkes sınırlı oy hakkıyla en önemli maddelere işaret etsin; kim neyi öne çıkardı anında görünür.</p>
             </div>
             <div class="landing-feature-card landing-reveal">
               <div class="landing-feature-icon landing-feature-icon-1">🗂️</div>
               <h3>Esnek şablonlar</h3>
-              <p>4Ls, Başla/Bitir/Devam Et gibi hazır şablonlarla başlayın, ya da retro sırasında bile sütun ekleyip çıkarın.</p>
+              <p>Standart, GBI, Mad/Sad/Glad, Start/Stop/Continue ve 4Ls gibi hazır şablonlarla başlayın, ya da kendi sütunlarınızı tanımlayın.</p>
             </div>
             <div class="landing-feature-card landing-reveal">
               <div class="landing-feature-icon landing-feature-icon-2">👀</div>
@@ -74,7 +76,7 @@ export function renderLanding(appEl) {
 
       <footer class="landing-footer">
         <div class="container landing-footer-inner">
-          <div>◆ Sprint Retro</div>
+          <div class="landing-footer-brand">${renderBrandMark()}<span>Retro Runway</span></div>
           <div class="landing-footer-version">v${typeof APP_VERSION !== 'undefined' ? APP_VERSION : ''}</div>
         </div>
       </footer>

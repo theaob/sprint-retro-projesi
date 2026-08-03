@@ -9,7 +9,7 @@ export function showRetroShutdownScreen(onComplete) {
   overlay.innerHTML = `
     <div class="win95-dialog">
       <div class="win95-titlebar">
-        <span class="win95-titlebar-text">Sprint Retro</span>
+        <span class="win95-titlebar-text">Retro Runway</span>
         <div class="win95-titlebar-buttons">
           <span class="win95-titlebar-btn">_</span>
           <span class="win95-titlebar-btn">□</span>

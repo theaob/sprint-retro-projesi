@@ -6,6 +6,27 @@ export function escapeHtml(text) {
 }
 
 /**
+ * The Retro Runway brand mark — three lane bars (violet/green/pink) with
+ * runway strip-mark dashes, per the logo's Turn 6a primary lockup. Colors
+ * are fixed hex (not theme tokens) since the mark is the one constant across
+ * both themes, matching the design's "on dark" lockup.
+ */
+export function renderBrandMark(className = 'brand-mark') {
+  const lanes = [
+    { x: 0, fill: '#8b7cf0' },
+    { x: 19, fill: '#a8d987' },
+    { x: 38, fill: '#f0a8c8' }
+  ];
+  const bars = lanes.map(({ x, fill }) => `
+    <rect x="${x}" y="0" width="16" height="44" rx="6" fill="${fill}"/>
+    <rect x="${x + 6}" y="7" width="4" height="7" rx="1.5" fill="rgba(255,255,255,0.85)"/>
+    <rect x="${x + 6}" y="18.5" width="4" height="7" rx="1.5" fill="rgba(255,255,255,0.85)"/>
+    <rect x="${x + 6}" y="30" width="4" height="7" rx="1.5" fill="rgba(255,255,255,0.85)"/>
+  `).join('');
+  return `<svg class="${className}" viewBox="0 0 54 44" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${bars}</svg>`;
+}
+
+/**
  * A persistent, anonymous identity for this browser, used so the server can
  * enforce per-retro vote limits for guests who aren't logged in. Not a
  * security boundary — clearing localStorage or using another browser gets a
@@ -119,7 +140,7 @@ const NAV_ITEMS = [
 export function renderMobileTopbar() {
   return `
     <div class="mobile-topbar">
-      <div class="mobile-topbar-brand">◆ Sprint Retro</div>
+      <div class="mobile-topbar-brand">${renderBrandMark()}<span>Retro Runway</span></div>
       ${renderThemeToggle()}
     </div>
   `;
@@ -133,7 +154,7 @@ export function renderSidebarNav(user, active) {
 
   return `
     <aside class="sidebar-nav">
-      <div class="sidebar-brand">◆ Sprint Retro</div>
+      <div class="sidebar-brand">${renderBrandMark()}<span>Retro Runway</span></div>
       <nav class="sidebar-nav-links">${links}</nav>
       <div class="sidebar-account">
         <div class="sidebar-user-avatar">${user?.username?.[0]?.toUpperCase() || '?'}</div>

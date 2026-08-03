@@ -28,7 +28,7 @@ export function showWhatsNewModal() {
   overlay.innerHTML = `
     <div class="modal whats-new-modal" role="dialog" aria-modal="true" aria-labelledby="whats-new-title">
       <span class="whats-new-badge">v${typeof APP_VERSION !== 'undefined' ? APP_VERSION : ''}</span>
-      <h3 id="whats-new-title">🎉 Sprint Retro'da Yeni Neler Var?</h3>
+      <h3 id="whats-new-title">🎉 Retro Runway'de Yeni Neler Var?</h3>
       <p class="modal-subtitle">Retro panosuna büyük yenilikler geldi:</p>
       <ul class="whats-new-list">
         ${FEATURES.map(f => `

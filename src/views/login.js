@@ -114,7 +114,7 @@ export function renderLogin(appEl, { startInRegister = false } = {}) {
             </div>
           ` : ''}
 
-          <div class="login-version-tag">Sprint Retro v${typeof APP_VERSION !== 'undefined' ? APP_VERSION : ''}</div>
+          <div class="login-version-tag">Retro Runway v${typeof APP_VERSION !== 'undefined' ? APP_VERSION : ''}</div>
         </div>
       </div>
     `;
