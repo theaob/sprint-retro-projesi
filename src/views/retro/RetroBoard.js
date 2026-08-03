@@ -31,6 +31,11 @@ export function RetroBoard({ retro: initialRetro, user, onWsConnected }) {
 
   const isAdminOrOwner = user?.role === 'admin' || user?.id === retro.created_by;
   const isFinished = retro.status === 'finished';
+  // Once anyone's added a sticky note anywhere on the board, the lane
+  // structure locks — renaming or adding lanes mid-retro would be
+  // confusing once people are already using them. Column *deletion* is
+  // untouched by this; it's a separate, still-confirmed-via-dialog action.
+  const hasEntries = retro.columns.some(c => c.entries.length > 0);
   const shareUrl = retro.short_code
     ? `${window.location.origin}/s/${retro.short_code}`
     : `${window.location.origin}${window.location.pathname}#/retro/${retro.id}`;
@@ -204,6 +209,7 @@ export function RetroBoard({ retro: initialRetro, user, onWsConnected }) {
           retroId=${retro.id}
           isFinished=${isFinished}
           isAdminOrOwner=${isAdminOrOwner}
+          hasEntries=${hasEntries}
           votedEntryIds=${retro.votedEntryIds}
           voteMax=${retro.max_votes ?? 3}
           flashing=${retro.flashColumnId === col.id}
@@ -220,7 +226,7 @@ export function RetroBoard({ retro: initialRetro, user, onWsConnected }) {
           onTyping=${handleTyping}
         />
       `)}
-      ${isAdminOrOwner && !isFinished ? html`<${AddColumn} onAdd=${handleAddColumn} />` : null}
+      ${isAdminOrOwner && !isFinished && !hasEntries ? html`<${AddColumn} onAdd=${handleAddColumn} />` : null}
     </div>
   `;
 }

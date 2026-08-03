@@ -313,17 +313,24 @@ router.delete('/retros/:id', requireAuth, (req, res) => {
   res.json({ success: true });
 });
 
-// PUT /api/retros/:id/columns/:colId  — rename column (admin or owner only)
+// PUT /api/retros/:id/columns/:colId  — rename column (admin or owner only,
+// and only before anyone's added an entry anywhere on the board — see the
+// matching check on POST .../columns)
 router.put('/retros/:id/columns/:colId', requireAuth, (req, res) => {
   const { name } = req.body;
   if (!name) return res.status(400).json({ error: 'Sütun adı gereklidir.' });
 
   const isAdmin = req.user.role === 'admin';
   const retro = db.prepare('SELECT created_by FROM retros WHERE id = ?').get(req.params.id);
-  
+
   if (!retro) return res.status(404).json({ error: 'Retro bulunamadı.' });
   if (!isAdmin && retro.created_by !== req.user.id) {
     return res.status(403).json({ error: 'Bu retroyu düzenleme yetkiniz yok.' });
+  }
+
+  const entryCount = db.prepare('SELECT COUNT(*) as count FROM entries WHERE retro_id = ?').get(req.params.id).count;
+  if (entryCount > 0) {
+    return res.status(403).json({ error: 'Madde eklendikten sonra sütun adı değiştirilemez.' });
   }
 
   const result = db.prepare('UPDATE columns SET name = ? WHERE id = ? AND retro_id = ?')
@@ -337,7 +344,10 @@ router.put('/retros/:id/columns/:colId', requireAuth, (req, res) => {
   res.json({ success: true });
 });
 
-// POST /api/retros/:id/columns  — add a column (admin or owner only)
+// POST /api/retros/:id/columns  — add a column (admin or owner only, and
+// only before anyone's added an entry anywhere on the board — adding a
+// lane mid-retro would be confusing once people are already using the
+// existing ones)
 router.post('/retros/:id/columns', requireAuth, (req, res) => {
   const { name } = req.body;
   if (!name || !name.trim()) return res.status(400).json({ error: 'Sütun adı gereklidir.' });
@@ -347,6 +357,11 @@ router.post('/retros/:id/columns', requireAuth, (req, res) => {
   if (!retro) return res.status(404).json({ error: 'Retro bulunamadı.' });
   if (!isAdmin && retro.created_by !== req.user.id) {
     return res.status(403).json({ error: 'Bu retroyu düzenleme yetkiniz yok.' });
+  }
+
+  const entryCount = db.prepare('SELECT COUNT(*) as count FROM entries WHERE retro_id = ?').get(req.params.id).count;
+  if (entryCount > 0) {
+    return res.status(403).json({ error: 'Madde eklendikten sonra yeni sütun eklenemez.' });
   }
 
   const columnCount = db.prepare('SELECT COUNT(*) as count FROM columns WHERE retro_id = ?').get(req.params.id).count;

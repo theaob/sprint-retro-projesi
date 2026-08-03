@@ -88,4 +88,46 @@ describe('column CRUD', () => {
       .send({ name: 'Should 404' });
     expect(res.status).toBe(404);
   });
+
+  it('lets the owner rename a column before any entries exist', async () => {
+    const fetched = await request(app).get(`/api/retros/${retro.id}`);
+    const colId = fetched.body.columns[0].id;
+    const res = await request(app)
+      .put(`/api/retros/${retro.id}/columns/${colId}`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .send({ name: 'A Renamed' });
+    expect(res.status).toBe(200);
+
+    const after = await request(app).get(`/api/retros/${retro.id}`);
+    expect(after.body.columns.find(c => c.id === colId).name).toBe('A Renamed');
+  });
+
+  it('locks renaming and adding columns once any entry exists on the board', async () => {
+    const locked = await createRetro(owner, 'Lock Test Retro', ['One', 'Two']);
+    const fetched = await request(app).get(`/api/retros/${locked.id}`);
+    const colId = fetched.body.columns[0].id;
+
+    await request(app)
+      .post(`/api/retros/${locked.id}/entries`)
+      .send({ column_id: colId, text: 'First sticky note' });
+
+    const renameRes = await request(app)
+      .put(`/api/retros/${locked.id}/columns/${colId}`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .send({ name: 'Should Not Work' });
+    expect(renameRes.status).toBe(403);
+
+    const addRes = await request(app)
+      .post(`/api/retros/${locked.id}/columns`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .send({ name: 'Should Not Be Added' });
+    expect(addRes.status).toBe(403);
+
+    // Deleting a column is unaffected by this lock — that's a separate,
+    // still-confirmed-via-dialog action.
+    const deleteRes = await request(app)
+      .delete(`/api/retros/${locked.id}/columns/${fetched.body.columns[1].id}`)
+      .set('Authorization', `Bearer ${owner.token}`);
+    expect(deleteRes.status).toBe(200);
+  });
 });

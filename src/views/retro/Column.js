@@ -7,7 +7,7 @@ import { EntryCard } from './EntryCard.js';
 const html = htm.bind(h);
 
 export function Column({
-  col, allColumns, retroId, isFinished, isAdminOrOwner, votedEntryIds, voteMax,
+  col, allColumns, retroId, isFinished, isAdminOrOwner, hasEntries, votedEntryIds, voteMax,
   flashing, registerRef, onRename, onAddEntry, onVote, onUnvote, onEditEntry, onDeleteEntry, onMoveEntry,
   onDeleteColumn, typingName, onTyping
 }) {
@@ -16,11 +16,14 @@ export function Column({
   const [submitting, setSubmitting] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const renameTimeout = useRef(null);
-  // Board reorganization (moving entries, renaming/adding/removing columns)
-  // is a Scrum Master (retro owner) / admin responsibility, same gating as
-  // entries — not admin-only like it used to be for rename specifically
-  // (the server already allowed the owner too).
+  // Board reorganization (moving entries, removing columns) is a Scrum
+  // Master (retro owner) / admin responsibility, same gating as entries —
+  // not admin-only like it used to be for rename specifically (the server
+  // already allowed the owner too).
   const canMove = isAdminOrOwner && !isFinished;
+  // Renaming is further restricted: once anyone's added an entry anywhere
+  // on the board, lane names lock — see RetroBoard.js's hasEntries comment.
+  const canRenameColumn = canMove && !hasEntries;
   const otherColumns = allColumns.filter(c => c.id !== col.id);
   const colIndex = allColumns.findIndex(c => c.id === col.id);
 
@@ -107,7 +110,7 @@ export function Column({
           ref=${nameInputRef}
           class="column-name"
           value=${name}
-          readonly=${!canMove}
+          readonly=${!canRenameColumn}
           onInput=${handleNameInput}
         />
         <div class="column-header-right">
