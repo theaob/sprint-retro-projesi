@@ -3,9 +3,9 @@ name: Build and Deploy Docker Image
 on:
   release:
     types: [published]
-  # Optionally trigger on pushes to the master/main branch if preferred
-  # push:
-  #   branches: [ "main" ]
+  # Dispatched by CI's auto-release job when package.json's version is bumped
+  # on main — see .github/workflows/ci.yml. Also runnable by hand.
+  workflow_dispatch:
 
 jobs:
   build-and-push:
