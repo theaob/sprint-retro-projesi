@@ -109,9 +109,19 @@ export function retroReducer(state, action) {
       return { ...state, flashColumnId: null };
 
     // Full replace — used after an onReconnect re-fetch to catch up on
-    // anything missed while the socket was down.
+    // anything missed while the socket was down. Also re-syncs status and
+    // votedEntryIds: a status change (e.g. the retro finishing) missed
+    // during a brief disconnect used to get silently dropped here, since
+    // this only ever touched columns — the client would keep showing a
+    // stale 'active' board indefinitely with no further signal to correct
+    // it.
     case 'refresh':
-      return { ...state, columns: action.retro.columns };
+      return {
+        ...state,
+        columns: action.retro.columns,
+        status: action.retro.status,
+        votedEntryIds: action.retro.voted_entry_ids || state.votedEntryIds
+      };
 
     default:
       return state;

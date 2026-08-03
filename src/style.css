@@ -1037,8 +1037,10 @@ select.input { cursor: pointer; }
 .entry-top { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 10px; }
 .entry-text { font-size: 0.9375rem; line-height: 1.5; flex: 1; min-width: 0; }
 
-.entry-manage { display: flex; gap: 2px; align-items: center; flex-shrink: 0; opacity: 0; transition: opacity var(--transition-fast); }
-.entry-card:hover .entry-manage { opacity: 1; }
+/* Only rendered while editing (see EntryCard.js) — always visible, no
+   hover-reveal needed since entering edit mode is already the deliberate
+   action that surfaces it. */
+.entry-manage { display: flex; gap: 2px; align-items: center; flex-shrink: 0; width: 100%; margin-top: 6px; }
 .entry-manage .btn-icon-sm { color: var(--text-muted); }
 .entry-manage .btn-icon-sm:hover { color: var(--text-primary); }
 
@@ -1051,11 +1053,6 @@ select.input { cursor: pointer; }
   border-color: var(--border-color);
 }
 .move-entry-select:hover { color: var(--text-primary); }
-
-/* Touch devices have no :hover — always show manage controls, not just on hover */
-@media (hover: none) {
-  .entry-manage { opacity: 1; }
-}
 
 .entry-edit-input { flex: 1; min-height: 36px; padding: 6px 10px; font-size: 0.9375rem; }
 .entry-edit-actions { display: flex; gap: 4px; flex-shrink: 0; }

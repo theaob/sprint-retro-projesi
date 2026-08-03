@@ -9,6 +9,7 @@ export function EntryCard({ entry, retroId, isVoted, voteFull, isFinished, canMa
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState(entry.text);
   const [bumping, setBumping] = useState(false);
+  const [movePickerOpen, setMovePickerOpen] = useState(false);
   const [moveSelectValue, setMoveSelectValue] = useState('');
   const prevVotes = useRef(entry.votes);
   const editInputRef = useRef(null);
@@ -35,7 +36,10 @@ export function EntryCard({ entry, retroId, isVoted, voteFull, isFinished, canMa
     setEditing(true);
   };
 
-  const cancelEdit = () => setEditing(false);
+  const cancelEdit = () => {
+    setEditing(false);
+    setMovePickerOpen(false);
+  };
 
   const saveEdit = async () => {
     const newText = editText.trim();
@@ -46,9 +50,11 @@ export function EntryCard({ entry, retroId, isVoted, voteFull, isFinished, canMa
     try {
       await onEdit(entry.id, newText);
       setEditing(false);
+      setMovePickerOpen(false);
     } catch (err) {
       showToast(err.message, 'error');
       setEditing(false);
+      setMovePickerOpen(false);
     }
   };
 
@@ -81,6 +87,8 @@ export function EntryCard({ entry, retroId, isVoted, voteFull, isFinished, canMa
     if (!targetColumnId) return;
     try {
       await onMove(entry.id, targetColumnId);
+      setMovePickerOpen(false);
+      setEditing(false);
     } catch (err) {
       showToast(err.message, 'error');
     }
@@ -114,19 +122,25 @@ export function EntryCard({ entry, retroId, isVoted, voteFull, isFinished, canMa
           : html`
             <div class="entry-text">${entry.text}</div>
             ${canManage && !isFinished ? html`
-              <div class="entry-manage">
-                ${canMove && otherColumns.length > 0 ? html`
-                  <select class="input move-entry-select" title="Sütun değiştir" value=${moveSelectValue} onChange=${handleMoveSelect}>
-                    <option value="" disabled>Taşı…</option>
-                    ${otherColumns.map(c => html`<option key=${c.id} value=${c.id}>${c.name}</option>`)}
-                  </select>
-                ` : null}
-                <button class="btn btn-ghost btn-icon-sm" title="Düzenle" onClick=${startEdit}>✏️</button>
-                <button class="btn btn-ghost btn-icon-sm" title="Sil" onClick=${handleDelete}>🗑️</button>
-              </div>
+              <button class="btn btn-ghost btn-icon-sm" title="Düzenle" onClick=${startEdit}>✏️</button>
             ` : null}
           `}
       </div>
+      ${editing && canManage && !isFinished ? html`
+        <div class="entry-manage">
+          ${canMove && otherColumns.length > 0
+            ? (movePickerOpen
+              ? html`
+                <select class="input move-entry-select" title="Sütun değiştir" value=${moveSelectValue} onChange=${handleMoveSelect}>
+                  <option value="" disabled selected>Sütun seç…</option>
+                  ${otherColumns.map(c => html`<option key=${c.id} value=${c.id}>${c.name}</option>`)}
+                </select>
+              `
+              : html`<button class="btn btn-ghost btn-icon-sm" title="Taşı" onClick=${() => setMovePickerOpen(true)}>↔️</button>`
+            ) : null}
+          <button class="btn btn-ghost btn-icon-sm" title="Sil" onClick=${handleDelete}>🗑️</button>
+        </div>
+      ` : null}
       <div class="entry-footer">
         <button class=${voteBtnClass} disabled=${isFinished} onClick=${handleVoteClick}>
           <span class="vote-badge">
