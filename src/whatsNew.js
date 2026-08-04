@@ -3,7 +3,7 @@
  * a fixed string (not APP_VERSION directly) so it only pops up when there's
  * something genuinely new to announce, not on every patch release.
  */
-const WHATS_NEW_KEY = 'sprint_retro_whats_new_v4';
+const WHATS_NEW_KEY = 'retro_runway_whats_new_v5';
 
 export function shouldShowWhatsNew() {
   return localStorage.getItem(WHATS_NEW_KEY) !== '1';
@@ -14,11 +14,12 @@ export function markWhatsNewSeen() {
 }
 
 const FEATURES = [
-  { icon: '🖱️', text: '<strong>Sürükle-bırak</strong> ile maddeleri sütunlar arasında taşıyın.' },
-  { icon: '🗂️', text: 'Retro başladıktan sonra bile <strong>sütun ekleyin, silin veya yeniden sıralayın</strong>.' },
+  { icon: '🖱️', text: 'Maddeleri <strong>sürükle-bırak</strong> ile taşıyın, ya da düzenle (✏️) butonundan sütun seçin.' },
+  { icon: '🔒', text: 'Panoya ilk madde eklendiğinde sütun adları ve yeni sütun ekleme <strong>kilitleniyor</strong> — düzenlemeleri retro başlamadan yapın.' },
   { icon: '👀', text: 'Panoda kimlerin bulunduğunu ve <strong>kimin yazmakta olduğunu</strong> anlık olarak görün.' },
   { icon: '🎨', text: 'Yöneticiler artık <strong>retro şablonlarını</strong> kod değişikliği olmadan düzenleyebilir.' },
-  { icon: '🔒', text: 'Oy sınırları artık sunucu tarafında uygulanıyor; oturumlar ve şifreler için ek güvenlik önlemleri eklendi.' }
+  { icon: '🛡️', text: 'Oy sınırları sunucu tarafında uygulanıyor; oturumlar ve şifreler için ek güvenlik önlemleri eklendi.' },
+  { icon: '🎬', text: 'Retro bittiğinde rastgele bir <strong>kapanış animasyonu</strong> oynanıyor — Death Star, Pokéball, bowling ve daha fazlası.' }
 ];
 
 export function showWhatsNewModal() {
