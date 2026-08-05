@@ -258,6 +258,7 @@ async function loadDashboard() {
         <td data-label="İşlemler">
           <div class="user-actions">
             <button class="btn btn-ghost btn-sm copy-link-btn" data-link="${shareLink}">📋 Kopyala</button>
+            ${retro.status === 'finished' ? `<button class="btn btn-ghost btn-sm reopen-btn" data-id="${retro.id}" title="Yeniden Aç">🔓</button>` : ''}
             <button class="btn btn-danger btn-sm delete-btn" data-id="${retro.id}" title="Sil">🗑️</button>
           </div>
         </td>
@@ -273,6 +274,20 @@ async function loadDashboard() {
           await api.deleteRetro(btn.dataset.id);
           showToast('Retro silindi.', 'success');
           btn.closest('tr').remove();
+        } catch (err) {
+          showToast(err.message, 'error');
+        }
+      });
+    });
+
+    tbody.querySelectorAll('.reopen-btn').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const retro = retros.find(r => r.id === btn.dataset.id);
+        if (!confirm(`"${retro.title}" retrosunu yeniden açmak istediğinize emin misiniz?`)) return;
+        try {
+          await api.updateRetroStatus(btn.dataset.id, 'active');
+          showToast('Retro yeniden açıldı.', 'success');
+          await loadDashboard();
         } catch (err) {
           showToast(err.message, 'error');
         }

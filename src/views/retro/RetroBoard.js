@@ -55,7 +55,11 @@ export function RetroBoard({ retro: initialRetro, user, onWsConnected }) {
       onStatusChanged(status) {
         // Reload is still how every client picks up the finished-state UI —
         // the retro-end animation just delays that reload long enough to play.
-        if (status === 'finished') playRetroEndAnimation(() => window.location.reload());
+        if (status === 'finished') {
+          playRetroEndAnimation(() => window.location.reload());
+        } else {
+          dispatch({ type: 'status:changed', status });
+        }
       },
       onPresenceUpdate(users) { setPresenceUsers(users); },
       onTyping(columnId, name) {
@@ -121,6 +125,16 @@ export function RetroBoard({ retro: initialRetro, user, onWsConnected }) {
     if (!confirm('Retroyu bitirmek istediğinize emin misiniz? Oylama ve madde ekleme kapatılacak.')) return;
     try {
       await api.updateRetroStatus(retro.id, 'finished');
+    } catch (err) {
+      showToast(err.message, 'error');
+    }
+  };
+
+  const handleReopen = async () => {
+    if (!confirm('Retroyu yeniden açmak istediğinize emin misiniz? Oylama ve madde ekleme tekrar açılacak.')) return;
+    try {
+      await api.updateRetroStatus(retro.id, 'active');
+      dispatch({ type: 'status:changed', status: 'active' });
     } catch (err) {
       showToast(err.message, 'error');
     }
@@ -195,6 +209,7 @@ export function RetroBoard({ retro: initialRetro, user, onWsConnected }) {
         <button class="btn btn-ghost btn-sm" onClick=${handleCopyLink}>📋 Bağlantı</button>
         ${isFinished ? html`<button class="btn btn-primary btn-sm" onClick=${handleExportExcel}>📊 Excel İndir</button>` : null}
         ${isAdminOrOwner && !isFinished ? html`<button class="btn btn-danger btn-sm" onClick=${handleFinish}>🏁 Retro'yu Bitir</button>` : null}
+        ${isAdminOrOwner && isFinished ? html`<button class="btn btn-ghost btn-sm" onClick=${handleReopen}>🔓 Yeniden Aç</button>` : null}
       </div>
     </div>
 
