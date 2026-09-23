@@ -116,6 +116,68 @@ function voterId(req, suppliedParticipantId) {
 
 const RETRO_STATUSES = ['active', 'finished'];
 
+// Stages of a staged retro, in order. A simple retro has phase NULL.
+const RETRO_PHASES = ['setup', 'writing', 'voting', 'discussing'];
+// Stages where each person sees only their own notes
+const HIDDEN_PHASES = ['setup', 'writing'];
+const MAX_TIMER_SECONDS = 60 * 60;
+
+/** True while other people's note text must stay hidden. */
+function notesHidden(retro) {
+  return retro.status !== 'finished' && HIDDEN_PHASES.includes(retro.phase);
+}
+
+/** True while vote counts must stay hidden (so early leaders don't snowball). */
+function votesHidden(retro) {
+  return retro.status !== 'finished' && retro.phase === 'voting';
+}
+
+/**
+ * An entry as a given viewer may see it. participant_id never leaves the
+ * server (for a logged-in author it's their user id, which would name
+ * them). `viewer` is a voterId() identity, or null for a room broadcast.
+ */
+function entryForViewer(entry, retro, viewer) {
+  const { participant_id, ...rest } = entry;
+  const mine = !!viewer && participant_id === viewer;
+  if (notesHidden(retro) && !mine) {
+    return {
+      id: entry.id, column_id: entry.column_id, retro_id: entry.retro_id,
+      text: '', author: entry.author, votes: 0, created_at: entry.created_at,
+      hidden: true, mine: false
+    };
+  }
+  return { ...rest, votes: votesHidden(retro) ? null : rest.votes, hidden: false, mine };
+}
+
+/** Distinct people who have voted in a retro. */
+function voterCount(retroId) {
+  return db.prepare('SELECT COUNT(DISTINCT participant_id) as n FROM votes WHERE retro_id = ?').get(retroId).n;
+}
+
+/**
+ * Tells the room about a vote. While counts are hidden only the number of
+ * people who've voted goes out (for the facilitator's progress readout);
+ * otherwise the entry's new count, as before.
+ */
+function broadcastVote(retro, entry) {
+  if (votesHidden(retro)) {
+    broadcast(retro.id, { type: 'vote:progress', voters: voterCount(retro.id) });
+  } else {
+    broadcast(retro.id, { type: 'entry:voted', entry: entryForViewer(entry, retro, null) });
+  }
+}
+
+/** Loads a retro and checks the caller may run it. Sends the error itself. */
+function loadRetroForFacilitator(req, res, forbiddenMessage) {
+  const retro = db.prepare('SELECT * FROM retros WHERE id = ?').get(req.params.id);
+  if (!retro) { res.status(404).json({ error: 'Retro bulunamadı.' }); return null; }
+  if (req.user.role !== 'admin' && retro.created_by !== req.user.id) {
+    res.status(403).json({ error: forbiddenMessage }); return null;
+  }
+  return retro;
+}
+
 const RETRO_FINISHED_ERROR = { error: 'Bu retro tamamlandı; artık değişiklik yapılamaz.' };
 
 /* ══════════════════════════════════════════════════════════════
@@ -367,7 +429,24 @@ router.get('/retros', requireAuth, (req, res) => {
   const params = isAdmin ? [] : [req.user.id];
 
   const retros = db.prepare(query).all(...params);
-  res.json(retros);
+
+  // Notes per column, in column order — the dashboard draws a small bar per
+  // lane from these. Counts aren't secret even while note text is hidden.
+  const laneRows = db.prepare(`
+    SELECT c.retro_id, c.sort_order, COUNT(e.id) as n
+    FROM columns c LEFT JOIN entries e ON e.column_id = c.id
+    GROUP BY c.id ORDER BY c.retro_id, c.sort_order
+  `).all();
+  const lanesByRetro = new Map();
+  for (const row of laneRows) {
+    if (!lanesByRetro.has(row.retro_id)) lanesByRetro.set(row.retro_id, []);
+    lanesByRetro.get(row.retro_id).push(row.n);
+  }
+
+  res.json(retros.map(r => {
+    const laneCounts = lanesByRetro.get(r.id) || [];
+    return { ...r, lane_counts: laneCounts, entry_count: laneCounts.reduce((a, b) => a + b, 0) };
+  }));
 });
 
 function generateShortCode() {
@@ -388,6 +467,8 @@ function createUniqueShortCode() {
 // POST /api/retros  — allow any authenticated user
 router.post('/retros', requireAuth, (req, res) => {
   const { max_votes } = req.body;
+  // A staged retro starts in setup; a simple one has no phase (see RETRO_PHASES)
+  const phase = req.body.staged === true ? 'setup' : null;
   const title = cleanString(req.body.title, LIMITS.title);
   if (!title) {
     return res.status(400).json({ error: `Başlık gereklidir (en fazla ${LIMITS.title} karakter).` });
@@ -403,15 +484,15 @@ router.post('/retros', requireAuth, (req, res) => {
 
   const retroId = randomUUID();
   const shortCode = createUniqueShortCode();
-  const insertRetro = db.prepare('INSERT INTO retros (id, title, max_votes, created_by, short_code) VALUES (?, ?, ?, ?, ?)');
+  const insertRetro = db.prepare('INSERT INTO retros (id, title, max_votes, created_by, short_code, phase) VALUES (?, ?, ?, ?, ?, ?)');
   const insertColumn = db.prepare('INSERT INTO columns (id, retro_id, name, sort_order) VALUES (?, ?, ?, ?)');
 
   db.transaction(() => {
-    insertRetro.run(retroId, title, votes, req.user.id, shortCode);
+    insertRetro.run(retroId, title, votes, req.user.id, shortCode, phase);
     columns.forEach((colName, idx) => { insertColumn.run(randomUUID(), retroId, colName, idx); });
   })();
 
-  res.status(201).json({ id: retroId, title, short_code: shortCode });
+  res.status(201).json({ id: retroId, title, short_code: shortCode, phase });
 });
 
 // GET /api/retros/:id
@@ -422,15 +503,16 @@ router.get('/retros/:id', (req, res) => {
   const columns = db.prepare('SELECT * FROM columns WHERE retro_id = ? ORDER BY sort_order').all(req.params.id);
   const entries = db.prepare('SELECT * FROM entries WHERE retro_id = ? ORDER BY created_at').all(req.params.id);
 
+  // Tell the caller which entries *they* (this authenticated user, or this
+  // anonymous participant_id) wrote and have already voted for, so the
+  // client no longer has to trust its own localStorage as the source of truth.
+  const participantId = voterId(req, req.query.participant_id);
+
   const columnData = columns.map(col => ({
     ...col,
-    entries: entries.filter(e => e.column_id === col.id)
+    entries: entries.filter(e => e.column_id === col.id).map(e => entryForViewer(e, retro, participantId))
   }));
 
-  // Tell the caller which entries *they* (this authenticated user, or this
-  // anonymous participant_id) have already voted for, so the client no
-  // longer has to trust its own localStorage as the source of truth.
-  const participantId = voterId(req, req.query.participant_id);
   const votedEntryIds = participantId
     ? db.prepare('SELECT entry_id FROM votes WHERE retro_id = ? AND participant_id = ?')
         .all(req.params.id, participantId).map(v => v.entry_id)
@@ -441,7 +523,15 @@ router.get('/retros/:id', (req, res) => {
   const { created_by, ...publicRetro } = retro;
   const isOwner = !!req.user && req.user.id === created_by;
 
-  res.json({ ...publicRetro, is_owner: isOwner, columns: columnData, voted_entry_ids: votedEntryIds });
+  res.json({
+    ...publicRetro,
+    is_owner: isOwner,
+    columns: columnData,
+    voted_entry_ids: votedEntryIds,
+    voter_count: voterCount(retro.id),
+    // Lets clients correct for clock skew when counting down timer_ends_at
+    server_now: new Date().toISOString()
+  });
 });
 
 // DELETE /api/retros/:id  — admin or owner only
@@ -551,24 +641,29 @@ router.post('/retros/:id/entries', boardWriteLimiter, (req, res) => {
     return res.status(400).json({ error: `column_id ve text gereklidir (en fazla ${LIMITS.entryText} karakter).` });
   }
 
-  const retro = db.prepare('SELECT status FROM retros WHERE id = ?').get(req.params.id);
+  const retro = db.prepare('SELECT * FROM retros WHERE id = ?').get(req.params.id);
   if (!retro) return res.status(404).json({ error: 'Retro bulunamadı.' });
   if (retro.status === 'finished') return res.status(409).json(RETRO_FINISHED_ERROR);
+  if (retro.phase && retro.phase !== 'writing') {
+    return res.status(409).json({ error: 'Şu an not ekleme aşamasında değiliz.' });
+  }
 
   const column = db.prepare('SELECT id FROM columns WHERE id = ? AND retro_id = ?').get(column_id, req.params.id);
   if (!column) return res.status(400).json({ error: 'Sütun bu retroya ait değil.' });
 
   const entryId = randomUUID();
   const authorName = 'Anonim';
-  db.prepare('INSERT INTO entries (id, column_id, retro_id, text, author) VALUES (?, ?, ?, ?, ?)')
-    .run(entryId, column_id, req.params.id, text, authorName);
+  const author = voterId(req, req.body.participant_id);
+  db.prepare('INSERT INTO entries (id, column_id, retro_id, text, author, participant_id) VALUES (?, ?, ?, ?, ?, ?)')
+    .run(entryId, column_id, req.params.id, text, authorName, author);
 
-  const entry = { id: entryId, column_id, retro_id: req.params.id, text, author: authorName, votes: 0 };
+  const entry = db.prepare('SELECT * FROM entries WHERE id = ?').get(entryId);
 
-  // Broadcast
-  broadcast(req.params.id, { type: 'entry:added', entry });
+  // Everyone else gets the room's view of it — a placeholder while notes
+  // are hidden; the author gets their own note back in the response.
+  broadcast(req.params.id, { type: 'entry:added', entry: entryForViewer(entry, retro, null) });
 
-  res.status(201).json(entry);
+  res.status(201).json(entryForViewer(entry, retro, author));
 });
 
 // PUT /api/retros/:id/entries/:entryId  — edit entry text (admin or retro owner)
@@ -576,20 +671,22 @@ router.put('/retros/:id/entries/:entryId', requireAuth, (req, res) => {
   const text = cleanString(req.body.text, LIMITS.entryText);
   if (!text) return res.status(400).json({ error: `Metin gereklidir (en fazla ${LIMITS.entryText} karakter).` });
 
-  const isAdmin = req.user.role === 'admin';
-  const retro = db.prepare('SELECT created_by FROM retros WHERE id = ?').get(req.params.id);
-  if (!retro) return res.status(404).json({ error: 'Retro bulunamadı.' });
-  if (!isAdmin && retro.created_by !== req.user.id) {
-    return res.status(403).json({ error: 'Bu girdiyi düzenleme yetkiniz yok.' });
+  const retro = loadRetroForFacilitator(req, res, 'Bu girdiyi düzenleme yetkiniz yok.');
+  if (!retro) return;
+
+  const existing = db.prepare('SELECT * FROM entries WHERE id = ? AND retro_id = ?').get(req.params.entryId, req.params.id);
+  if (!existing) return res.status(404).json({ error: 'Girdi bulunamadı.' });
+  // While notes are hidden, not even the facilitator may read (and so
+  // edit) someone else's note.
+  if (notesHidden(retro) && existing.participant_id !== req.user.id) {
+    return res.status(409).json({ error: 'Notlar açılmadan başkasının notu düzenlenemez.' });
   }
 
-  const result = db.prepare('UPDATE entries SET text = ? WHERE id = ? AND retro_id = ?')
-    .run(text, req.params.entryId, req.params.id);
-  if (result.changes === 0) return res.status(404).json({ error: 'Girdi bulunamadı.' });
+  db.prepare('UPDATE entries SET text = ? WHERE id = ? AND retro_id = ?').run(text, req.params.entryId, req.params.id);
 
   const entry = db.prepare('SELECT * FROM entries WHERE id = ?').get(req.params.entryId);
-  broadcast(req.params.id, { type: 'entry:edited', entry });
-  res.json(entry);
+  broadcast(req.params.id, { type: 'entry:edited', entry: entryForViewer(entry, retro, null) });
+  res.json(entryForViewer(entry, retro, req.user.id));
 });
 
 // PUT /api/retros/:id/entries/:entryId/move  — move entry to a different column (admin or retro owner)
@@ -597,23 +694,23 @@ router.put('/retros/:id/entries/:entryId/move', requireAuth, (req, res) => {
   const { column_id } = req.body;
   if (typeof column_id !== 'string' || !column_id) return res.status(400).json({ error: 'column_id gereklidir.' });
 
-  const isAdmin = req.user.role === 'admin';
-  const retro = db.prepare('SELECT created_by FROM retros WHERE id = ?').get(req.params.id);
-  if (!retro) return res.status(404).json({ error: 'Retro bulunamadı.' });
-  if (!isAdmin && retro.created_by !== req.user.id) {
-    return res.status(403).json({ error: 'Bu girdiyi taşıma yetkiniz yok.' });
-  }
+  const retro = loadRetroForFacilitator(req, res, 'Bu girdiyi taşıma yetkiniz yok.');
+  if (!retro) return;
 
   const targetColumn = db.prepare('SELECT id FROM columns WHERE id = ? AND retro_id = ?').get(column_id, req.params.id);
   if (!targetColumn) return res.status(400).json({ error: 'Hedef sütun bu retroya ait değil.' });
 
-  const result = db.prepare('UPDATE entries SET column_id = ? WHERE id = ? AND retro_id = ?')
-    .run(column_id, req.params.entryId, req.params.id);
-  if (result.changes === 0) return res.status(404).json({ error: 'Girdi bulunamadı.' });
+  const existing = db.prepare('SELECT * FROM entries WHERE id = ? AND retro_id = ?').get(req.params.entryId, req.params.id);
+  if (!existing) return res.status(404).json({ error: 'Girdi bulunamadı.' });
+  if (notesHidden(retro) && existing.participant_id !== req.user.id) {
+    return res.status(409).json({ error: 'Notlar açılmadan başkasının notu taşınamaz.' });
+  }
+
+  db.prepare('UPDATE entries SET column_id = ? WHERE id = ? AND retro_id = ?').run(column_id, req.params.entryId, req.params.id);
 
   const entry = db.prepare('SELECT * FROM entries WHERE id = ?').get(req.params.entryId);
-  broadcast(req.params.id, { type: 'entry:moved', entry });
-  res.json(entry);
+  broadcast(req.params.id, { type: 'entry:moved', entry: entryForViewer(entry, retro, null) });
+  res.json(entryForViewer(entry, retro, req.user.id));
 });
 
 // DELETE /api/retros/:id/entries/:entryId  — delete entry (admin or retro owner)
@@ -641,9 +738,12 @@ router.post('/retros/:id/entries/:entryId/vote', boardWriteLimiter, (req, res) =
   const participantId = voterId(req, req.body.participant_id);
   if (!participantId) return res.status(400).json({ error: 'participant_id gereklidir.' });
 
-  const retro = db.prepare('SELECT max_votes, status FROM retros WHERE id = ?').get(req.params.id);
+  const retro = db.prepare('SELECT * FROM retros WHERE id = ?').get(req.params.id);
   if (!retro) return res.status(404).json({ error: 'Retro bulunamadı.' });
   if (retro.status === 'finished') return res.status(409).json(RETRO_FINISHED_ERROR);
+  if (retro.phase && retro.phase !== 'voting') {
+    return res.status(409).json({ error: 'Şu an oylama aşamasında değiliz.' });
+  }
 
   const entry = db.prepare('SELECT * FROM entries WHERE id = ? AND retro_id = ?').get(req.params.entryId, req.params.id);
   if (!entry) return res.status(404).json({ error: 'Girdi bulunamadı.' });
@@ -666,9 +766,8 @@ router.post('/retros/:id/entries/:entryId/vote', boardWriteLimiter, (req, res) =
     return db.prepare('SELECT * FROM entries WHERE id = ?').get(req.params.entryId);
   })();
 
-  broadcast(req.params.id, { type: 'entry:voted', entry: updatedEntry });
-
-  res.json(updatedEntry);
+  broadcastVote(retro, updatedEntry);
+  res.json(entryForViewer(updatedEntry, retro, participantId));
 });
 
 // POST /api/retros/:id/entries/:entryId/unvote
@@ -676,9 +775,12 @@ router.post('/retros/:id/entries/:entryId/unvote', boardWriteLimiter, (req, res)
   const participantId = voterId(req, req.body.participant_id);
   if (!participantId) return res.status(400).json({ error: 'participant_id gereklidir.' });
 
-  const retro = db.prepare('SELECT status FROM retros WHERE id = ?').get(req.params.id);
+  const retro = db.prepare('SELECT * FROM retros WHERE id = ?').get(req.params.id);
   if (!retro) return res.status(404).json({ error: 'Retro bulunamadı.' });
   if (retro.status === 'finished') return res.status(409).json(RETRO_FINISHED_ERROR);
+  if (retro.phase && retro.phase !== 'voting') {
+    return res.status(409).json({ error: 'Şu an oylama aşamasında değiliz.' });
+  }
 
   const existingVote = db.prepare('SELECT id FROM votes WHERE retro_id = ? AND entry_id = ? AND participant_id = ?')
     .get(req.params.id, req.params.entryId, participantId);
@@ -690,10 +792,8 @@ router.post('/retros/:id/entries/:entryId/unvote', boardWriteLimiter, (req, res)
     return db.prepare('SELECT * FROM entries WHERE id = ?').get(req.params.entryId);
   })();
 
-  // Broadcast using entry:voted so frontend simply updates the count
-  broadcast(req.params.id, { type: 'entry:voted', entry });
-
-  res.json(entry);
+  broadcastVote(retro, entry);
+  res.json(entryForViewer(entry, retro, participantId));
 });
 
 // PUT /api/retros/:id/status
@@ -716,6 +816,67 @@ router.put('/retros/:id/status', requireAuth, (req, res) => {
 
   broadcast(req.params.id, { type: 'retro:status_changed', status });
   res.json({ success: true, status });
+});
+
+// PUT /api/retros/:id/phase  — move a staged retro to another stage
+// (admin or owner). Any stage may follow any other, so a facilitator can
+// step back (e.g. reopen writing for a forgotten note).
+router.put('/retros/:id/phase', requireAuth, (req, res) => {
+  const { phase } = req.body;
+  if (!RETRO_PHASES.includes(phase)) {
+    return res.status(400).json({ error: `Geçersiz aşama. Geçerli değerler: ${RETRO_PHASES.join(', ')}.` });
+  }
+  const retro = loadRetroForFacilitator(req, res, 'Bu retronun aşamasını değiştirme yetkiniz yok.');
+  if (!retro) return;
+  if (!retro.phase) return res.status(400).json({ error: 'Bu retro aşamalı değil.' });
+  if (retro.status === 'finished') return res.status(409).json(RETRO_FINISHED_ERROR);
+
+  // Discussion starts on the most-voted note; other stages have no focus
+  let focusEntryId = null;
+  if (phase === 'discussing') {
+    const top = db.prepare('SELECT id FROM entries WHERE retro_id = ? ORDER BY votes DESC, created_at ASC LIMIT 1').get(retro.id);
+    focusEntryId = top?.id ?? null;
+  }
+  db.prepare('UPDATE retros SET phase = ?, focus_entry_id = ? WHERE id = ?').run(phase, focusEntryId, retro.id);
+
+  // Visibility changes with the stage, so clients re-fetch the board
+  broadcast(retro.id, { type: 'retro:phase', phase, focusEntryId });
+  res.json({ success: true, phase, focus_entry_id: focusEntryId });
+});
+
+// PUT /api/retros/:id/focus  — the note being discussed right now, shown
+// highlighted on every screen (admin or owner). null clears it.
+router.put('/retros/:id/focus', requireAuth, (req, res) => {
+  const entryId = req.body.entry_id ?? null;
+  if (entryId !== null && typeof entryId !== 'string') return res.status(400).json({ error: 'Geçersiz entry_id.' });
+  const retro = loadRetroForFacilitator(req, res, 'Bu retroyu yönetme yetkiniz yok.');
+  if (!retro) return;
+  if (notesHidden(retro)) return res.status(409).json({ error: 'Notlar açılmadan bir not öne çıkarılamaz.' });
+  if (entryId && !db.prepare('SELECT id FROM entries WHERE id = ? AND retro_id = ?').get(entryId, retro.id)) {
+    return res.status(404).json({ error: 'Girdi bulunamadı.' });
+  }
+
+  db.prepare('UPDATE retros SET focus_entry_id = ? WHERE id = ?').run(entryId, retro.id);
+  broadcast(retro.id, { type: 'retro:focus', entryId });
+  res.json({ success: true, focus_entry_id: entryId });
+});
+
+// PUT /api/retros/:id/timer  — start a countdown everyone sees (admin or
+// owner). { seconds: 0 } or null stops it. Stored as an end time, so late
+// joiners and reconnects see the right remaining time.
+router.put('/retros/:id/timer', requireAuth, (req, res) => {
+  const seconds = req.body.seconds ?? 0;
+  if (!Number.isInteger(seconds) || seconds < 0 || seconds > MAX_TIMER_SECONDS) {
+    return res.status(400).json({ error: `Süre 0 ile ${MAX_TIMER_SECONDS} saniye arasında olmalıdır.` });
+  }
+  const retro = loadRetroForFacilitator(req, res, 'Bu retroyu yönetme yetkiniz yok.');
+  if (!retro) return;
+  if (retro.status === 'finished') return res.status(409).json(RETRO_FINISHED_ERROR);
+
+  const endsAt = seconds > 0 ? new Date(Date.now() + seconds * 1000).toISOString() : null;
+  db.prepare('UPDATE retros SET timer_ends_at = ? WHERE id = ?').run(endsAt, retro.id);
+  broadcast(retro.id, { type: 'retro:timer', endsAt, serverNow: new Date().toISOString() });
+  res.json({ success: true, timer_ends_at: endsAt });
 });
 
 export default router;

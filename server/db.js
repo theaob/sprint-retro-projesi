@@ -427,4 +427,39 @@ if (schemaVersion < 2) {
   db.pragma('user_version = 2');
 }
 
+// Step 3
+if (schemaVersion < 3) {
+  // Migration: retro stages (v5 redesign). A staged retro moves through
+  // setup → writing → voting → discussing, driven by its facilitator;
+  // `phase` stays NULL for a simple retro, which behaves exactly as before.
+  // `status` still says active/finished. entries.participant_id records who
+  // wrote a note (a user id or an anon: participant id — never sent to
+  // clients), so a staged retro can show each person their own notes while
+  // hiding everyone else's until voting starts.
+  try {
+    const retrosInfo = db.pragma('table_info(retros)');
+    const entriesInfo = db.pragma('table_info(entries)');
+    if (!retrosInfo.some((col) => col.name === 'phase')) {
+      db.exec('ALTER TABLE retros ADD COLUMN phase TEXT;');
+      console.log('✅ Migration applied: added phase to retros table.');
+    }
+    if (!retrosInfo.some((col) => col.name === 'focus_entry_id')) {
+      db.exec('ALTER TABLE retros ADD COLUMN focus_entry_id TEXT;');
+      console.log('✅ Migration applied: added focus_entry_id to retros table.');
+    }
+    if (!retrosInfo.some((col) => col.name === 'timer_ends_at')) {
+      db.exec('ALTER TABLE retros ADD COLUMN timer_ends_at TEXT;');
+      console.log('✅ Migration applied: added timer_ends_at to retros table.');
+    }
+    if (!entriesInfo.some((col) => col.name === 'participant_id')) {
+      db.exec('ALTER TABLE entries ADD COLUMN participant_id TEXT;');
+      console.log('✅ Migration applied: added participant_id to entries table.');
+    }
+  } catch (err) {
+    console.error('Migration error (retro stages):', err);
+  }
+
+  db.pragma('user_version = 3');
+}
+
 export default db;
