@@ -6,7 +6,7 @@
  *     onEntryVoted: (entry) => {},
  *     onColumnRenamed: ({ columnId, name }) => {},
  *     onPresenceUpdate: (users) => {},      // users: array of (name | null)
- *     onTyping: (columnId, name) => {},
+ *     onTyping: (columnId) => {},      // someone else is typing there (never who)
  *     onReconnect: () => {},
  *   });
  *   ws.sendTyping(columnId); // throttled client-side, safe to call on every keystroke
@@ -76,7 +76,7 @@ export function createRetroSocket(retroId, displayName, handlers = {}) {
             handlers.onPresenceUpdate?.(msg.users);
             break;
           case 'typing':
-            handlers.onTyping?.(msg.columnId, msg.name);
+            handlers.onTyping?.(msg.columnId);
             break;
         }
       } catch (e) {
@@ -113,7 +113,7 @@ export function createRetroSocket(retroId, displayName, handlers = {}) {
       if (now - lastTypingSentAt < 2000) return;
       lastTypingSentAt = now;
       if (ws?.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ type: 'typing', retroId, columnId, name: displayName || null }));
+        ws.send(JSON.stringify({ type: 'typing', retroId, columnId }));
       }
     }
   };

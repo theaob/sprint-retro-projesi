@@ -157,7 +157,7 @@ async function loadUsers(currentUser) {
 
     // Change password buttons
     tbody.querySelectorAll('.change-pwd-btn').forEach(btn => {
-      btn.addEventListener('click', () => showChangePwdModal(btn.dataset.id, btn.dataset.name));
+      btn.addEventListener('click', () => showChangePwdModal(btn.dataset.id, btn.dataset.name, btn.dataset.id === currentUser?.id));
     });
 
     // Delete buttons
@@ -229,7 +229,7 @@ function showEditUserModal(userId, username, email, currentUser) {
   });
 }
 
-function showChangePwdModal(userId, username) {
+function showChangePwdModal(userId, username, isSelf) {
   const existing = document.getElementById('change-pwd-modal');
   if (existing) existing.remove();
 
@@ -240,6 +240,14 @@ function showChangePwdModal(userId, username) {
     <div class="modal" role="dialog" aria-modal="true">
       <h3>🔒 Şifre Değiştir</h3>
       <p class="modal-subtitle">Kullanıcı: <strong>${escapeHtml(username)}</strong></p>
+      ${isSelf ? `
+        <div class="form-group">
+          <label for="current-pwd-input">Mevcut Şifre</label>
+          <input class="input" type="password" id="current-pwd-input" autocomplete="current-password" />
+        </div>
+      ` : `
+        <p class="modal-subtitle">Bu kullanıcının tüm açık oturumları kapatılacak.</p>
+      `}
       <div class="form-group">
         <label for="new-pwd-input">Yeni Şifre</label>
         <input class="input" type="password" id="new-pwd-input" placeholder="En az 6 karakter" />
@@ -252,7 +260,7 @@ function showChangePwdModal(userId, username) {
   `;
 
   document.body.appendChild(overlay);
-  document.getElementById('new-pwd-input').focus();
+  document.getElementById(isSelf ? 'current-pwd-input' : 'new-pwd-input').focus();
 
   document.getElementById('pwd-cancel-btn').addEventListener('click', () => overlay.remove());
   overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
@@ -264,7 +272,8 @@ function showChangePwdModal(userId, username) {
       return;
     }
     try {
-      await api.changePassword(userId, pwd);
+      const currentPwd = isSelf ? document.getElementById('current-pwd-input').value : undefined;
+      await api.changePassword(userId, pwd, currentPwd);
       showToast('Şifre güncellendi! ✅', 'success');
       overlay.remove();
     } catch (err) {

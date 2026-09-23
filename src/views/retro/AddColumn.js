@@ -50,6 +50,7 @@ export function AddColumn({ onAdd }) {
         class="input"
         type="text"
         placeholder="Sütun adı…"
+        maxlength="100"
         required
         value=${name}
         onInput=${(e) => setName(e.currentTarget.value)}
