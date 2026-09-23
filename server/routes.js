@@ -1,9 +1,9 @@
 import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'node:crypto';
 import bcrypt from 'bcryptjs';
 import db from './db.js';
-import { requireAuth, requireAdmin } from './auth.js';
+import { requireAuth, requireAuthAllowPending, requireAdmin } from './auth.js';
 
 const router = Router();
 
@@ -36,11 +36,27 @@ const registerLimiter = rateLimit({
 });
 
 function createSession(userId) {
-  const token = uuidv4();
+  const token = randomUUID();
   const expiresAt = new Date(Date.now() + SESSION_LIFETIME_MS).toISOString();
   db.prepare('INSERT INTO sessions (token, user_id, expires_at) VALUES (?, ?, ?)').run(token, userId, expiresAt);
   return token;
 }
+
+/**
+ * The identity votes are recorded under: the logged-in user's id, or — for
+ * guests — the client-generated participant_id in its own `anon:` namespace.
+ * Without the prefix a guest could send a real user's id (e.g. a retro
+ * owner's) as their participant_id and read or withdraw that user's votes.
+ */
+function voterId(req, suppliedParticipantId) {
+  if (req.user) return req.user.id;
+  if (typeof suppliedParticipantId !== 'string' || !suppliedParticipantId || suppliedParticipantId.length > 100) {
+    return null;
+  }
+  return `anon:${suppliedParticipantId}`;
+}
+
+const RETRO_FINISHED_ERROR = { error: 'Bu retro tamamlandı; artık değişiklik yapılamaz.' };
 
 /* ══════════════════════════════════════════════════════════════
    AUTH ROUTES
@@ -70,7 +86,7 @@ router.post('/auth/register', registerLimiter, (req, res) => {
   const exists = db.prepare('SELECT id FROM users WHERE username = ?').get(username);
   if (exists) return res.status(409).json({ error: 'Bu kullanıcı adı zaten kullanılmakta.' });
 
-  const id = uuidv4();
+  const id = randomUUID();
   const hash = bcrypt.hashSync(password, 10);
   db.prepare('INSERT INTO users (id, username, password_hash, role, email) VALUES (?, ?, ?, ?, ?)').run(id, username, hash, 'user', email || null);
 
@@ -81,14 +97,14 @@ router.post('/auth/register', registerLimiter, (req, res) => {
 });
 
 // POST /api/auth/logout
-router.post('/auth/logout', requireAuth, (req, res) => {
+router.post('/auth/logout', requireAuthAllowPending, (req, res) => {
   const token = req.headers.authorization?.slice(7);
   db.prepare('DELETE FROM sessions WHERE token = ?').run(token);
   res.json({ success: true });
 });
 
 // GET /api/auth/me
-router.get('/auth/me', requireAuth, (req, res) => {
+router.get('/auth/me', requireAuthAllowPending, (req, res) => {
   res.json(req.user);
 });
 
@@ -114,7 +130,7 @@ router.post('/users', requireAdmin, (req, res) => {
   const exists = db.prepare('SELECT id FROM users WHERE username = ?').get(username);
   if (exists) return res.status(409).json({ error: 'Bu kullanıcı adı zaten kullanılmakta.' });
 
-  const id = uuidv4();
+  const id = randomUUID();
   const hash = bcrypt.hashSync(password, 10);
   db.prepare('INSERT INTO users (id, username, password_hash, role, email) VALUES (?, ?, ?, ?, ?)').run(id, username, hash, role, email || null);
 
@@ -131,9 +147,11 @@ router.delete('/users/:id', requireAdmin, (req, res) => {
 });
 
 // PUT /api/users/:id/password  — change password (admin or self)
-router.put('/users/:id/password', requireAuth, (req, res) => {
+router.put('/users/:id/password', requireAuthAllowPending, (req, res) => {
   const isSelf = req.params.id === req.user.id;
-  const isAdmin = req.user.role === 'admin';
+  // An admin still on a default password can only fix its own password,
+  // not reset anyone else's.
+  const isAdmin = req.user.role === 'admin' && !req.user.must_change_password;
   if (!isSelf && !isAdmin) return res.status(403).json({ error: 'Yetki yok.' });
 
   const { password } = req.body;
@@ -190,7 +208,7 @@ router.post('/templates', requireAdmin, (req, res) => {
 
   const { name, columns } = req.body;
   const trimmedColumns = columns.map(c => c.trim());
-  const id = uuidv4();
+  const id = randomUUID();
   const sortOrder = db.prepare('SELECT COALESCE(MAX(sort_order), -1) + 1 as next FROM templates').get().next;
 
   db.prepare('INSERT INTO templates (id, name, columns, sort_order) VALUES (?, ?, ?, ?)')
@@ -260,7 +278,7 @@ router.post('/retros', requireAuth, (req, res) => {
     return res.status(400).json({ error: 'Başlık ve en az bir sütun gereklidir.' });
   }
 
-  const retroId = uuidv4();
+  const retroId = randomUUID();
   const votes = parseInt(max_votes, 10) || 3;
   const shortCode = createUniqueShortCode();
   const insertRetro = db.prepare('INSERT INTO retros (id, title, max_votes, created_by, short_code) VALUES (?, ?, ?, ?, ?)');
@@ -268,7 +286,7 @@ router.post('/retros', requireAuth, (req, res) => {
 
   db.transaction(() => {
     insertRetro.run(retroId, title, votes, req.user.id, shortCode);
-    columns.forEach((colName, idx) => { insertColumn.run(uuidv4(), retroId, colName, idx); });
+    columns.forEach((colName, idx) => { insertColumn.run(randomUUID(), retroId, colName, idx); });
   })();
 
   res.status(201).json({ id: retroId, title, short_code: shortCode });
@@ -290,13 +308,18 @@ router.get('/retros/:id', (req, res) => {
   // Tell the caller which entries *they* (this authenticated user, or this
   // anonymous participant_id) have already voted for, so the client no
   // longer has to trust its own localStorage as the source of truth.
-  const participantId = req.user?.id || req.query.participant_id;
+  const participantId = voterId(req, req.query.participant_id);
   const votedEntryIds = participantId
     ? db.prepare('SELECT entry_id FROM votes WHERE retro_id = ? AND participant_id = ?')
         .all(req.params.id, participantId).map(v => v.entry_id)
     : [];
 
-  res.json({ ...retro, columns: columnData, voted_entry_ids: votedEntryIds });
+  // The owner's user id stays server-side — the board only needs to know
+  // whether *this* caller owns it.
+  const { created_by, ...publicRetro } = retro;
+  const isOwner = !!req.user && req.user.id === created_by;
+
+  res.json({ ...publicRetro, is_owner: isOwner, columns: columnData, voted_entry_ids: votedEntryIds });
 });
 
 // DELETE /api/retros/:id  — admin or owner only
@@ -365,7 +388,7 @@ router.post('/retros/:id/columns', requireAuth, (req, res) => {
   }
 
   const columnCount = db.prepare('SELECT COUNT(*) as count FROM columns WHERE retro_id = ?').get(req.params.id).count;
-  const columnId = uuidv4();
+  const columnId = randomUUID();
   db.prepare('INSERT INTO columns (id, retro_id, name, sort_order) VALUES (?, ?, ?, ?)')
     .run(columnId, req.params.id, name.trim(), columnCount);
 
@@ -398,7 +421,11 @@ router.post('/retros/:id/entries', (req, res) => {
   const { column_id, text, author } = req.body;
   if (!column_id || !text) return res.status(400).json({ error: 'column_id ve text gereklidir.' });
 
-  const entryId = uuidv4();
+  const retro = db.prepare('SELECT status FROM retros WHERE id = ?').get(req.params.id);
+  if (!retro) return res.status(404).json({ error: 'Retro bulunamadı.' });
+  if (retro.status === 'finished') return res.status(409).json(RETRO_FINISHED_ERROR);
+
+  const entryId = randomUUID();
   const authorName = author || 'Anonim';
   db.prepare('INSERT INTO entries (id, column_id, retro_id, text, author) VALUES (?, ?, ?, ?, ?)')
     .run(entryId, column_id, req.params.id, text, authorName);
@@ -478,11 +505,12 @@ router.delete('/retros/:id/entries/:entryId', requireAuth, (req, res) => {
 // user's id if logged in, otherwise a client-generated participant_id
 // (localStorage-persisted) for anonymous guests.
 router.post('/retros/:id/entries/:entryId/vote', (req, res) => {
-  const participantId = req.user?.id || req.body.participant_id;
+  const participantId = voterId(req, req.body.participant_id);
   if (!participantId) return res.status(400).json({ error: 'participant_id gereklidir.' });
 
-  const retro = db.prepare('SELECT max_votes FROM retros WHERE id = ?').get(req.params.id);
+  const retro = db.prepare('SELECT max_votes, status FROM retros WHERE id = ?').get(req.params.id);
   if (!retro) return res.status(404).json({ error: 'Retro bulunamadı.' });
+  if (retro.status === 'finished') return res.status(409).json(RETRO_FINISHED_ERROR);
 
   const entry = db.prepare('SELECT * FROM entries WHERE id = ? AND retro_id = ?').get(req.params.entryId, req.params.id);
   if (!entry) return res.status(404).json({ error: 'Girdi bulunamadı.' });
@@ -500,7 +528,7 @@ router.post('/retros/:id/entries/:entryId/vote', (req, res) => {
 
   const updatedEntry = db.transaction(() => {
     db.prepare('INSERT INTO votes (id, retro_id, entry_id, participant_id) VALUES (?, ?, ?, ?)')
-      .run(uuidv4(), req.params.id, req.params.entryId, participantId);
+      .run(randomUUID(), req.params.id, req.params.entryId, participantId);
     db.prepare('UPDATE entries SET votes = votes + 1 WHERE id = ?').run(req.params.entryId);
     return db.prepare('SELECT * FROM entries WHERE id = ?').get(req.params.entryId);
   })();
@@ -512,8 +540,12 @@ router.post('/retros/:id/entries/:entryId/vote', (req, res) => {
 
 // POST /api/retros/:id/entries/:entryId/unvote
 router.post('/retros/:id/entries/:entryId/unvote', (req, res) => {
-  const participantId = req.user?.id || req.body.participant_id;
+  const participantId = voterId(req, req.body.participant_id);
   if (!participantId) return res.status(400).json({ error: 'participant_id gereklidir.' });
+
+  const retro = db.prepare('SELECT status FROM retros WHERE id = ?').get(req.params.id);
+  if (!retro) return res.status(404).json({ error: 'Retro bulunamadı.' });
+  if (retro.status === 'finished') return res.status(409).json(RETRO_FINISHED_ERROR);
 
   const existingVote = db.prepare('SELECT id FROM votes WHERE retro_id = ? AND entry_id = ? AND participant_id = ?')
     .get(req.params.id, req.params.entryId, participantId);

@@ -22,6 +22,10 @@ const app = document.getElementById('app');
  */
 function router() {
   const hash = window.location.hash || '#/';
+  // An account still on a default password stays on the login page (which
+  // re-opens the forced password-change prompt) until it's changed — the
+  // server refuses its other requests anyway.
+  const mustChangePassword = !!api.getUser()?.must_change_password;
   const retroMatch = hash.match(/^#\/retro\/(.+)$/);
 
   if (retroMatch) {
@@ -31,13 +35,13 @@ function router() {
   } else if (hash === '#/register') {
     renderLogin(app, { startInRegister: true });
   } else if (hash === '#/users') {
-    if (!api.isAdmin()) {
+    if (!api.isAdmin() || mustChangePassword) {
       window.location.hash = '#/login';
       return;
     }
     renderUsers(app);
   } else if (hash === '#/app') {
-    if (!api.getUser()) {
+    if (!api.getUser() || mustChangePassword) {
       window.location.hash = '#/login';
       return;
     }

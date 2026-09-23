@@ -3,7 +3,7 @@ import bcrypt from 'bcryptjs';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { v4 as uuidv4 } from 'uuid';
+import { randomUUID } from 'node:crypto';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -99,7 +99,7 @@ const adminExists = db.prepare("SELECT id FROM users WHERE role = 'admin' LIMIT 
 if (!adminExists) {
   const hash = bcrypt.hashSync('admin', 10);
   db.prepare('INSERT INTO users (id, username, password_hash, role, must_change_password) VALUES (?, ?, ?, ?, 1)')
-    .run(uuidv4(), 'admin', hash, 'admin');
+    .run(randomUUID(), 'admin', hash, 'admin');
   console.log('✅ Default admin created: admin / admin (must change password on first login)');
 }
 
@@ -117,7 +117,7 @@ if (templateCount === 0) {
   ];
   const insertTemplate = db.prepare('INSERT INTO templates (id, name, columns, sort_order) VALUES (?, ?, ?, ?)');
   db.transaction(() => {
-    defaultTemplates.forEach((t, idx) => { insertTemplate.run(uuidv4(), t.name, JSON.stringify(t.cols), idx); });
+    defaultTemplates.forEach((t, idx) => { insertTemplate.run(randomUUID(), t.name, JSON.stringify(t.cols), idx); });
   })();
   console.log(`✅ Seeded ${defaultTemplates.length} default retro templates.`);
 }
@@ -292,7 +292,7 @@ try {
     `);
     db.transaction(() => {
       for (const row of distinctTeamNames) {
-        insertTeam.run(uuidv4(), row.team);
+        insertTeam.run(randomUUID(), row.team);
         assignUserTeam.run(row.team, row.team);
       }
     })();
@@ -382,6 +382,24 @@ try {
   }
 } catch (err) {
   console.error('Migration error (drop action_items):', err);
+}
+
+// Migration: move guest votes into their own `anon:` participant namespace.
+// Guest and user votes used to share one id space, so a guest could submit a
+// real user's id as their participant_id and act on that user's votes. Any
+// participant_id that isn't a user id (and isn't already prefixed) is a
+// guest's — prefix it so existing guests keep their votes.
+try {
+  const moved = db.prepare(`
+    UPDATE votes SET participant_id = 'anon:' || participant_id
+    WHERE participant_id NOT LIKE 'anon:%'
+      AND participant_id NOT IN (SELECT id FROM users)
+  `).run();
+  if (moved.changes > 0) {
+    console.log(`✅ Migration applied: moved ${moved.changes} guest vote(s) into the anon: namespace.`);
+  }
+} catch (err) {
+  console.error('Migration error (anon vote namespace):', err);
 }
 
 export default db;

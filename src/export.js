@@ -1,10 +1,10 @@
-import * as XLSX from 'xlsx';
+import writeExcelFile from 'write-excel-file/browser';
 
 /**
  * Export a retro object to an Excel (.xlsx) file.
  * Each column becomes a sheet header, entries are rows, votes are shown.
  */
-export function exportRetroToExcel(retro) {
+export async function exportRetroToExcel(retro) {
   const worksheetData = [];
 
   // Header row: column names
@@ -26,21 +26,15 @@ export function exportRetroToExcel(retro) {
     const row = [];
     retro.columns.forEach(col => {
       const entry = col.entries[i];
-      row.push(entry ? entry.text : '');
-      row.push(entry ? entry.votes : '');
+      row.push(entry ? entry.text : null);
+      row.push(entry ? entry.votes : null);
     });
     worksheetData.push(row);
   }
 
-  const ws = XLSX.utils.aoa_to_sheet(worksheetData);
+  // Auto-size: wide text columns, narrow vote-count columns
+  const columns = allHeaders.map((_, i) => ({ width: i % 2 === 0 ? 40 : 8 }));
 
-  // Style: auto-size columns
-  ws['!cols'] = allHeaders.map((h, i) => ({
-    wch: i % 2 === 0 ? 40 : 8
-  }));
-
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Retro');
-
-  XLSX.writeFile(wb, `${retro.title.replace(/[^a-zA-Z0-9ğüşöçıİĞÜŞÖÇ ]/g, '_')}_retro.xlsx`);
+  const fileName = `${retro.title.replace(/[^a-zA-Z0-9ğüşöçıİĞÜŞÖÇ ]/g, '_')}_retro.xlsx`;
+  await writeExcelFile(worksheetData, { sheet: 'Retro', columns }).toFile(fileName);
 }
