@@ -41,6 +41,17 @@ export function getParticipantId() {
   return id;
 }
 
+/**
+ * Sizes a textarea to fit its content, so a one-line note stays one line
+ * and a longer one grows instead of scrolling inside a tiny box. Call on
+ * every input (and after programmatically changing the value).
+ */
+export function autoGrow(textarea) {
+  if (!textarea) return;
+  textarea.style.height = 'auto';
+  textarea.style.height = `${textarea.scrollHeight}px`;
+}
+
 export function showToast(message, type = 'success') {
   const existing = document.querySelector('.toast');
   if (existing) existing.remove();
@@ -198,5 +209,9 @@ export function bindLogoutEvents(api) {
     window.location.hash = '#/login';
   };
   document.getElementById('logout-btn')?.addEventListener('click', handleLogout);
-  document.getElementById('mobile-logout-btn')?.addEventListener('click', handleLogout);
+  // On phones logout sits in the bottom tab bar, right beside the page
+  // tabs, where a mis-tap is easy — so that one asks first.
+  document.getElementById('mobile-logout-btn')?.addEventListener('click', () => {
+    if (confirm('Çıkış yapmak istediğinize emin misiniz?')) handleLogout();
+  });
 }

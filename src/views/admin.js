@@ -263,6 +263,14 @@ async function loadDashboard() {
           </div>
         </td>
       `;
+      // The whole row/card opens the retro — on a phone the title alone is
+      // a 15px-tall target. Clicks on the row's own buttons/links keep
+      // their own behavior.
+      tr.classList.add('retro-row');
+      tr.addEventListener('click', (e) => {
+        if (e.target.closest('button, a, input, select')) return;
+        window.location.hash = `#/retro/${retro.id}`;
+      });
       tbody.appendChild(tr);
     });
 

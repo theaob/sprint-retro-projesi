@@ -62,7 +62,7 @@ export function renderLanding(appEl) {
             <div class="landing-feature-card landing-reveal">
               <div class="landing-feature-icon landing-feature-icon-2">👀</div>
               <h3>Gerçek zamanlı işbirliği</h3>
-              <p>Kimin panoda olduğunu ve kimin yazdığını anlık görün; değişiklikler herkese aynı anda yansır.</p>
+              <p>Kimlerin panoda olduğunu ve bir sütuna yazılmakta olduğunu anlık görün; değişiklikler herkese aynı anda yansır.</p>
             </div>
           </div>
         </div>

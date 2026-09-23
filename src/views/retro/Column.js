@@ -1,7 +1,7 @@
 import { h } from 'preact';
 import { useState, useRef, useEffect } from 'preact/hooks';
 import htm from 'htm';
-import { showToast } from '../../utils.js';
+import { autoGrow, showToast } from '../../utils.js';
 import { EntryCard } from './EntryCard.js';
 
 const html = htm.bind(h);
@@ -16,6 +16,7 @@ export function Column({
   const [submitting, setSubmitting] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const renameTimeout = useRef(null);
+  const entryInputRef = useRef(null);
   // Board reorganization (moving entries, removing columns) is a Scrum
   // Master (retro owner) / admin responsibility, same gating as entries —
   // not admin-only like it used to be for rename specifically (the server
@@ -83,6 +84,8 @@ export function Column({
     try {
       await onAddEntry(col.id, text);
       setEntryText('');
+      // The textarea grew to fit the note; shrink it back to one line
+      if (entryInputRef.current) entryInputRef.current.style.height = '';
     } catch (err) {
       showToast(err.message, 'error');
     } finally {
@@ -142,16 +145,26 @@ export function Column({
       ${someoneTyping ? html`<div class="typing-indicator">Birisi yazıyor…</div>` : null}
       ${!isFinished ? html`
         <form class="add-entry-form" onSubmit=${handleAddEntry}>
-          <input
+          <textarea
+            ref=${entryInputRef}
             class="input"
-            type="text"
+            rows="1"
             placeholder="Yeni madde ekle…"
+            aria-label=${`${col.name} sütununa madde ekle`}
             maxlength="1000"
+            enterkeyhint="send"
             required
             value=${entryText}
-            onInput=${(e) => { setEntryText(e.currentTarget.value); onTyping?.(col.id); }}
-          />
-          <button type="submit" class="btn btn-primary btn-sm" disabled=${submitting}>+</button>
+            onInput=${(e) => { setEntryText(e.currentTarget.value); autoGrow(e.currentTarget); onTyping?.(col.id); }}
+            onKeyDown=${(e) => {
+              // Enter submits like the old one-line input; Shift+Enter adds a line break
+              if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) {
+                e.preventDefault();
+                e.currentTarget.form.requestSubmit();
+              }
+            }}
+          ></textarea>
+          <button type="submit" class="btn btn-primary btn-sm add-entry-submit" aria-label="Madde ekle" disabled=${submitting}>+</button>
         </form>
       ` : null}
     </div>
