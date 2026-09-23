@@ -21,6 +21,12 @@ const app = document.getElementById('app');
  * #/retro/:id  → Retro board (public)
  */
 function router() {
+  // Dialogs are appended to <body>, outside the view that opened them, so
+  // nothing else removes them on navigation — without this, going Back
+  // with a dialog open leaves it floating over the next page. (The forced
+  // password prompt is re-opened by the login view when still needed.)
+  for (const el of document.querySelectorAll('.modal-overlay')) el.remove();
+
   const hash = window.location.hash || '#/';
   // An account still on a default password stays on the login page (which
   // re-opens the forced password-change prompt) until it's changed — the

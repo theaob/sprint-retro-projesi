@@ -193,7 +193,7 @@ input, textarea {
 ::-webkit-scrollbar { width: 6px; }
 ::-webkit-scrollbar-track { background: var(--bg-primary); }
 ::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+@media (hover: hover) { ::-webkit-scrollbar-thumb:hover { background: var(--text-muted); } }
 
 /* ── Typography ──────────────────────────────────────────────── */
 h1, h2, h3 { font-family: var(--font-display); }
@@ -282,7 +282,7 @@ h3 { font-size: 1.125rem; font-weight: 600; margin-bottom: 0.75rem; }
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-weight: 800;
   color: var(--on-accent);
 }
@@ -347,10 +347,10 @@ h3 { font-size: 1.125rem; font-weight: 600; margin-bottom: 0.75rem; }
   transition: box-shadow var(--transition-normal), border-color var(--transition-normal);
 }
 
-.glass-card:hover {
+@media (hover: hover) { .glass-card:hover {
   border-color: var(--border-focus);
   box-shadow: var(--shadow-elevated);
-}
+} }
 
 /* ── Buttons ─────────────────────────────────────────────────── */
 .btn {
@@ -381,13 +381,13 @@ h3 { font-size: 1.125rem; font-weight: 600; margin-bottom: 0.75rem; }
   background: var(--accent-primary);
   color: var(--on-accent);
 }
-.btn-primary:hover:not(:disabled) { background: var(--accent-primary-hover); }
+@media (hover: hover) { .btn-primary:hover:not(:disabled) { background: var(--accent-primary-hover); } }
 
 .btn-danger { background: var(--danger); color: white; }
-.btn-danger:hover:not(:disabled) { background: var(--danger-hover); transform: translateY(-1px); }
+@media (hover: hover) { .btn-danger:hover:not(:disabled) { background: var(--danger-hover); transform: translateY(-1px); } }
 
 .btn-ghost { background: transparent; color: var(--text-secondary); border: 1px solid var(--border-color); }
-.btn-ghost:hover:not(:disabled) { background: var(--bg-card); color: var(--text-primary); border-color: var(--border-focus); }
+@media (hover: hover) { .btn-ghost:hover:not(:disabled) { background: var(--bg-card); color: var(--text-primary); border-color: var(--border-focus); } }
 
 .btn-vote {
   background: transparent;
@@ -397,7 +397,7 @@ h3 { font-size: 1.125rem; font-weight: 600; margin-bottom: 0.75rem; }
   font-size: 0.8rem;
   min-height: 36px;
 }
-.btn-vote:hover { background: rgba(245, 158, 11, 0.1); border-color: var(--vote); transform: scale(1.05); }
+@media (hover: hover) { .btn-vote:hover { background: rgba(245, 158, 11, 0.1); border-color: var(--vote); transform: scale(1.05); } }
 .btn-vote.voted-active {
   background: var(--vote);
   color: var(--bg-primary);
@@ -460,13 +460,14 @@ select.input { cursor: pointer; }
 .stats-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 32px; }
 .stat-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 16px; }
 .stat-card-value { font: 700 22px var(--font-display); color: var(--text-primary); }
-.stat-card-label { font: 500 11.5px var(--font-family); color: var(--text-secondary); margin-top: 2px; }
+.stat-card-label { font: 500 12.5px var(--font-family); color: var(--text-secondary); margin-top: 2px; }
 @media (min-width: 640px) {
   .stats-grid { grid-template-columns: repeat(4, 1fr); }
 }
 
 .retro-table-title { font: 600 13.5px var(--font-display); color: var(--text-primary); text-decoration: none; }
-.retro-table-title:hover { color: var(--accent-primary); }
+.retro-row { cursor: pointer; }
+@media (hover: hover) { .retro-table-title:hover { color: var(--accent-primary); } }
 
 .create-section { padding: 24px; margin-bottom: 48px; }
 .create-form { display: flex; flex-direction: column; gap: 16px; }
@@ -477,6 +478,9 @@ select.input { cursor: pointer; }
 
 .template-manage-modal { max-width: 560px; }
 .template-manage-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; max-height: 240px; overflow-y: auto; }
+@media (max-width: 767px) {
+  .template-manage-list { max-height: none; overflow: visible; }
+}
 .template-manage-row {
   display: flex;
   align-items: center;
@@ -511,7 +515,7 @@ select.input { cursor: pointer; }
 .landing-brand { display: flex; align-items: center; gap: 10px; font: 700 18px var(--font-display); color: var(--text-primary); }
 .landing-nav-links { display: flex; align-items: center; gap: 24px; }
 .landing-nav-links a:not(.btn) { font: 500 13.5px var(--font-family); color: var(--text-secondary); text-decoration: none; }
-.landing-nav-links a:not(.btn):hover { color: var(--text-primary); }
+@media (hover: hover) { .landing-nav-links a:not(.btn):hover { color: var(--text-primary); } }
 
 .landing-hero {
   display: flex;
@@ -540,7 +544,7 @@ select.input { cursor: pointer; }
 }
 .landing-eyebrow {
   display: inline-block;
-  font: 600 11.5px var(--font-display);
+  font: 600 12.5px var(--font-display);
   color: var(--accent-violet-text);
   background: var(--accent-glow);
   padding: 6px 12px;
@@ -571,7 +575,7 @@ select.input { cursor: pointer; }
   background: color-mix(in oklch, var(--col-accent) 10%, var(--bg-card));
   border-radius: 6px;
   padding: 9px;
-  font: 400 10.5px/1.3 var(--font-family);
+  font: 400 12px/1.35 var(--font-family);
   color: var(--text-primary);
 }
 .landing-preview-col-0 { --col-accent: var(--accent-violet); }
@@ -701,7 +705,7 @@ select.input { cursor: pointer; }
   color: var(--text-muted);
   transition: color var(--transition-fast);
 }
-.toggle-pwd:hover { color: var(--text-primary); }
+@media (hover: hover) { .toggle-pwd:hover { color: var(--text-primary); } }
 
 .login-error {
   min-height: 20px;
@@ -729,7 +733,7 @@ select.input { cursor: pointer; }
 
 .login-version-tag {
   margin-top: 12px;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   color: var(--text-muted);
   text-align: center;
   letter-spacing: 0.02em;
@@ -763,7 +767,7 @@ select.input { cursor: pointer; }
 }
 
 .users-table tr:last-child td { border-bottom: none; }
-.users-table tbody tr:hover td { background: var(--glass-2); }
+@media (hover: hover) { .users-table tbody tr:hover td { background: var(--glass-2); } }
 
 .user-name-cell { display: flex; align-items: center; gap: 10px; }
 
@@ -850,7 +854,7 @@ select.input { cursor: pointer; }
   flex-wrap: wrap;
 }
 
-.guest-name-bar:hover { transform: none; }
+@media (hover: hover) { .guest-name-bar:hover { transform: none; } }
 
 .guest-input-field {
   max-width: 100%;
@@ -873,7 +877,7 @@ select.input { cursor: pointer; }
 .board::-webkit-scrollbar { height: 8px; }
 .board::-webkit-scrollbar-track { background: var(--shadow-light); border-radius: 4px; }
 .board::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
-.board::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+@media (hover: hover) { .board::-webkit-scrollbar-thumb:hover { background: var(--text-muted); } }
 
 .column {
   flex: 0 0 calc(100vw - (var(--page-padding-x) * 2) - 32px);
@@ -953,11 +957,13 @@ select.input { cursor: pointer; }
   opacity: 0;
   transition: opacity var(--transition-fast), color var(--transition-fast);
 }
-.column-header:hover .column-delete-btn,
 .column-header:focus-within .column-delete-btn {
   opacity: 1;
 }
-.column-delete-btn:hover:not(:disabled) { color: var(--danger); }
+@media (hover: hover) { .column-header:hover .column-delete-btn {
+  opacity: 1;
+} }
+@media (hover: hover) { .column-delete-btn:hover:not(:disabled) { color: var(--danger); } }
 
 /* Touch devices have no :hover — keep delete visible, matching the same
    escape hatch already used for .entry-manage below. */
@@ -987,11 +993,11 @@ select.input { cursor: pointer; }
   transition: all var(--transition-fast);
   scroll-snap-align: center;
 }
-.add-column-card:hover {
+@media (hover: hover) { .add-column-card:hover {
   border-color: var(--border-focus);
   color: var(--text-primary);
   background: var(--glass-2);
-}
+} }
 .add-column-card-open {
   flex-direction: column;
   align-items: stretch;
@@ -1015,7 +1021,7 @@ select.input { cursor: pointer; }
 .column-body::-webkit-scrollbar { width: 4px; }
 .column-body::-webkit-scrollbar-track { background: transparent; }
 .column-body::-webkit-scrollbar-thumb { background: var(--glass-10); border-radius: 2px; }
-.column-body::-webkit-scrollbar-thumb:hover { background: var(--glass-15); }
+@media (hover: hover) { .column-body::-webkit-scrollbar-thumb:hover { background: var(--glass-15); } }
 
 .entry-card {
   background: color-mix(in oklch, var(--col-accent, var(--text-muted)) 7%, var(--bg-card));
@@ -1026,25 +1032,28 @@ select.input { cursor: pointer; }
   transition: background var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast);
   animation: slideIn 0.3s ease;
 }
-.entry-card:hover {
+@media (hover: hover) { .entry-card:hover {
   background: color-mix(in oklch, var(--col-accent, var(--text-muted)) 13%, var(--bg-card));
   border-top-color: var(--border-color);
   border-right-color: var(--border-color);
   border-bottom-color: var(--border-color);
   box-shadow: var(--shadow-card);
-}
+} }
 .entry-card[draggable="true"] { cursor: grab; }
 .entry-card[draggable="true"]:active { cursor: grabbing; }
 
 .entry-top { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 10px; }
-.entry-text { font-size: 0.9375rem; line-height: 1.5; flex: 1; min-width: 0; }
+.entry-text { font-size: 0.9375rem; line-height: 1.5; flex: 1; min-width: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
 
 /* Only rendered while editing (see EntryCard.js) — always visible, no
    hover-reveal needed since entering edit mode is already the deliberate
    action that surfaces it. */
-.entry-manage { display: flex; gap: 2px; align-items: center; flex-shrink: 0; width: 100%; margin-top: 6px; }
+/* Edit mode's single action row: move/delete on the left, cancel/save on
+   the right — below the full-width text box instead of squeezing it. */
+.entry-manage { display: flex; gap: 8px; align-items: center; justify-content: space-between; flex-shrink: 0; width: 100%; margin: -2px 0 10px; }
+.entry-manage-secondary { display: flex; gap: 4px; align-items: center; }
 .entry-manage .btn-icon-sm { color: var(--text-muted); }
-.entry-manage .btn-icon-sm:hover { color: var(--text-primary); }
+@media (hover: hover) { .entry-manage .btn-icon-sm:hover { color: var(--text-primary); } }
 
 .move-entry-select {
   width: auto;
@@ -1054,9 +1063,9 @@ select.input { cursor: pointer; }
   color: var(--text-muted);
   border-color: var(--border-color);
 }
-.move-entry-select:hover { color: var(--text-primary); }
+@media (hover: hover) { .move-entry-select:hover { color: var(--text-primary); } }
 
-.entry-edit-input { flex: 1; min-height: 36px; padding: 6px 10px; font-size: 0.9375rem; }
+.entry-edit-input { flex: 1; width: 100%; min-height: 40px; padding: 8px 10px; font-size: 0.9375rem; line-height: 1.5; resize: none; overflow: hidden; }
 .entry-edit-actions { display: flex; gap: 4px; flex-shrink: 0; }
 
 .entry-footer { display: flex; align-items: center; justify-content: flex-end; }
@@ -1071,8 +1080,11 @@ select.input { cursor: pointer; }
 .vote-count { transition: all var(--transition-fast); }
 .vote-count.bump { animation: voteBump 0.4s ease; }
 
-.add-entry-form { display: flex; gap: 8px; padding: 0 16px 16px; }
-.add-entry-form .input { flex: 1; padding: 10px 14px; font-size: 0.875rem; }
+.add-entry-form { display: flex; gap: 8px; align-items: flex-end; padding: 0 16px 16px; }
+.add-entry-form .input { flex: 1; padding: 10px 14px; font-size: 0.875rem; line-height: 1.4; resize: none; max-height: 40vh; overflow-y: auto; }
+/* Bottom-aligned, so it stays beside the last line as the textarea grows;
+   same height as the one-line textarea. */
+.add-entry-form .add-entry-submit { flex-shrink: 0; min-width: 44px; min-height: 48px; }
 
 .typing-indicator {
   padding: 0 16px 8px;
@@ -1138,7 +1150,7 @@ select.input { cursor: pointer; }
   right: 20px;
   background: var(--accent-primary);
   color: var(--on-accent);
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-weight: 700;
   padding: 4px 10px;
   border-radius: var(--radius-xl);
@@ -2045,7 +2057,7 @@ select.input { cursor: pointer; }
   justify-content: center;
   transition: transform var(--transition-fast);
 }
-.theme-toggle:hover { transform: scale(1.15); }
+@media (hover: hover) { .theme-toggle:hover { transform: scale(1.15); } }
 
 .login-toggle {
   text-align: center;
@@ -2060,9 +2072,9 @@ select.input { cursor: pointer; }
   text-decoration: none;
 }
 
-.login-toggle a:hover {
+@media (hover: hover) { .login-toggle a:hover {
   text-decoration: underline;
-}
+} }
 
 /* ── Mobile Header Nav Updates ────────────────────────────── */
 @media (max-width: 767px) {
@@ -2078,7 +2090,10 @@ select.input { cursor: pointer; }
   bottom: 0;
   left: 0;
   right: 0;
-  height: 64px;
+  /* The home-indicator inset is added on top of the 64px bar rather than
+     carved out of it — with border-box sizing, a plain 64px height left
+     ~30px for the icons on iPhones and pushed them up out of the bar. */
+  height: calc(64px + env(safe-area-inset-bottom, 0px));
   background: var(--bg-overlay);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
@@ -2086,12 +2101,15 @@ select.input { cursor: pointer; }
   justify-content: space-around;
   align-items: center;
   z-index: 999;
-  padding-bottom: env(safe-area-inset-bottom);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 .mobile-nav-item {
   display: flex;
   flex-direction: column;
+  /* Links would otherwise inherit the body's 1.6 line-height and come out
+     taller than the 64px bar (and than the logout <button> beside them) */
+  line-height: 1.2;
   align-items: center;
   justify-content: center;
   background: none;
@@ -2120,8 +2138,10 @@ select.input { cursor: pointer; }
   .mobile-nav-bar {
     display: flex;
   }
-  body {
-    padding-bottom: 80px; /* Space for bottom nav */
+  /* Space for the bottom nav — only on pages that render it (the retro
+     board, login and landing pages don't). */
+  body:has(.mobile-nav-bar) {
+    padding-bottom: calc(80px + env(safe-area-inset-bottom, 0px));
   }
 }
 
@@ -2169,7 +2189,7 @@ select.input { cursor: pointer; }
   text-decoration: none;
   transition: background var(--transition-fast), color var(--transition-fast);
 }
-.sidebar-nav-item:hover { background: rgba(255, 255, 255, 0.06); color: #f1f4f8; }
+@media (hover: hover) { .sidebar-nav-item:hover { background: rgba(255, 255, 255, 0.06); color: #f1f4f8; } }
 .sidebar-nav-item.active { background: var(--accent-primary); color: var(--on-accent); font-weight: 600; }
 
 .sidebar-account {
@@ -2210,7 +2230,7 @@ select.input { cursor: pointer; }
   justify-content: center;
   transition: background var(--transition-fast), color var(--transition-fast);
 }
-.sidebar-account-actions button:hover { background: rgba(255, 255, 255, 0.08); color: #f1f4f8; }
+@media (hover: hover) { .sidebar-account-actions button:hover { background: rgba(255, 255, 255, 0.08); color: #f1f4f8; } }
 
 .mobile-topbar {
   display: flex;
@@ -2285,7 +2305,7 @@ select.input { cursor: pointer; }
   background: var(--glass-10);
   padding: 2px 6px;
   border-radius: 999px;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
 }
 
 .board-tab.active .tab-count {
@@ -2360,18 +2380,39 @@ select.input { cursor: pointer; }
   .retro-actions .btn {
     flex: 1 1 calc(50% - 8px);
   }
-  .retro-actions #finish-retro-btn {
-    flex: 1 1 100%;
-  }
 }
 
 /* ── Touch Target Sizing ───────────────────────────────────── */
-/* Coarse pointers (touch) need bigger tap targets than mouse-hover UI */
+/* Touch screens get 44×44px minimum tap targets (Apple HIG / WCAG 2.5.5)
+   — the compact desktop sizes are fine for a mouse, not for a thumb. */
 @media (hover: none) {
-  .btn-icon-sm { width: 34px; height: 34px; min-height: 34px; font-size: 0.9rem; }
-  .btn-icon { width: 40px; height: 40px; min-height: 40px; }
-  .btn-vote { min-height: 40px; padding: 8px 14px; }
-  .toggle-pwd { padding: 10px 12px; margin-right: -12px; }
-  .board-tab { padding: 8px 14px; }
-  .move-entry-select { min-height: 34px; font-size: 0.75rem; }
+  .btn-sm,
+  .retro-actions .btn { min-height: 44px; }
+  .btn-sm { min-width: 44px; }
+  .entry-edit-input { min-height: 44px; }
+  .btn-icon-sm,
+  .btn-icon,
+  .theme-toggle { width: 44px; height: 44px; min-height: 44px; }
+  .btn-icon-sm { font-size: 1rem; }
+  .btn-vote { min-height: 44px; padding: 8px 16px; }
+  .toggle-pwd { min-width: 44px; min-height: 44px; padding: 10px 12px; margin-right: -12px; }
+  .board-tab { min-height: 44px; padding: 8px 16px; }
+  .template-btn { min-height: 44px; padding: 8px 14px; }
+  .move-entry-select { min-height: 44px; }
+  .column-name:not([readonly]) { min-height: 44px; }
+  .login-toggle a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 8px; }
+
+  /* iOS zooms the whole page into any focused field whose text is under
+     16px, which is why the viewport used to disable zooming altogether.
+     16px fields remove the cause, so pinch-zoom can stay on. !important
+     because several fields set their own, more specific, font sizes. */
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea { font-size: 16px !important; }
+
+  /* Pinch-zoom and panning stay available, but double-tap-to-zoom (and
+     the tap delay browsers add to detect it) is off. touch-action isn't
+     inherited, but it limits everything inside the element it's set on,
+     so setting it once here covers the whole page. */
+  html { touch-action: manipulation; }
 }

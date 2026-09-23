@@ -1,7 +1,7 @@
 import { h } from 'preact';
 import { useState, useRef, useEffect } from 'preact/hooks';
 import htm from 'htm';
-import { showToast, spawnVoteCelebration } from '../../utils.js';
+import { autoGrow, showToast, spawnVoteCelebration } from '../../utils.js';
 
 const html = htm.bind(h);
 
@@ -26,6 +26,7 @@ export function EntryCard({ entry, retroId, isVoted, voteFull, isFinished, canMa
   useEffect(() => {
     if (editing && editInputRef.current) {
       const input = editInputRef.current;
+      autoGrow(input);
       input.focus();
       input.setSelectionRange(input.value.length, input.value.length);
     }
@@ -106,29 +107,32 @@ export function EntryCard({ entry, retroId, isVoted, voteFull, isFinished, canMa
       <div class="entry-top">
         ${editing
           ? html`
-            <input
+            <textarea
               ref=${editInputRef}
               class="input entry-edit-input"
-              type="text"
+              rows="1"
               maxlength="1000"
+              enterkeyhint="done"
+              aria-label="Maddeyi düzenle"
               value=${editText}
-              onInput=${(e) => setEditText(e.currentTarget.value)}
-              onKeyDown=${(e) => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') cancelEdit(); }}
-            />
-            <div class="entry-edit-actions">
-              <button class="btn btn-primary btn-icon-sm" title="Kaydet" onClick=${saveEdit}>✓</button>
-              <button class="btn btn-ghost btn-icon-sm" title="İptal" onClick=${cancelEdit}>✕</button>
-            </div>
+              onInput=${(e) => { setEditText(e.currentTarget.value); autoGrow(e.currentTarget); }}
+              onKeyDown=${(e) => {
+                // Enter saves (Shift+Enter for a line break), Escape cancels
+                if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); saveEdit(); }
+                if (e.key === 'Escape') cancelEdit();
+              }}
+            ></textarea>
           `
           : html`
             <div class="entry-text">${entry.text}</div>
             ${canManage && !isFinished ? html`
-              <button class="btn btn-ghost btn-icon-sm" title="Düzenle" onClick=${startEdit}>✏️</button>
+              <button class="btn btn-ghost btn-icon-sm" title="Düzenle" aria-label="Düzenle" onClick=${startEdit}>✏️</button>
             ` : null}
           `}
       </div>
       ${editing && canManage && !isFinished ? html`
         <div class="entry-manage">
+          <div class="entry-manage-secondary">
           ${canMove && otherColumns.length > 0
             ? (movePickerOpen
               ? html`
@@ -137,9 +141,14 @@ export function EntryCard({ entry, retroId, isVoted, voteFull, isFinished, canMa
                   ${otherColumns.map(c => html`<option key=${c.id} value=${c.id}>${c.name}</option>`)}
                 </select>
               `
-              : html`<button class="btn btn-ghost btn-icon-sm" title="Taşı" onClick=${() => setMovePickerOpen(true)}>↔️</button>`
+              : html`<button class="btn btn-ghost btn-icon-sm" title="Taşı" aria-label="Taşı" onClick=${() => setMovePickerOpen(true)}>↔️</button>`
             ) : null}
-          <button class="btn btn-ghost btn-icon-sm" title="Sil" onClick=${handleDelete}>🗑️</button>
+          <button class="btn btn-ghost btn-icon-sm" title="Sil" aria-label="Sil" onClick=${handleDelete}>🗑️</button>
+          </div>
+          <div class="entry-edit-actions">
+            <button class="btn btn-ghost btn-icon-sm" title="İptal" aria-label="İptal" onClick=${cancelEdit}>✕</button>
+            <button class="btn btn-primary btn-icon-sm" title="Kaydet" aria-label="Kaydet" onClick=${saveEdit}>✓</button>
+          </div>
         </div>
       ` : null}
       <div class="entry-footer">
