@@ -1,11 +1,25 @@
+import { randomUUID } from 'node:crypto';
 import request from 'supertest';
+import bcrypt from 'bcryptjs';
 import app from '../server/app.js';
+import db from '../server/db.js';
 
 export { app };
 
-/** Logs in as the DB-seeded default admin account. */
+const TEST_ADMIN = { username: 'testadmin', password: 'testadmin-pass' };
+
+/**
+ * Logs in as a ready-to-use admin account. Not the DB-seeded admin/admin —
+ * that one is flagged must_change_password and the API refuses it until the
+ * password changes, so tests get their own admin with a real password.
+ */
 export async function loginAdmin() {
-  const res = await request(app).post('/api/auth/login').send({ username: 'admin', password: 'admin' });
+  const exists = db.prepare('SELECT id FROM users WHERE username = ?').get(TEST_ADMIN.username);
+  if (!exists) {
+    db.prepare("INSERT INTO users (id, username, password_hash, role) VALUES (?, ?, ?, 'admin')")
+      .run(randomUUID(), TEST_ADMIN.username, bcrypt.hashSync(TEST_ADMIN.password, 4));
+  }
+  const res = await request(app).post('/api/auth/login').send(TEST_ADMIN);
   return res.body; // { token, user }
 }
 

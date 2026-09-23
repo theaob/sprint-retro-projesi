@@ -29,7 +29,7 @@ export function RetroBoard({ retro: initialRetro, user, onWsConnected }) {
   };
   const getColumnEl = (colId) => columnRefs.current.get(colId) ?? null;
 
-  const isAdminOrOwner = user?.role === 'admin' || user?.id === retro.created_by;
+  const isAdminOrOwner = user?.role === 'admin' || retro.is_owner;
   const isFinished = retro.status === 'finished';
   // Once anyone's added a sticky note anywhere on the board, the lane
   // structure locks — renaming or adding lanes mid-retro would be
@@ -114,7 +114,7 @@ export function RetroBoard({ retro: initialRetro, user, onWsConnected }) {
   const handleExportExcel = async () => {
     try {
       const latest = await api.getRetro(retro.id);
-      exportRetroToExcel(latest);
+      await exportRetroToExcel(latest);
       showToast('Excel dosyası indirildi! 📊', 'success');
     } catch (err) {
       showToast(err.message, 'error');

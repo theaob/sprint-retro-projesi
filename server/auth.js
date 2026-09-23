@@ -26,16 +26,35 @@ export function loadUser(req, res, next) {
   next();
 }
 
-/** Block if not authenticated */
+const PASSWORD_CHANGE_REQUIRED = {
+  error: 'Devam etmeden önce şifrenizi değiştirmeniz gerekiyor.',
+  must_change_password: true
+};
+
+/**
+ * Block if not authenticated. An account still flagged must_change_password
+ * (e.g. the seeded admin/admin) is also blocked — the flag is enforced here,
+ * not just by the login screen, so the default credentials can't be used
+ * against the API directly. Routes a flagged account must still reach
+ * (changing its own password, /auth/me, logout) use requireAuthAllowPending.
+ */
 export function requireAuth(req, res, next) {
+  if (!req.user) return res.status(401).json({ error: 'Giriş yapmanız gerekiyor.' });
+  if (req.user.must_change_password) return res.status(403).json(PASSWORD_CHANGE_REQUIRED);
+  next();
+}
+
+/** Like requireAuth, but lets a must_change_password account through. */
+export function requireAuthAllowPending(req, res, next) {
   if (!req.user) return res.status(401).json({ error: 'Giriş yapmanız gerekiyor.' });
   next();
 }
 
-/** Block if not admin */
+/** Block if not admin (or an admin that still has to change its password) */
 export function requireAdmin(req, res, next) {
   if (!req.user || req.user.role !== 'admin') {
     return res.status(403).json({ error: 'Bu işlem için admin yetkisi gereklidir.' });
   }
+  if (req.user.must_change_password) return res.status(403).json(PASSWORD_CHANGE_REQUIRED);
   next();
 }

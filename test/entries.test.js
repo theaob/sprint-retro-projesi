@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll } from 'vitest';
 import request from 'supertest';
 import { app, registerUser, createRetro } from './helpers.js';
+import db from '../server/db.js';
 
 describe('entries', () => {
   let owner, outsider, retro, columnId, secondColumnId;
@@ -202,5 +203,101 @@ describe('entries', () => {
       .send({ column_id: secondColumnId });
     expect(res.status).toBe(200);
     expect(res.body.column_id).toBe(secondColumnId);
+  });
+});
+
+describe('vote identity', () => {
+  it('hides the owner id from the public board and reports is_owner instead', async () => {
+    const owner = await registerUser('identity-owner');
+    const retro = await createRetro(owner, 'Identity Retro');
+
+    const guestView = await request(app).get(`/api/retros/${retro.id}`);
+    expect(guestView.body.created_by).toBeUndefined();
+    expect(guestView.body.is_owner).toBe(false);
+
+    const ownerView = await request(app).get(`/api/retros/${retro.id}`).set('Authorization', `Bearer ${owner.token}`);
+    expect(ownerView.body.is_owner).toBe(true);
+  });
+
+  it("stops a guest from reading or withdrawing a user's votes by sending their id", async () => {
+    const owner = await registerUser('identity-owner-2');
+    const retro = await createRetro(owner, 'Impersonation Retro');
+    const board = await request(app).get(`/api/retros/${retro.id}`);
+    const entry = await request(app)
+      .post(`/api/retros/${retro.id}/entries`)
+      .send({ column_id: board.body.columns[0].id, text: 'Owner likes this' });
+
+    await request(app)
+      .post(`/api/retros/${retro.id}/entries/${entry.body.id}/vote`)
+      .set('Authorization', `Bearer ${owner.token}`);
+
+    const peek = await request(app).get(`/api/retros/${retro.id}?participant_id=${owner.user.id}`);
+    expect(peek.body.voted_entry_ids).toEqual([]);
+
+    const unvote = await request(app)
+      .post(`/api/retros/${retro.id}/entries/${entry.body.id}/unvote`)
+      .send({ participant_id: owner.user.id });
+    expect(unvote.status).toBe(404);
+
+    const ownerView = await request(app).get(`/api/retros/${retro.id}`).set('Authorization', `Bearer ${owner.token}`);
+    expect(ownerView.body.voted_entry_ids).toEqual([entry.body.id]);
+    expect(ownerView.body.columns[0].entries[0].votes).toBe(1);
+  });
+
+  it('stores guest votes under the anon: namespace', async () => {
+    const owner = await registerUser('identity-owner-3');
+    const retro = await createRetro(owner, 'Namespace Retro');
+    const board = await request(app).get(`/api/retros/${retro.id}`);
+    const entry = await request(app)
+      .post(`/api/retros/${retro.id}/entries`)
+      .send({ column_id: board.body.columns[0].id, text: 'Guest vote' });
+
+    await request(app).post(`/api/retros/${retro.id}/entries/${entry.body.id}/vote`).send({ participant_id: 'guest-ns' });
+    const row = db.prepare('SELECT participant_id FROM votes WHERE entry_id = ?').get(entry.body.id);
+    expect(row.participant_id).toBe('anon:guest-ns');
+  });
+});
+
+describe('finished retros', () => {
+  let owner, retro, columnId, entryId;
+
+  beforeAll(async () => {
+    owner = await registerUser('finished-owner');
+    retro = await createRetro(owner, 'Finished Retro');
+    const board = await request(app).get(`/api/retros/${retro.id}`);
+    columnId = board.body.columns[0].id;
+    const entry = await request(app).post(`/api/retros/${retro.id}/entries`).send({ column_id: columnId, text: 'Before finish' });
+    entryId = entry.body.id;
+    await request(app).post(`/api/retros/${retro.id}/entries/${entryId}/vote`).send({ participant_id: 'finished-guest' });
+    await request(app)
+      .put(`/api/retros/${retro.id}/status`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .send({ status: 'finished' });
+  });
+
+  it('rejects new entries once the retro is finished', async () => {
+    const res = await request(app).post(`/api/retros/${retro.id}/entries`).send({ column_id: columnId, text: 'Too late' });
+    expect(res.status).toBe(409);
+  });
+
+  it('rejects votes and unvotes once the retro is finished', async () => {
+    const vote = await request(app).post(`/api/retros/${retro.id}/entries/${entryId}/vote`).send({ participant_id: 'late-guest' });
+    expect(vote.status).toBe(409);
+    const unvote = await request(app).post(`/api/retros/${retro.id}/entries/${entryId}/unvote`).send({ participant_id: 'finished-guest' });
+    expect(unvote.status).toBe(409);
+  });
+
+  it('accepts changes again after the retro is reopened', async () => {
+    await request(app)
+      .put(`/api/retros/${retro.id}/status`)
+      .set('Authorization', `Bearer ${owner.token}`)
+      .send({ status: 'active' });
+    const res = await request(app).post(`/api/retros/${retro.id}/entries`).send({ column_id: columnId, text: 'Reopened' });
+    expect(res.status).toBe(201);
+  });
+
+  it('404s when adding an entry to a retro that does not exist', async () => {
+    const res = await request(app).post('/api/retros/no-such-retro/entries').send({ column_id: columnId, text: 'x' });
+    expect(res.status).toBe(404);
   });
 });

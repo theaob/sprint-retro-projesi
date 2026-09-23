@@ -188,4 +188,16 @@ export function renderLogin(appEl, { startInRegister = false } = {}) {
   };
 
   updateUI();
+
+  // Came back here (reload, or a redirect from a protected page) with a
+  // session that still has to change its default password — resume the
+  // blocking prompt instead of showing a login form for an active session.
+  const pendingUser = api.getUser();
+  const pendingToken = localStorage.getItem('retro_token');
+  // The prompt lives on <body>, outside appEl — it may still be open from
+  // before this re-render, so don't stack a second one.
+  const alreadyOpen = document.getElementById('force-pwd-input');
+  if (pendingUser?.must_change_password && pendingToken && !alreadyOpen) {
+    showForcedPasswordChangeModal(appEl, pendingToken, pendingUser);
+  }
 }
