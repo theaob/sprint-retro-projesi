@@ -48,8 +48,10 @@ export const api = {
   updateUser: (id, data) => request(`/users/${id}`, {
     method: 'PUT', body: JSON.stringify(data)
   }),
-  changePassword: (id, password) => request(`/users/${id}/password`, {
-    method: 'PUT', body: JSON.stringify({ password })
+  // currentPassword is required when changing your own password (except
+  // for the forced first-login change)
+  changePassword: (id, password, currentPassword) => request(`/users/${id}/password`, {
+    method: 'PUT', body: JSON.stringify({ password, current_password: currentPassword })
   }),
 
   // Retro templates

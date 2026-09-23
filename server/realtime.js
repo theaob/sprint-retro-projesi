@@ -97,7 +97,10 @@ export function attachRealtime(server) {
         } else if (msg.type === 'typing' && currentRoom && typeof msg.columnId === 'string' && msg.columnId) {
           // Relayed only to the rest of the room — the client throttles how
           // often it sends these, the server just passes them through.
-          broadcast(currentRoom, { type: 'typing', columnId: msg.columnId.slice(0, 64), name: ws.presenceName || 'Misafir' }, ws);
+          // Deliberately nameless: entries are anonymous, and "<name> is
+          // typing in column X" right before an entry lands in X would say
+          // who wrote it.
+          broadcast(currentRoom, { type: 'typing', columnId: msg.columnId.slice(0, 64) }, ws);
         }
       } catch {
         // ignore malformed messages

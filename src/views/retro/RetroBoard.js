@@ -62,8 +62,8 @@ export function RetroBoard({ retro: initialRetro, user, onWsConnected }) {
         }
       },
       onPresenceUpdate(users) { setPresenceUsers(users); },
-      onTyping(columnId, name) {
-        setTypingByColumn(prev => ({ ...prev, [columnId]: name }));
+      onTyping(columnId) {
+        setTypingByColumn(prev => ({ ...prev, [columnId]: true }));
         clearTimeout(typingTimers.current[columnId]);
         typingTimers.current[columnId] = setTimeout(() => {
           setTypingByColumn(prev => {
@@ -237,7 +237,7 @@ export function RetroBoard({ retro: initialRetro, user, onWsConnected }) {
           onDeleteEntry=${handleDeleteEntry}
           onMoveEntry=${handleMoveEntry}
           onDeleteColumn=${handleDeleteColumn}
-          typingName=${typingByColumn[col.id]}
+          someoneTyping=${!!typingByColumn[col.id]}
           onTyping=${handleTyping}
         />
       `)}

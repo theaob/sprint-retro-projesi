@@ -6,7 +6,7 @@ function createColumnInputRow(value = '') {
   const row = document.createElement('div');
   row.className = 'column-input-row';
   row.innerHTML = `
-    <input class="input column-name-input" type="text" value="${escapeHtml(value)}" placeholder="Sütun adı" required />
+    <input class="input column-name-input" type="text" maxlength="100" value="${escapeHtml(value)}" placeholder="Sütun adı" required />
     <button type="button" class="btn btn-ghost btn-icon remove-col-btn" title="Kaldır">✕</button>
   `;
   return row;
@@ -58,7 +58,7 @@ export async function renderAdmin(appEl) {
             <form class="create-form" id="create-form">
               <div class="form-group">
                 <label for="retro-title">Retro Başlığı</label>
-                <input class="input" type="text" id="retro-title" placeholder="Örn: Sprint 14 Retro" required />
+                <input class="input" type="text" id="retro-title" placeholder="Örn: Sprint 14 Retro" maxlength="200" required />
               </div>
               <div class="form-group">
                 <label for="retro-max-votes">Kişi Başı Oy Hakkı</label>
@@ -75,15 +75,15 @@ export async function renderAdmin(appEl) {
                 <label>Sütunlar</label>
                 <div class="columns-input-list" id="columns-list">
                   <div class="column-input-row">
-                    <input class="input column-name-input" type="text" value="İyi Giden" placeholder="Sütun adı" required />
+                    <input class="input column-name-input" type="text" maxlength="100" value="İyi Giden" placeholder="Sütun adı" required />
                     <button type="button" class="btn btn-ghost btn-icon remove-col-btn" title="Kaldır">✕</button>
                   </div>
                   <div class="column-input-row">
-                    <input class="input column-name-input" type="text" value="Geliştirilmeli" placeholder="Sütun adı" required />
+                    <input class="input column-name-input" type="text" maxlength="100" value="Geliştirilmeli" placeholder="Sütun adı" required />
                     <button type="button" class="btn btn-ghost btn-icon remove-col-btn" title="Kaldır">✕</button>
                   </div>
                   <div class="column-input-row">
-                    <input class="input column-name-input" type="text" value="Aksiyon" placeholder="Sütun adı" required />
+                    <input class="input column-name-input" type="text" maxlength="100" value="Aksiyon" placeholder="Sütun adı" required />
                     <button type="button" class="btn btn-ghost btn-icon remove-col-btn" title="Kaldır">✕</button>
                   </div>
                 </div>

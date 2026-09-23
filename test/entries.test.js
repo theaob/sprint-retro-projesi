@@ -296,6 +296,15 @@ describe('finished retros', () => {
     expect(res.status).toBe(201);
   });
 
+  it("rejects an entry whose column belongs to a different retro", async () => {
+    const otherRetro = await createRetro(owner, 'Other Retro');
+    const otherBoard = await request(app).get(`/api/retros/${otherRetro.id}`);
+    const res = await request(app)
+      .post(`/api/retros/${retro.id}/entries`)
+      .send({ column_id: otherBoard.body.columns[0].id, text: 'Wrong board' });
+    expect(res.status).toBe(400);
+  });
+
   it('404s when adding an entry to a retro that does not exist', async () => {
     const res = await request(app).post('/api/retros/no-such-retro/entries').send({ column_id: columnId, text: 'x' });
     expect(res.status).toBe(404);

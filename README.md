@@ -66,7 +66,7 @@ Sprint Retro is a full-stack, real-time web application to help agile teams cond
 3. Start the application using `npm run start`.
 
 ### Docker
-You can also use the provided `Dockerfile` to build and run the application inside a container. The setup uses a lightweight Debian base (`node:20-bookworm-slim`) and seamlessly supports multi-architecture builds (including `linux/amd64` and `linux/arm64/v8`).
+You can also use the provided `Dockerfile` to build and run the application inside a container. The setup uses a lightweight Debian base (`node:22-bookworm-slim`) and seamlessly supports multi-architecture builds (including `linux/amd64` and `linux/arm64/v8`).
 
 #### Data Persistence
 To ensure your data (retros, users, and votes) is kept between redeployments or version updates, you should mount a volume to the `/app/data` directory where the SQLite database is stored:
@@ -78,6 +78,11 @@ docker run -d \
   --name sprint-retro \
   sprint-retro-app
 ```
+
+The container runs as the unprivileged `node` user (uid 1000), so the mounted data directory must be writable by it. For a directory created by an older (root) image, run `sudo chown -R 1000:1000 ./data` once before upgrading.
+
+#### Behind a reverse proxy
+If the app sits behind a reverse proxy (nginx, Traefik, a cloud load balancer), set `TRUST_PROXY` to the number of proxy hops, e.g. `-e TRUST_PROXY=1`. Rate limiting then uses the client IP from `X-Forwarded-For`. Leave it unset when the container is exposed directly, as in the command above: otherwise clients could set their own IP in that header and get around the login rate limit. Without it behind a proxy, every visitor shares the proxy's IP and one rate-limit budget.
 
 An automated GitHub Actions workflow (`release-docker.yml`) is provided out-of-the-box to handle building and pushing these cross-platform images to Docker Hub.
 

@@ -9,7 +9,7 @@ const html = htm.bind(h);
 export function Column({
   col, allColumns, retroId, isFinished, isAdminOrOwner, hasEntries, votedEntryIds, voteMax,
   flashing, registerRef, onRename, onAddEntry, onVote, onUnvote, onEditEntry, onDeleteEntry, onMoveEntry,
-  onDeleteColumn, typingName, onTyping
+  onDeleteColumn, someoneTyping, onTyping
 }) {
   const [name, setName] = useState(col.name);
   const [entryText, setEntryText] = useState('');
@@ -109,6 +109,7 @@ export function Column({
         <input
           ref=${nameInputRef}
           class="column-name"
+          maxlength="100"
           value=${name}
           readonly=${!canRenameColumn}
           onInput=${handleNameInput}
@@ -138,13 +139,14 @@ export function Column({
           />
         `)}
       </div>
-      ${typingName ? html`<div class="typing-indicator">${typingName} yazıyor…</div>` : null}
+      ${someoneTyping ? html`<div class="typing-indicator">Birisi yazıyor…</div>` : null}
       ${!isFinished ? html`
         <form class="add-entry-form" onSubmit=${handleAddEntry}>
           <input
             class="input"
             type="text"
             placeholder="Yeni madde ekle…"
+            maxlength="1000"
             required
             value=${entryText}
             onInput=${(e) => { setEntryText(e.currentTarget.value); onTyping?.(col.id); }}

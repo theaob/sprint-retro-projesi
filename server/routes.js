@@ -26,6 +26,17 @@ const loginLimiter = rateLimit({
   message: { error: 'Çok fazla giriş denemesi. Lütfen birkaç dakika sonra tekrar deneyin.' }
 });
 
+// Guards the current-password check on PUT /users/:id/password against
+// being used to brute-force a password with a stolen session token.
+const passwordChangeLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: skipInTests,
+  message: { error: 'Çok fazla şifre değiştirme denemesi. Lütfen birkaç dakika sonra tekrar deneyin.' }
+});
+
 const registerLimiter = rateLimit({
   windowMs: 60 * 60 * 1000,
   limit: 10,
@@ -34,6 +45,53 @@ const registerLimiter = rateLimit({
   skip: skipInTests,
   message: { error: 'Çok fazla kayıt denemesi. Lütfen daha sonra tekrar deneyin.' }
 });
+
+// Public board writes need no login, so this per-IP budget is what stops
+// a script from stuffing votes by rotating participant_ids. Generous,
+// because a whole team in one office can share a single IP.
+const boardWriteLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: skipInTests,
+  message: { error: 'Çok fazla istek. Lütfen biraz bekleyip tekrar deneyin.' }
+});
+
+// Maximum lengths for user-supplied text fields
+const LIMITS = {
+  username: 50,
+  email: 254,
+  password: 200,
+  title: 200,
+  columnName: 100,
+  templateName: 100,
+  entryText: 1000,
+  columnsPerRetro: 20
+};
+
+const MAX_VOTES_RANGE = { min: 1, max: 20 };
+
+/** The trimmed string if `value` is a non-empty string of at most `max` chars, else null. */
+function cleanString(value, max) {
+  if (typeof value !== 'string') return null;
+  const trimmed = value.trim();
+  return trimmed && trimmed.length <= max ? trimmed : null;
+}
+
+/** For optional fields: `{ ok, value }`, where an empty/missing value is ok and becomes null. */
+function optionalString(value, max) {
+  if (value === undefined || value === null || value === '') return { ok: true, value: null };
+  if (typeof value !== 'string' || value.trim().length > max) return { ok: false };
+  return { ok: true, value: value.trim() || null };
+}
+
+/** An error message for an unacceptable new password, or null. */
+function passwordError(password) {
+  if (typeof password !== 'string' || password.length < 6) return 'Şifre en az 6 karakter olmalıdır.';
+  if (password.length > LIMITS.password) return `Şifre en fazla ${LIMITS.password} karakter olabilir.`;
+  return null;
+}
 
 function createSession(userId) {
   const token = randomUUID();
@@ -56,6 +114,8 @@ function voterId(req, suppliedParticipantId) {
   return `anon:${suppliedParticipantId}`;
 }
 
+const RETRO_STATUSES = ['active', 'finished'];
+
 const RETRO_FINISHED_ERROR = { error: 'Bu retro tamamlandı; artık değişiklik yapılamaz.' };
 
 /* ══════════════════════════════════════════════════════════════
@@ -64,8 +124,12 @@ const RETRO_FINISHED_ERROR = { error: 'Bu retro tamamlandı; artık değişiklik
 
 // POST /api/auth/login
 router.post('/auth/login', loginLimiter, (req, res) => {
+  // Matched exactly, not trimmed: accounts registered before usernames were
+  // trimmed may still carry surrounding spaces.
   const { username, password } = req.body;
-  if (!username || !password) return res.status(400).json({ error: 'Kullanıcı adı ve şifre gereklidir.' });
+  if (typeof username !== 'string' || !username || typeof password !== 'string' || !password) {
+    return res.status(400).json({ error: 'Kullanıcı adı ve şifre gereklidir.' });
+  }
 
   const user = db.prepare('SELECT * FROM users WHERE username = ?').get(username);
   if (!user || !bcrypt.compareSync(password, user.password_hash)) {
@@ -79,16 +143,20 @@ router.post('/auth/login', loginLimiter, (req, res) => {
 
 // POST /api/auth/register — public
 router.post('/auth/register', registerLimiter, (req, res) => {
-  const { username, password, email } = req.body;
+  const { password } = req.body;
+  const username = cleanString(req.body.username, LIMITS.username);
   if (!username || !password) return res.status(400).json({ error: 'Kullanıcı adı ve şifre gereklidir.' });
-  if (password.length < 6) return res.status(400).json({ error: 'Şifre en az 6 karakter olmalıdır.' });
+  const pwdError = passwordError(password);
+  if (pwdError) return res.status(400).json({ error: pwdError });
+  const email = optionalString(req.body.email, LIMITS.email);
+  if (!email.ok) return res.status(400).json({ error: 'Geçersiz e-posta adresi.' });
 
   const exists = db.prepare('SELECT id FROM users WHERE username = ?').get(username);
   if (exists) return res.status(409).json({ error: 'Bu kullanıcı adı zaten kullanılmakta.' });
 
   const id = randomUUID();
   const hash = bcrypt.hashSync(password, 10);
-  db.prepare('INSERT INTO users (id, username, password_hash, role, email) VALUES (?, ?, ?, ?, ?)').run(id, username, hash, 'user', email || null);
+  db.prepare('INSERT INTO users (id, username, password_hash, role, email) VALUES (?, ?, ?, ?, ?)').run(id, username, hash, 'user', email.value);
 
   // Auto-login after registration
   const token = createSession(id);
@@ -122,19 +190,23 @@ router.get('/users', requireAdmin, (req, res) => {
 
 // POST /api/users  — create user
 router.post('/users', requireAdmin, (req, res) => {
-  const { username, password, role = 'user', email } = req.body;
+  const { password, role = 'user' } = req.body;
+  const username = cleanString(req.body.username, LIMITS.username);
   if (!username || !password) return res.status(400).json({ error: 'Kullanıcı adı ve şifre gereklidir.' });
-  if (password.length < 6) return res.status(400).json({ error: 'Şifre en az 6 karakter olmalıdır.' });
+  const pwdError = passwordError(password);
+  if (pwdError) return res.status(400).json({ error: pwdError });
   if (!['admin', 'user'].includes(role)) return res.status(400).json({ error: 'Geçersiz rol.' });
+  const email = optionalString(req.body.email, LIMITS.email);
+  if (!email.ok) return res.status(400).json({ error: 'Geçersiz e-posta adresi.' });
 
   const exists = db.prepare('SELECT id FROM users WHERE username = ?').get(username);
   if (exists) return res.status(409).json({ error: 'Bu kullanıcı adı zaten kullanılmakta.' });
 
   const id = randomUUID();
   const hash = bcrypt.hashSync(password, 10);
-  db.prepare('INSERT INTO users (id, username, password_hash, role, email) VALUES (?, ?, ?, ?, ?)').run(id, username, hash, role, email || null);
+  db.prepare('INSERT INTO users (id, username, password_hash, role, email) VALUES (?, ?, ?, ?, ?)').run(id, username, hash, role, email.value);
 
-  res.status(201).json({ id, username, role, email: email || null });
+  res.status(201).json({ id, username, role, email: email.value });
 });
 
 // DELETE /api/users/:id
@@ -147,34 +219,64 @@ router.delete('/users/:id', requireAdmin, (req, res) => {
 });
 
 // PUT /api/users/:id/password  — change password (admin or self)
-router.put('/users/:id/password', requireAuthAllowPending, (req, res) => {
+router.put('/users/:id/password', passwordChangeLimiter, requireAuthAllowPending, (req, res) => {
   const isSelf = req.params.id === req.user.id;
   // An admin still on a default password can only fix its own password,
   // not reset anyone else's.
   const isAdmin = req.user.role === 'admin' && !req.user.must_change_password;
   if (!isSelf && !isAdmin) return res.status(403).json({ error: 'Yetki yok.' });
 
-  const { password } = req.body;
-  if (!password || password.length < 6) return res.status(400).json({ error: 'Şifre en az 6 karakter olmalıdır.' });
+  const { password, current_password: currentPassword } = req.body;
+  const pwdError = passwordError(password);
+  if (pwdError) return res.status(400).json({ error: pwdError });
 
+  const target = db.prepare('SELECT id, password_hash FROM users WHERE id = ?').get(req.params.id);
+  if (!target) return res.status(404).json({ error: 'Kullanıcı bulunamadı.' });
+
+  // Changing your own password takes the current one, so a leaked session
+  // token alone can't lock the real owner out. Not asked of an account
+  // flagged must_change_password: it's on a publicly known default (e.g.
+  // admin/admin), so asking for it proves nothing.
+  if (isSelf && !req.user.must_change_password) {
+    if (typeof currentPassword !== 'string' || !bcrypt.compareSync(currentPassword, target.password_hash)) {
+      return res.status(400).json({ error: 'Mevcut şifre hatalı.' });
+    }
+  }
+
+  // A password change logs out every other session of that account — the
+  // point of a reset is usually to lock someone out. Changing your own
+  // keeps the session you're using.
+  const keepToken = isSelf ? req.headers.authorization.slice(7) : '';
   const hash = bcrypt.hashSync(password, 10);
-  db.prepare('UPDATE users SET password_hash = ?, must_change_password = 0 WHERE id = ?').run(hash, req.params.id);
+  db.transaction(() => {
+    db.prepare('UPDATE users SET password_hash = ?, must_change_password = 0 WHERE id = ?').run(hash, req.params.id);
+    db.prepare('DELETE FROM sessions WHERE user_id = ? AND token != ?').run(req.params.id, keepToken);
+  })();
   res.json({ success: true });
 });
 
 // PUT /api/users/:id  — update user details (admin only)
 router.put('/users/:id', requireAdmin, (req, res) => {
-  const { email, username } = req.body;
   const user = db.prepare('SELECT id FROM users WHERE id = ?').get(req.params.id);
   if (!user) return res.status(404).json({ error: 'Kullanıcı bulunamadı.' });
 
-  if (username !== undefined) {
+  // Validate everything before writing anything, so a bad email can't
+  // leave a half-applied update behind.
+  let username;
+  if (req.body.username !== undefined) {
+    username = cleanString(req.body.username, LIMITS.username);
+    if (!username) return res.status(400).json({ error: 'Geçersiz kullanıcı adı.' });
     const existing = db.prepare('SELECT id FROM users WHERE username = ? AND id != ?').get(username, req.params.id);
     if (existing) return res.status(409).json({ error: 'Bu kullanıcı adı zaten kullanılmakta.' });
-    db.prepare('UPDATE users SET username = ? WHERE id = ?').run(username.trim(), req.params.id);
   }
-  if (email !== undefined) {
-    db.prepare('UPDATE users SET email = ? WHERE id = ?').run(email.trim() || null, req.params.id);
+  const email = req.body.email !== undefined ? optionalString(req.body.email, LIMITS.email) : null;
+  if (email && !email.ok) return res.status(400).json({ error: 'Geçersiz e-posta adresi.' });
+
+  if (username !== undefined) {
+    db.prepare('UPDATE users SET username = ? WHERE id = ?').run(username, req.params.id);
+  }
+  if (email) {
+    db.prepare('UPDATE users SET email = ? WHERE id = ?').run(email.value, req.params.id);
   }
 
   const updated = db.prepare('SELECT id, username, email, role, created_at FROM users WHERE id = ?').get(req.params.id);
@@ -186,13 +288,29 @@ router.put('/users/:id', requireAdmin, (req, res) => {
    admin-only.
 ══════════════════════════════════════════════════════════════ */
 
-function validateTemplateBody(body) {
-  const { name, columns } = body;
-  if (!name || !name.trim()) return 'Şablon adı gereklidir.';
-  if (!Array.isArray(columns) || columns.length === 0 || columns.some(c => !c || !c.trim())) {
-    return 'En az bir geçerli sütun gereklidir.';
+/**
+ * Parses a column-name list shared by templates and retro creation:
+ * `{ columns }` with every name trimmed, or `{ error }`.
+ */
+function parseColumnNames(columns) {
+  if (!Array.isArray(columns) || columns.length === 0) return { error: 'En az bir geçerli sütun gereklidir.' };
+  if (columns.length > LIMITS.columnsPerRetro) {
+    return { error: `En fazla ${LIMITS.columnsPerRetro} sütun eklenebilir.` };
   }
-  return null;
+  const names = columns.map(c => cleanString(c, LIMITS.columnName));
+  if (names.some(n => !n)) {
+    return { error: `Sütun adları boş olamaz ve en fazla ${LIMITS.columnName} karakter olabilir.` };
+  }
+  return { columns: names };
+}
+
+/** `{ name, columns }` with trimmed values, or `{ error }`. */
+function parseTemplateBody(body) {
+  const name = cleanString(body.name, LIMITS.templateName);
+  if (!name) return { error: 'Şablon adı gereklidir.' };
+  const parsed = parseColumnNames(body.columns);
+  if (parsed.error) return { error: parsed.error };
+  return { name, columns: parsed.columns };
 }
 
 // GET /api/templates
@@ -203,29 +321,25 @@ router.get('/templates', requireAuth, (req, res) => {
 
 // POST /api/templates
 router.post('/templates', requireAdmin, (req, res) => {
-  const error = validateTemplateBody(req.body);
+  const { error, name, columns } = parseTemplateBody(req.body);
   if (error) return res.status(400).json({ error });
 
-  const { name, columns } = req.body;
-  const trimmedColumns = columns.map(c => c.trim());
   const id = randomUUID();
   const sortOrder = db.prepare('SELECT COALESCE(MAX(sort_order), -1) + 1 as next FROM templates').get().next;
 
   db.prepare('INSERT INTO templates (id, name, columns, sort_order) VALUES (?, ?, ?, ?)')
-    .run(id, name.trim(), JSON.stringify(trimmedColumns), sortOrder);
+    .run(id, name, JSON.stringify(columns), sortOrder);
 
-  res.status(201).json({ id, name: name.trim(), columns: trimmedColumns, sort_order: sortOrder });
+  res.status(201).json({ id, name, columns, sort_order: sortOrder });
 });
 
 // PUT /api/templates/:id
 router.put('/templates/:id', requireAdmin, (req, res) => {
-  const error = validateTemplateBody(req.body);
+  const { error, name, columns } = parseTemplateBody(req.body);
   if (error) return res.status(400).json({ error });
 
-  const { name, columns } = req.body;
-  const trimmedColumns = columns.map(c => c.trim());
   db.prepare('UPDATE templates SET name = ?, columns = ? WHERE id = ?')
-    .run(name.trim(), JSON.stringify(trimmedColumns), req.params.id);
+    .run(name, JSON.stringify(columns), req.params.id);
 
   const updated = db.prepare('SELECT * FROM templates WHERE id = ?').get(req.params.id);
   if (!updated) return res.status(404).json({ error: 'Şablon bulunamadı.' });
@@ -273,13 +387,21 @@ function createUniqueShortCode() {
 
 // POST /api/retros  — allow any authenticated user
 router.post('/retros', requireAuth, (req, res) => {
-  const { title, columns, max_votes } = req.body;
-  if (!title || !columns || !Array.isArray(columns) || columns.length === 0) {
-    return res.status(400).json({ error: 'Başlık ve en az bir sütun gereklidir.' });
+  const { max_votes } = req.body;
+  const title = cleanString(req.body.title, LIMITS.title);
+  if (!title) {
+    return res.status(400).json({ error: `Başlık gereklidir (en fazla ${LIMITS.title} karakter).` });
+  }
+  const parsedColumns = parseColumnNames(req.body.columns);
+  if (parsedColumns.error) return res.status(400).json({ error: parsedColumns.error });
+  const columns = parsedColumns.columns;
+
+  const votes = max_votes === undefined || max_votes === null || max_votes === '' ? 3 : Number(max_votes);
+  if (!Number.isInteger(votes) || votes < MAX_VOTES_RANGE.min || votes > MAX_VOTES_RANGE.max) {
+    return res.status(400).json({ error: `Oy hakkı ${MAX_VOTES_RANGE.min} ile ${MAX_VOTES_RANGE.max} arasında olmalıdır.` });
   }
 
   const retroId = randomUUID();
-  const votes = parseInt(max_votes, 10) || 3;
   const shortCode = createUniqueShortCode();
   const insertRetro = db.prepare('INSERT INTO retros (id, title, max_votes, created_by, short_code) VALUES (?, ?, ?, ?, ?)');
   const insertColumn = db.prepare('INSERT INTO columns (id, retro_id, name, sort_order) VALUES (?, ?, ?, ?)');
@@ -340,8 +462,8 @@ router.delete('/retros/:id', requireAuth, (req, res) => {
 // and only before anyone's added an entry anywhere on the board — see the
 // matching check on POST .../columns)
 router.put('/retros/:id/columns/:colId', requireAuth, (req, res) => {
-  const { name } = req.body;
-  if (!name) return res.status(400).json({ error: 'Sütun adı gereklidir.' });
+  const name = cleanString(req.body.name, LIMITS.columnName);
+  if (!name) return res.status(400).json({ error: `Sütun adı gereklidir (en fazla ${LIMITS.columnName} karakter).` });
 
   const isAdmin = req.user.role === 'admin';
   const retro = db.prepare('SELECT created_by FROM retros WHERE id = ?').get(req.params.id);
@@ -372,8 +494,8 @@ router.put('/retros/:id/columns/:colId', requireAuth, (req, res) => {
 // lane mid-retro would be confusing once people are already using the
 // existing ones)
 router.post('/retros/:id/columns', requireAuth, (req, res) => {
-  const { name } = req.body;
-  if (!name || !name.trim()) return res.status(400).json({ error: 'Sütun adı gereklidir.' });
+  const name = cleanString(req.body.name, LIMITS.columnName);
+  if (!name) return res.status(400).json({ error: `Sütun adı gereklidir (en fazla ${LIMITS.columnName} karakter).` });
 
   const isAdmin = req.user.role === 'admin';
   const retro = db.prepare('SELECT created_by FROM retros WHERE id = ?').get(req.params.id);
@@ -388,11 +510,14 @@ router.post('/retros/:id/columns', requireAuth, (req, res) => {
   }
 
   const columnCount = db.prepare('SELECT COUNT(*) as count FROM columns WHERE retro_id = ?').get(req.params.id).count;
+  if (columnCount >= LIMITS.columnsPerRetro) {
+    return res.status(400).json({ error: `En fazla ${LIMITS.columnsPerRetro} sütun eklenebilir.` });
+  }
   const columnId = randomUUID();
   db.prepare('INSERT INTO columns (id, retro_id, name, sort_order) VALUES (?, ?, ?, ?)')
-    .run(columnId, req.params.id, name.trim(), columnCount);
+    .run(columnId, req.params.id, name, columnCount);
 
-  const column = { id: columnId, retro_id: req.params.id, name: name.trim(), sort_order: columnCount, entries: [] };
+  const column = { id: columnId, retro_id: req.params.id, name, sort_order: columnCount, entries: [] };
   broadcast(req.params.id, { type: 'column:added', column });
   res.status(201).json(column);
 });
@@ -416,17 +541,25 @@ router.delete('/retros/:id/columns/:colId', requireAuth, (req, res) => {
   res.json({ success: true });
 });
 
-// POST /api/retros/:id/entries  — add entry
-router.post('/retros/:id/entries', (req, res) => {
-  const { column_id, text, author } = req.body;
-  if (!column_id || !text) return res.status(400).json({ error: 'column_id ve text gereklidir.' });
+// POST /api/retros/:id/entries  — add entry. Entries are always anonymous:
+// any `author` in the body is ignored, so nobody can post under someone
+// else's name.
+router.post('/retros/:id/entries', boardWriteLimiter, (req, res) => {
+  const { column_id } = req.body;
+  const text = cleanString(req.body.text, LIMITS.entryText);
+  if (typeof column_id !== 'string' || !column_id || !text) {
+    return res.status(400).json({ error: `column_id ve text gereklidir (en fazla ${LIMITS.entryText} karakter).` });
+  }
 
   const retro = db.prepare('SELECT status FROM retros WHERE id = ?').get(req.params.id);
   if (!retro) return res.status(404).json({ error: 'Retro bulunamadı.' });
   if (retro.status === 'finished') return res.status(409).json(RETRO_FINISHED_ERROR);
 
+  const column = db.prepare('SELECT id FROM columns WHERE id = ? AND retro_id = ?').get(column_id, req.params.id);
+  if (!column) return res.status(400).json({ error: 'Sütun bu retroya ait değil.' });
+
   const entryId = randomUUID();
-  const authorName = author || 'Anonim';
+  const authorName = 'Anonim';
   db.prepare('INSERT INTO entries (id, column_id, retro_id, text, author) VALUES (?, ?, ?, ?, ?)')
     .run(entryId, column_id, req.params.id, text, authorName);
 
@@ -440,8 +573,8 @@ router.post('/retros/:id/entries', (req, res) => {
 
 // PUT /api/retros/:id/entries/:entryId  — edit entry text (admin or retro owner)
 router.put('/retros/:id/entries/:entryId', requireAuth, (req, res) => {
-  const { text } = req.body;
-  if (!text || !text.trim()) return res.status(400).json({ error: 'Metin gereklidir.' });
+  const text = cleanString(req.body.text, LIMITS.entryText);
+  if (!text) return res.status(400).json({ error: `Metin gereklidir (en fazla ${LIMITS.entryText} karakter).` });
 
   const isAdmin = req.user.role === 'admin';
   const retro = db.prepare('SELECT created_by FROM retros WHERE id = ?').get(req.params.id);
@@ -451,7 +584,7 @@ router.put('/retros/:id/entries/:entryId', requireAuth, (req, res) => {
   }
 
   const result = db.prepare('UPDATE entries SET text = ? WHERE id = ? AND retro_id = ?')
-    .run(text.trim(), req.params.entryId, req.params.id);
+    .run(text, req.params.entryId, req.params.id);
   if (result.changes === 0) return res.status(404).json({ error: 'Girdi bulunamadı.' });
 
   const entry = db.prepare('SELECT * FROM entries WHERE id = ?').get(req.params.entryId);
@@ -462,7 +595,7 @@ router.put('/retros/:id/entries/:entryId', requireAuth, (req, res) => {
 // PUT /api/retros/:id/entries/:entryId/move  — move entry to a different column (admin or retro owner)
 router.put('/retros/:id/entries/:entryId/move', requireAuth, (req, res) => {
   const { column_id } = req.body;
-  if (!column_id) return res.status(400).json({ error: 'column_id gereklidir.' });
+  if (typeof column_id !== 'string' || !column_id) return res.status(400).json({ error: 'column_id gereklidir.' });
 
   const isAdmin = req.user.role === 'admin';
   const retro = db.prepare('SELECT created_by FROM retros WHERE id = ?').get(req.params.id);
@@ -504,7 +637,7 @@ router.delete('/retros/:id/entries/:entryId', requireAuth, (req, res) => {
 // Enforced server-side against a participant identity: the authenticated
 // user's id if logged in, otherwise a client-generated participant_id
 // (localStorage-persisted) for anonymous guests.
-router.post('/retros/:id/entries/:entryId/vote', (req, res) => {
+router.post('/retros/:id/entries/:entryId/vote', boardWriteLimiter, (req, res) => {
   const participantId = voterId(req, req.body.participant_id);
   if (!participantId) return res.status(400).json({ error: 'participant_id gereklidir.' });
 
@@ -539,7 +672,7 @@ router.post('/retros/:id/entries/:entryId/vote', (req, res) => {
 });
 
 // POST /api/retros/:id/entries/:entryId/unvote
-router.post('/retros/:id/entries/:entryId/unvote', (req, res) => {
+router.post('/retros/:id/entries/:entryId/unvote', boardWriteLimiter, (req, res) => {
   const participantId = voterId(req, req.body.participant_id);
   if (!participantId) return res.status(400).json({ error: 'participant_id gereklidir.' });
 
@@ -566,7 +699,9 @@ router.post('/retros/:id/entries/:entryId/unvote', (req, res) => {
 // PUT /api/retros/:id/status
 router.put('/retros/:id/status', requireAuth, (req, res) => {
   const { status } = req.body;
-  if (!status) return res.status(400).json({ error: 'Status gereklidir.' });
+  if (!RETRO_STATUSES.includes(status)) {
+    return res.status(400).json({ error: `Geçersiz durum. Geçerli değerler: ${RETRO_STATUSES.join(', ')}.` });
+  }
 
   const isAdmin = req.user.role === 'admin';
   const retro = db.prepare('SELECT created_by FROM retros WHERE id = ?').get(req.params.id);

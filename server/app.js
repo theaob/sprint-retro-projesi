@@ -11,9 +11,21 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 const app = express();
 
-// Trust the first proxy hop (Docker/reverse-proxy deployments) so
-// express-rate-limit keys on the real client IP, not the proxy's.
-app.set('trust proxy', 1);
+// X-Forwarded-For is only trusted when TRUST_PROXY says a reverse proxy
+// sits in front (e.g. TRUST_PROXY=1 for one hop), so express-rate-limit keys
+// on the real client IP. Trusting it unconditionally let a directly exposed
+// server (like the README's `docker run -p 3000:3000`) take the client IP
+// from a header the client controls, and walk past the login rate limit.
+app.set('trust proxy', parseTrustProxy(process.env.TRUST_PROXY));
+
+/** Maps the TRUST_PROXY env var onto Express's `trust proxy` setting. */
+function parseTrustProxy(value) {
+  if (!value || value === 'false') return false;
+  if (value === 'true') return true;
+  const hops = Number(value);
+  // A hop count, or anything else Express accepts (e.g. 'loopback', a subnet)
+  return Number.isInteger(hops) ? hops : value;
+}
 
 // ── Middleware ──────────────────────────────────────────────
 // CSP and COEP are off for now: the UI relies on inline `style="..."`
@@ -57,6 +69,18 @@ const distPath = path.join(__dirname, '..', 'dist');
 app.use(express.static(distPath));
 app.get('*', (req, res) => {
   res.sendFile(path.join(distPath, 'index.html'));
+});
+
+// ── Error handler ───────────────────────────────────────────
+// JSON errors instead of Express's default HTML page, which includes a
+// stack trace whenever NODE_ENV isn't 'production'.
+app.use((err, _req, res, next) => {
+  if (res.headersSent) return next(err);
+  // Thrown by express.json(): malformed JSON, or a body over its size limit
+  if (err.type === 'entity.parse.failed') return res.status(400).json({ error: 'Geçersiz JSON.' });
+  if (err.type === 'entity.too.large') return res.status(413).json({ error: 'İstek çok büyük.' });
+  console.error(err);
+  res.status(500).json({ error: 'Beklenmeyen bir sunucu hatası oluştu.' });
 });
 
 export default app;

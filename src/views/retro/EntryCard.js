@@ -110,6 +110,7 @@ export function EntryCard({ entry, retroId, isVoted, voteFull, isFinished, canMa
               ref=${editInputRef}
               class="input entry-edit-input"
               type="text"
+              maxlength="1000"
               value=${editText}
               onInput=${(e) => setEditText(e.currentTarget.value)}
               onKeyDown=${(e) => { if (e.key === 'Enter') saveEdit(); if (e.key === 'Escape') cancelEdit(); }}

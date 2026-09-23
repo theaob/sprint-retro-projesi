@@ -47,6 +47,25 @@ describe('realtime (WebSocket)', () => {
     await settle();
   });
 
+  it('relays typing without saying who is typing', async () => {
+    const typer = await connect();
+    const watcher = await connect();
+    typer.send(JSON.stringify({ type: 'join', retroId: retro.id, name: 'Ayşe' }));
+    await nextMessage(typer);
+    const joined = nextMessage(watcher);
+    watcher.send(JSON.stringify({ type: 'join', retroId: retro.id, name: 'Mehmet' }));
+    await joined;
+
+    const typing = nextMessage(watcher);
+    typer.send(JSON.stringify({ type: 'typing', columnId: 'col-1', name: 'Ayşe' }));
+    expect(await typing).toEqual({ type: 'typing', columnId: 'col-1' });
+
+    typer.close();
+    watcher.close();
+    await Promise.all([closed(typer), closed(watcher)]);
+    await settle();
+  });
+
   it('drops a room once its last client leaves', async () => {
     const ws = await connect();
     ws.send(JSON.stringify({ type: 'join', retroId: retro.id }));
