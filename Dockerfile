@@ -38,9 +38,12 @@ ENV NODE_ENV=production
 # The SQLite database is stored in the /app/data directory by default.
 # Mount this directory to a persistent volume to keep data between redeployments:
 # -v /path/to/host/data:/app/data
-# The server runs as the unprivileged `node` user (uid 1000), so a mounted
-# host directory must be writable by that uid.
+# The server runs as the unprivileged `node` user (uid 1000). The
+# entrypoint starts as root just long enough to give the data directory to
+# `node` (volumes written by older, root-run images are owned by root),
+# then drops privileges before starting the server.
 RUN mkdir -p /app/data && chown node:node /app/data
-USER node
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+ENTRYPOINT ["docker-entrypoint.sh"]
 
-CMD ["npm", "start"]
+CMD ["node", "server/index.js"]

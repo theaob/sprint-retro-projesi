@@ -80,7 +80,7 @@ docker run -d \
   sprint-retro-app
 ```
 
-The container runs as the unprivileged `node` user (uid 1000), so the mounted data directory must be writable by it. For a directory created by an older (root) image, run `sudo chown -R 1000:1000 ./data` once before upgrading.
+The server runs as the unprivileged `node` user (uid 1000). On startup the container gives the data directory to that user, so a directory created by an older image, which ran as root, keeps working with no manual step. If you start the container with `--user`, it skips that step, and the directory must already be writable by the user you chose.
 
 #### Behind a reverse proxy
 If the app sits behind a reverse proxy (nginx, Traefik, a cloud load balancer), set `TRUST_PROXY` to the number of proxy hops, e.g. `-e TRUST_PROXY=1`. Rate limiting then uses the client IP from `X-Forwarded-For`. Leave it unset when the container is exposed directly, as in the command above: otherwise clients could set their own IP in that header and get around the login rate limit. Without it behind a proxy, every visitor shares the proxy's IP and one rate-limit budget.
