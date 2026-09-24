@@ -27,7 +27,7 @@ export function loadUser(req, res, next) {
 }
 
 const PASSWORD_CHANGE_REQUIRED = {
-  error: 'Devam etmeden önce şifrenizi değiştirmeniz gerekiyor.',
+  error: 'You need to change your password before continuing.',
   must_change_password: true
 };
 
@@ -39,21 +39,21 @@ const PASSWORD_CHANGE_REQUIRED = {
  * (changing its own password, /auth/me, logout) use requireAuthAllowPending.
  */
 export function requireAuth(req, res, next) {
-  if (!req.user) return res.status(401).json({ error: 'Giriş yapmanız gerekiyor.' });
+  if (!req.user) return res.status(401).json({ error: 'You need to sign in.' });
   if (req.user.must_change_password) return res.status(403).json(PASSWORD_CHANGE_REQUIRED);
   next();
 }
 
 /** Like requireAuth, but lets a must_change_password account through. */
 export function requireAuthAllowPending(req, res, next) {
-  if (!req.user) return res.status(401).json({ error: 'Giriş yapmanız gerekiyor.' });
+  if (!req.user) return res.status(401).json({ error: 'You need to sign in.' });
   next();
 }
 
 /** Block if not admin (or an admin that still has to change its password) */
 export function requireAdmin(req, res, next) {
   if (!req.user || req.user.role !== 'admin') {
-    return res.status(403).json({ error: 'Bu işlem için admin yetkisi gereklidir.' });
+    return res.status(403).json({ error: 'This requires admin rights.' });
   }
   if (req.user.must_change_password) return res.status(403).json(PASSWORD_CHANGE_REQUIRED);
   next();

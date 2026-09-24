@@ -69,7 +69,7 @@ describe('input validation', () => {
       .post(`/api/retros/${retro.id}/entries`)
       .send({ column_id: columnId, text: 'Signed by the boss', author: 'The Boss' });
     expect(spoofed.status).toBe(201);
-    expect(spoofed.body.author).toBe('Anonim');
+    expect(spoofed.body.author).toBe('Anonymous');
   });
 
   it('validates retro creation: title, column names, and max_votes range', async () => {

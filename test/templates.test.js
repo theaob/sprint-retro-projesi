@@ -21,12 +21,12 @@ describe('retro templates', () => {
     expect(Array.isArray(res.body)).toBe(true);
     expect(res.body.length).toBeGreaterThanOrEqual(5);
     const names = res.body.map(t => t.name);
-    expect(names).toContain('Standart');
+    expect(names).toContain('Standard');
     expect(names).toContain('Mad/Sad/Glad');
     // columns should already be parsed back into a real array, not a JSON string
-    const standard = res.body.find(t => t.name === 'Standart');
+    const standard = res.body.find(t => t.name === 'Standard');
     expect(Array.isArray(standard.columns)).toBe(true);
-    expect(standard.columns).toContain('İyi Giden');
+    expect(standard.columns).toContain('Went well');
   });
 
   it('blocks a non-admin from creating a template', async () => {

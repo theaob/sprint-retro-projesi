@@ -15,8 +15,8 @@ function UserFormDialog({ user, onClose, onSaved }) {
 
   const save = async (e) => {
     e?.preventDefault();
-    if (!form.username.trim()) { setError('Kullanıcı adı gerekli.'); return; }
-    if (isNew && form.password.length < 6) { setError('Şifre en az 6 karakter olmalıdır.'); return; }
+    if (!form.username.trim()) { setError('Username is required.'); return; }
+    if (isNew && form.password.length < 6) { setError('Password must be at least 6 characters.'); return; }
     setBusy(true);
     try {
       const saved = isNew
@@ -30,21 +30,21 @@ function UserFormDialog({ user, onClose, onSaved }) {
   };
 
   return html`
-    <${Dialog} open onClose=${onClose} title=${isNew ? 'Yeni kullanıcı' : 'Kullanıcıyı düzenle'}
+    <${Dialog} open onClose=${onClose} title=${isNew ? 'New user' : 'Edit user'}
       footer=${html`
-        <${Button} variant="ghost" onClick=${onClose}>Vazgeç<//>
-        <${Button} variant="primary" loading=${busy} onClick=${save}>${isNew ? 'Kullanıcıyı ekle' : 'Kaydet'}<//>
+        <${Button} variant="ghost" onClick=${onClose}>Cancel<//>
+        <${Button} variant="primary" loading=${busy} onClick=${save}>${isNew ? 'Add user' : 'Save'}<//>
       `}>
       <form class="form" onSubmit=${save}>
-        <${Field} id="user-username" label="Kullanıcı adı" autocomplete="off" autocapitalize="none" maxlength="50"
+        <${Field} id="user-username" label="Username" autocomplete="off" autocapitalize="none" maxlength="50"
           value=${form.username} onInput=${set('username')} data-autofocus />
-        <${Field} id="user-email" label="E-posta (isteğe bağlı)" type="email" autocomplete="off" maxlength="254"
+        <${Field} id="user-email" label="Email (optional)" type="email" autocomplete="off" maxlength="254"
           value=${form.email} onInput=${set('email')} />
         ${isNew ? html`
-          <${Field} id="user-password" label="Şifre" type="password" autocomplete="new-password" placeholder="En az 6 karakter"
+          <${Field} id="user-password" label="Password" type="password" autocomplete="new-password" placeholder="At least 6 characters"
             value=${form.password} onInput=${set('password')} />
-          <${Select} id="user-role" label="Rol" value=${form.role} onChange=${set('role')}>
-            <option value="user">Kullanıcı</option>
+          <${Select} id="user-role" label="Role" value=${form.role} onChange=${set('role')}>
+            <option value="user">User</option>
             <option value="admin">Admin</option>
           <//>
         ` : null}
@@ -61,11 +61,11 @@ function ResetPasswordDialog({ user, onClose }) {
 
   const save = async (e) => {
     e?.preventDefault();
-    if (password.length < 6) { setError('Şifre en az 6 karakter olmalıdır.'); return; }
+    if (password.length < 6) { setError('Password must be at least 6 characters.'); return; }
     setBusy(true);
     try {
       await api.changePassword(user.id, password);
-      showToast('Şifre güncellendi; kullanıcının açık oturumları kapatıldı.', 'success');
+      showToast("Password updated; the user's open sessions were signed out.", 'success');
       onClose();
     } catch (err) {
       setError(err.message);
@@ -74,14 +74,14 @@ function ResetPasswordDialog({ user, onClose }) {
   };
 
   return html`
-    <${Dialog} open onClose=${onClose} title="Şifreyi sıfırla" size="sm"
-      description=${`${user.username} için yeni şifre. Kullanıcının tüm açık oturumları kapatılır.`}
+    <${Dialog} open onClose=${onClose} title="Reset password" size="sm"
+      description=${`New password for ${user.username}. All of their open sessions will be signed out.`}
       footer=${html`
-        <${Button} variant="ghost" onClick=${onClose}>Vazgeç<//>
-        <${Button} variant="primary" loading=${busy} onClick=${save}>Şifreyi değiştir<//>
+        <${Button} variant="ghost" onClick=${onClose}>Cancel<//>
+        <${Button} variant="primary" loading=${busy} onClick=${save}>Change password<//>
       `}>
       <form class="form" onSubmit=${save}>
-        <${Field} id="reset-password" label="Yeni şifre" type="password" autocomplete="new-password" placeholder="En az 6 karakter"
+        <${Field} id="reset-password" label="New password" type="password" autocomplete="new-password" placeholder="At least 6 characters"
           value=${password} onInput=${(e) => { setPassword(e.currentTarget.value); setError(''); }} error=${error} data-autofocus />
       </form>
     <//>
@@ -101,16 +101,16 @@ export function UsersView() {
   const saved = (user, isNew) => {
     setUsers(list => (isNew ? [{ ...user, created_at: new Date().toISOString().replace('T', ' ').slice(0, 19) }, ...list] : list.map(u => (u.id === user.id ? { ...u, ...user } : u))));
     setEditing(undefined);
-    showToast(isNew ? 'Kullanıcı eklendi.' : 'Kullanıcı güncellendi.', 'success');
+    showToast(isNew ? 'User added.' : 'User updated.', 'success');
   };
 
   const remove = async (u) => {
-    const ok = await confirmDialog({ title: `${u.username} silinsin mi?`, body: 'Hesap ve oturumları kalıcı olarak silinir. Oluşturduğu retrolar kalır.', confirmLabel: 'Kullanıcıyı sil', danger: true });
+    const ok = await confirmDialog({ title: `Delete ${u.username}?`, body: 'The account and its sessions will be permanently deleted. Retros they created are kept.', confirmLabel: 'Delete user', danger: true });
     if (!ok) return;
     try {
       await api.deleteUser(u.id);
       setUsers(list => list.filter(x => x.id !== u.id));
-      showToast('Kullanıcı silindi.', 'success');
+      showToast('User deleted.', 'success');
     } catch (err) {
       showToast(err.message, 'error');
     }
@@ -118,32 +118,32 @@ export function UsersView() {
 
   return html`
     <${AppShell} active="users">
-      <${PageHeader} title="Kullanıcılar" subtitle="Retro oluşturup yönetebilen hesaplar."
-        actions=${html`<${Button} variant="primary" icon="plus" onClick=${() => setEditing(null)}>Yeni kullanıcı<//>`} />
+      <${PageHeader} title="Users" subtitle="Accounts that can create and run retros."
+        actions=${html`<${Button} variant="primary" icon="plus" onClick=${() => setEditing(null)}>New user<//>`} />
       ${users === null ? html`<${Spinner} />` : html`
         <ul class="user-list">
           ${users.map(u => html`
             <li class="user-card" key=${u.id}>
-              <span class="avatar avatar--lg" aria-hidden="true">${u.username[0]?.toLocaleUpperCase('tr')}</span>
+              <span class="avatar avatar--lg" aria-hidden="true">${u.username[0]?.toUpperCase()}</span>
               <div class="user-card__body">
-                <h2 class="user-card__name">${u.username} ${u.id === me?.id ? html`<span class="pill pill--accent">Sen</span>` : null}</h2>
+                <h2 class="user-card__name">${u.username} ${u.id === me?.id ? html`<span class="pill pill--accent">You</span>` : null}</h2>
                 <p class="user-card__meta">
-                  <span class=${`pill ${u.role === 'admin' ? 'pill--vote' : ''}`}>${u.role === 'admin' ? 'Admin' : 'Kullanıcı'}</span>
-                  <span>${u.email || 'E-posta yok'}</span>
+                  <span class=${`pill ${u.role === 'admin' ? 'pill--vote' : ''}`}>${u.role === 'admin' ? 'Admin' : 'User'}</span>
+                  <span>${u.email || 'No email'}</span>
                   <span>${formatDate(u.created_at)}</span>
                 </p>
               </div>
               <div class="user-card__actions">
-                <${IconButton} icon="pencil" label=${`${u.username} kullanıcısını düzenle`} onClick=${() => setEditing(u)} />
+                <${IconButton} icon="pencil" label=${`Edit ${u.username}`} onClick=${() => setEditing(u)} />
                 ${u.id !== me?.id ? html`
-                  <${IconButton} icon="lock" label=${`${u.username} için şifreyi sıfırla`} onClick=${() => setResetting(u)} />
-                  <${IconButton} icon="trash" label=${`${u.username} kullanıcısını sil`} onClick=${() => remove(u)} />
+                  <${IconButton} icon="lock" label=${`Reset password for ${u.username}`} onClick=${() => setResetting(u)} />
+                  <${IconButton} icon="trash" label=${`Delete ${u.username}`} onClick=${() => remove(u)} />
                 ` : null}
               </div>
             </li>
           `)}
         </ul>
-        <p class="page-note">Kendi şifreni <a href="#/account">Hesap</a> sayfasından değiştirebilirsin.</p>
+        <p class="page-note">You can change your own password on the <a href="#/account">Account</a> page.</p>
       `}
       ${editing !== undefined ? html`<${UserFormDialog} user=${editing} onClose=${() => setEditing(undefined)} onSaved=${saved} />` : null}
       ${resetting ? html`<${ResetPasswordDialog} user=${resetting} onClose=${() => setResetting(null)} />` : null}

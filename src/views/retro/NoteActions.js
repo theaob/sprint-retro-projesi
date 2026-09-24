@@ -33,9 +33,9 @@ export function NoteActions({ entry, columns, canFocus, onClose, onEdit, onMove,
 
   const remove = async () => {
     const ok = await confirmDialog({
-      title: 'Not silinsin mi?',
-      body: 'Not ve aldığı oylar kalıcı olarak silinir.',
-      confirmLabel: 'Notu sil',
+      title: 'Delete this note?',
+      body: 'The note and its votes will be permanently deleted.',
+      confirmLabel: 'Delete note',
       danger: true
     });
     if (ok) run(() => onDelete(entry.id));
@@ -44,24 +44,24 @@ export function NoteActions({ entry, columns, canFocus, onClose, onEdit, onMove,
   const otherColumns = columns.filter(c => c.id !== entry?.column_id);
 
   return html`
-    <${Dialog} open=${!!entry} onClose=${onClose} title="Not" size="md"
+    <${Dialog} open=${!!entry} onClose=${onClose} title="Note" size="md"
       footer=${html`
-        <${Button} variant="ghost" icon="trash" class="note-actions__delete" onClick=${remove} disabled=${busy}>Sil<//>
-        <${Button} variant="primary" icon="check" onClick=${save} loading=${busy}>Kaydet<//>
+        <${Button} variant="ghost" icon="trash" class="note-actions__delete" onClick=${remove} disabled=${busy}>Delete<//>
+        <${Button} variant="primary" icon="check" onClick=${save} loading=${busy}>Save<//>
       `}>
       ${entry ? html`
         <div class="form">
           <div class="field">
-            <label class="field__label" for="note-edit">Metin</label>
+            <label class="field__label" for="note-edit">Text</label>
             <${GrowingTextarea} id="note-edit" value=${text} maxlength="1000" data-autofocus
               onInput=${(e) => setText(e.currentTarget.value)} onSubmitKey=${save} />
           </div>
           ${canFocus ? html`
-            <${Button} variant="secondary" icon="eye" block onClick=${() => run(() => onFocus(entry.id))}>Şimdi bunu konuşalım<//>
+            <${Button} variant="secondary" icon="eye" block onClick=${() => run(() => onFocus(entry.id))}>Discuss this now<//>
           ` : null}
           ${otherColumns.length > 0 ? html`
             <div class="field">
-              <span class="field__label">Başka sütuna taşı</span>
+              <span class="field__label">Move to another column</span>
               <div class="move-list">
                 ${otherColumns.map(c => html`
                   <button type="button" class=${`move-list__item lane-${columns.indexOf(c) % 4}`} disabled=${busy}

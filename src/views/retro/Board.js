@@ -22,9 +22,9 @@ import { SetupView, DiscussView, SummaryView } from './StageViews.js';
 const TYPING_EXPIRY_MS = 3000;
 
 const STAGE_HINTS = {
-  writing: 'Notların sadece sana görünür; oylamada herkese açılacak.',
-  voting: 'Oylar tartışmaya geçince görünür.',
-  discussing: 'Notlar oy sırasına göre konuşuluyor.'
+  writing: 'Only you can see your notes until voting starts.',
+  voting: 'Vote counts are revealed when discussion starts.',
+  discussing: 'Notes are discussed in order of votes.'
 };
 
 export function Board({ initialRetro, user }) {
@@ -90,7 +90,7 @@ export function Board({ initialRetro, user }) {
       onColumnDeleted(columnId) { dispatch({ type: 'column:deleted', columnId }); },
       onStatusChanged(status) {
         if (status === 'finished') {
-          announce('Retro tamamlandı.');
+          announce('Retro finished.');
           playRetroEndAnimation(refetch);
         } else {
           dispatch({ type: 'status', status });
@@ -99,7 +99,7 @@ export function Board({ initialRetro, user }) {
       },
       onPhase({ phase, focusEntryId }) {
         dispatch({ type: 'phase', phase, focusEntryId });
-        announce(`${stageLabel(phase)} aşaması başladı.`);
+        announce(`${stageLabel(phase)} stage started.`);
         // What each person may see changes with the stage
         refetch();
       },
@@ -130,7 +130,7 @@ export function Board({ initialRetro, user }) {
   useEffect(() => {
     if (timeLeft === 0 && announcedEnd.current !== retro.timer_ends_at) {
       announcedEnd.current = retro.timer_ends_at;
-      announce('Süre doldu.');
+      announce("Time's up.");
     }
   }, [timeLeft]);
 
@@ -149,7 +149,7 @@ export function Board({ initialRetro, user }) {
   const toggleVote = async (entry) => {
     const voted = retro.votedEntryIds.includes(entry.id);
     if (!voted && votesLeft === 0) {
-      showToast('Tüm oy haklarını kullandın. Başka nota vermek için önce bir oyunu geri al.', 'error');
+      showToast("You've used all your votes. Take one back to vote for another note.", 'error');
       return;
     }
     dispatch({ type: 'vote:optimistic', entryId: entry.id, voted: !voted });
@@ -172,9 +172,9 @@ export function Board({ initialRetro, user }) {
 
   const finish = async () => {
     const ok = await confirmDialog({
-      title: 'Retro bitirilsin mi?',
-      body: 'Not ekleme ve oylama kapanır; herkes özeti görür. Gerekirse sonra yeniden açabilirsin.',
-      confirmLabel: 'Retroyu bitir'
+      title: 'Finish the retro?',
+      body: 'Adding notes and voting will close, and everyone will see the summary. You can reopen it later if needed.',
+      confirmLabel: 'Finish retro'
     });
     if (!ok) return;
     await guard(async () => {
@@ -187,9 +187,9 @@ export function Board({ initialRetro, user }) {
 
   const reopen = async () => {
     const ok = await confirmDialog({
-      title: 'Retro yeniden açılsın mı?',
-      body: 'Katılımcılar kaldığınız aşamadan devam edebilir.',
-      confirmLabel: 'Yeniden aç'
+      title: 'Reopen the retro?',
+      body: 'Participants can pick up from the stage you left off.',
+      confirmLabel: 'Reopen'
     });
     if (!ok) return;
     await guard(async () => {
@@ -212,7 +212,7 @@ export function Board({ initialRetro, user }) {
   const exportExcel = async () => {
     try {
       await exportRetroToExcel(await api.getRetro(retro.id));
-      showToast('Excel dosyası indirildi.', 'success');
+      showToast('Excel file downloaded.', 'success');
     } catch (err) {
       showToast(err.message, 'error');
     }
@@ -269,7 +269,7 @@ export function Board({ initialRetro, user }) {
       class=${`lane lane-${col.index % 4} ${dragOverLane === col.id ? 'is-drop-target' : ''}`}
       data-lane=${col.id}
       id=${`lane-${col.id}`}
-      aria-label=${`${col.name}, ${col.entries.length} not`}
+      aria-label=${`${col.name}, ${col.entries.length} ${col.entries.length === 1 ? 'note' : 'notes'}`}
       onDragOver=${dragEnabled ? (e) => { e.preventDefault(); setDragOverLane(col.id); } : undefined}
       onDragLeave=${dragEnabled ? (e) => { if (!e.currentTarget.contains(e.relatedTarget)) setDragOverLane(null); } : undefined}
       onDrop=${dragEnabled ? dropOn(col.id) : undefined}
@@ -279,9 +279,9 @@ export function Board({ initialRetro, user }) {
         <h2 class="lane__title">${col.name}</h2>
         <span class="lane__count tabular">${col.entries.length}</span>
       </header>
-      ${wide && typing[col.id] ? html`<p class="typing lane__typing">Birisi yazıyor…</p>` : null}
+      ${wide && typing[col.id] ? html`<p class="typing lane__typing">Someone is typing…</p>` : null}
       <div class="lane__notes">
-        ${col.sorted.length === 0 ? html`<p class="lane__empty">${canWrite ? 'İlk notu sen yaz.' : 'Bu sütunda not yok.'}</p>` : null}
+        ${col.sorted.length === 0 ? html`<p class="lane__empty">${canWrite ? 'Be the first to add a note.' : 'No notes in this column.'}</p>` : null}
         ${col.sorted.map(entry => html`
           <${Note}
             key=${entry.id}
@@ -309,7 +309,7 @@ export function Board({ initialRetro, user }) {
 
   const lanesView = html`
     ${!wide && lanes.length > 1 ? html`
-      <div class="lane-tabs" role="tablist" aria-label="Sütunlar">
+      <div class="lane-tabs" role="tablist" aria-label="Columns">
         ${lanes.map(col => html`
           <button type="button" role="tab" class=${`lane-tab lane-${col.index % 4} ${col.id === activeColumn?.id ? 'is-active' : ''}`}
             aria-selected=${col.id === activeColumn?.id ? 'true' : 'false'} aria-controls=${`lane-${col.id}`}
@@ -320,7 +320,7 @@ export function Board({ initialRetro, user }) {
       </div>
     ` : null}
     <div class="lanes" ref=${lanesRef} tabindex=${wide ? undefined : '0'} role=${wide ? undefined : 'region'}
-      aria-label=${wide ? undefined : 'Sütunlar — kaydırarak geç'}>${lanes.map(renderLane)}</div>
+      aria-label=${wide ? undefined : 'Columns — swipe to switch'}>${lanes.map(renderLane)}</div>
   `;
 
   /* ── Screen ──────────────────────────────────────────────── */
@@ -348,23 +348,23 @@ export function Board({ initialRetro, user }) {
       <header class="board-bar">
         <div class="board-bar__row">
           ${user
-            ? html`<a class="icon-btn icon-btn--ghost" href=${backHref} aria-label="Retrolarıma dön" title="Retrolarıma dön"><${Icon} name="arrow-left" /></a>`
-            : html`<a class="board-bar__brand" href="#/" aria-label="Retro Runway ana sayfa"><${BrandMark} size=${20} /></a>`}
+            ? html`<a class="icon-btn icon-btn--ghost" href=${backHref} aria-label="Back to my retros" title="Back to my retros"><${Icon} name="arrow-left" /></a>`
+            : html`<a class="board-bar__brand" href="#/" aria-label="Retro Runway home"><${BrandMark} size=${20} /></a>`}
           <h1 class="board-bar__title">${retro.title}</h1>
-          <span class=${`conn-dot ${connected ? 'is-live' : ''}`} title=${connected ? 'Canlı' : 'Bağlanıyor…'}>
-            <span class="sr-only">${connected ? 'Canlı bağlantı' : 'Bağlanıyor'}</span>
+          <span class=${`conn-dot ${connected ? 'is-live' : ''}`} title=${connected ? 'Live' : 'Connecting…'}>
+            <span class="sr-only">${connected ? 'Live connection' : 'Connecting'}</span>
           </span>
           ${timeLeft != null ? html`
-            <span class=${`pill tabular ${timeLeft === 0 ? 'pill--danger' : 'pill--accent'}`} role="timer" aria-label=${`Kalan süre ${formatClock(timeLeft)}`}>
-              <${Icon} name="timer" size=${16} />${timeLeft === 0 ? 'Süre doldu' : formatClock(timeLeft)}
+            <span class=${`pill tabular ${timeLeft === 0 ? 'pill--danger' : 'pill--accent'}`} role="timer" aria-label=${`Time left ${formatClock(timeLeft)}`}>
+              <${Icon} name="timer" size=${16} />${timeLeft === 0 ? "Time's up" : formatClock(timeLeft)}
             </span>
           ` : null}
-          ${canVote && wide && !staged ? html`<span class="pill pill--vote tabular">Kalan oy hakkın: ${votesLeft}</span>` : null}
-          <button type="button" class="pill board-bar__presence" onClick=${() => setPresenceOpen(true)} aria-label=${`${presence.length} kişi burada — listeyi göster`}>
+          ${canVote && wide && !staged ? html`<span class="pill pill--vote tabular">Votes left: ${votesLeft}</span>` : null}
+          <button type="button" class="pill board-bar__presence" onClick=${() => setPresenceOpen(true)} aria-label=${`${presence.length} ${presence.length === 1 ? 'person' : 'people'} here — show the list`}>
             <${Icon} name="users" size=${16} /><span class="tabular">${presence.length}</span>
           </button>
           ${canFacilitate
-            ? html`<${IconButton} icon="sliders" label="Kolaylaştırıcı" variant="secondary" onClick=${() => setSheetOpen(true)} />`
+            ? html`<${IconButton} icon="sliders" label="Facilitator" variant="secondary" onClick=${() => setSheetOpen(true)} />`
             : html`<${ThemeToggle} />`}
         </div>
         ${staged || hint || hasStageScreen || (canVote && !staged && !wide) ? html`
@@ -372,12 +372,12 @@ export function Board({ initialRetro, user }) {
             ${staged ? html`<${StageStrip} current=${stage} />` : null}
             <div class="board-bar__meta">
               ${hint ? html`<p class="stage-hint">${hint}</p>` : null}
-              ${canVote && !wide && !staged ? html`<span class="pill pill--vote tabular">Kalan oy: ${votesLeft}</span>` : null}
-              ${canVote && wide && staged ? html`<span class="pill pill--vote tabular">Kalan oy hakkın: ${votesLeft}</span>` : null}
+              ${canVote && !wide && !staged ? html`<span class="pill pill--vote tabular">Votes left: ${votesLeft}</span>` : null}
+              ${canVote && wide && staged ? html`<span class="pill pill--vote tabular">Votes left: ${votesLeft}</span>` : null}
               ${hasStageScreen ? html`
-                <div class="segmented" role="group" aria-label="Görünüm">
-                  <${Chip} selected=${view === 'stage'} onClick=${() => setView('stage')}>${finished ? 'Özet' : 'Tartışma'}<//>
-                  <${Chip} selected=${view === 'board'} onClick=${() => setView('board')}>Pano<//>
+                <div class="segmented" role="group" aria-label="View">
+                  <${Chip} selected=${view === 'stage'} onClick=${() => setView('stage')}>${finished ? 'Summary' : 'Discussion'}<//>
+                  <${Chip} selected=${view === 'board'} onClick=${() => setView('board')}>Board<//>
                 </div>
               ` : null}
             </div>
@@ -388,15 +388,15 @@ export function Board({ initialRetro, user }) {
       <main class="board-main" id="main">${body}</main>
 
       ${showDock ? html`
-        <div class="dock" role="region" aria-label=${canWrite ? 'Not ekle' : 'Oy hakkın'}>
+        <div class="dock" role="region" aria-label=${canWrite ? 'Add a note' : 'Your votes'}>
           ${canWrite && activeColumn ? html`
             <${Composer} docked columnId=${activeColumn.id} columnName=${activeColumn.name} onSubmit=${addEntry}
               someoneTyping=${!!typing[activeColumn.id]} onTyping=${(id) => socketRef.current?.sendTyping(id)} />
           ` : html`
             <div class="vote-meter" aria-live="polite">
               <div>
-                <strong>Kalan oy hakkın</strong>
-                <span class="vote-meter__sub">${votesLeft === 0 ? 'Bir oyunu geri alıp başka nota verebilirsin.' : 'Bir nota dokunarak oy ver.'}</span>
+                <strong>Votes left</strong>
+                <span class="vote-meter__sub">${votesLeft === 0 ? 'Take a vote back to give it to another note.' : 'Tap a note to vote for it.'}</span>
               </div>
               <div class="vote-meter__count">
                 <span class="vote-meter__dots" aria-hidden="true">
@@ -426,13 +426,13 @@ export function Board({ initialRetro, user }) {
           onDelete=${async (id) => { await api.deleteColumn(retro.id, id); dispatch({ type: 'column:deleted', columnId: id }); }} />
       ` : null}
 
-      <${Dialog} open=${presenceOpen} onClose=${() => setPresenceOpen(false)} title=${`${presence.length} kişi burada`} size="sm">
+      <${Dialog} open=${presenceOpen} onClose=${() => setPresenceOpen(false)} title=${`${presence.length} ${presence.length === 1 ? 'person' : 'people'} here`} size="sm">
         <ul class="presence-list">
           ${presence.map((name, i) => html`
-            <li key=${i}><span class="avatar" aria-hidden="true">${(name || '?')[0].toLocaleUpperCase('tr')}</span>${name || 'Misafir'}</li>
+            <li key=${i}><span class="avatar" aria-hidden="true">${(name || '?')[0].toUpperCase()}</span>${name || 'Guest'}</li>
           `)}
         </ul>
-        <p class="presence-note">Notlar her zaman anonimdir; bu liste sadece kimin bağlı olduğunu gösterir.</p>
+        <p class="presence-note">Notes are always anonymous; this list only shows who is connected.</p>
       <//>
     </div>
   `;

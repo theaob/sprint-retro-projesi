@@ -84,7 +84,7 @@ export function announce(message) {
 }
 
 /** Copies text, reporting success with a toast; falls back to a prompt-free selection. */
-export async function copyText(text, successMessage = 'Bağlantı kopyalandı.') {
+export async function copyText(text, successMessage = 'Link copied.') {
   try {
     await navigator.clipboard.writeText(text);
     showToast(successMessage, 'success');
@@ -98,14 +98,14 @@ export async function copyText(text, successMessage = 'Bağlantı kopyalandı.')
     input.select();
     const ok = document.execCommand?.('copy');
     input.remove();
-    showToast(ok ? successMessage : 'Kopyalanamadı — bağlantıyı elle seçin.', ok ? 'success' : 'error');
+    showToast(ok ? successMessage : "Couldn't copy — select the link manually.", ok ? 'success' : 'error');
   }
 }
 
 /** "23 Eyl 2026" from an SQLite UTC datetime string. */
 export function formatDate(sqliteDate) {
   const date = new Date(`${sqliteDate.replace(' ', 'T')}Z`);
-  return date.toLocaleDateString('tr-TR', { year: 'numeric', month: 'short', day: 'numeric' });
+  return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 }
 
 /** The share link for a retro: the short /s/ link when it has one. */

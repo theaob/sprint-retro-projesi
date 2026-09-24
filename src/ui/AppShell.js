@@ -21,17 +21,17 @@ export function ThemeToggle() {
   const theme = useTheme();
   const toDark = theme !== 'midnight';
   return html`
-    <${IconButton} icon=${toDark ? 'moon' : 'sun'} label=${toDark ? 'Koyu temaya geç' : 'Açık temaya geç'}
+    <${IconButton} icon=${toDark ? 'moon' : 'sun'} label=${toDark ? 'Switch to dark theme' : 'Switch to light theme'}
       onClick=${() => setTheme(toDark ? 'midnight' : 'daylight')} />
   `;
 }
 
 function navItems(user) {
   return [
-    { key: 'retros', href: '#/app', icon: 'list', label: 'Retrolar' },
-    user?.role === 'admin' && { key: 'templates', href: '#/templates', icon: 'columns', label: 'Şablonlar' },
-    user?.role === 'admin' && { key: 'users', href: '#/users', icon: 'users', label: 'Kullanıcılar' },
-    { key: 'account', href: '#/account', icon: 'user', label: 'Hesap' }
+    { key: 'retros', href: '#/app', icon: 'list', label: 'Retros' },
+    user?.role === 'admin' && { key: 'templates', href: '#/templates', icon: 'columns', label: 'Templates' },
+    user?.role === 'admin' && { key: 'users', href: '#/users', icon: 'users', label: 'Users' },
+    { key: 'account', href: '#/account', icon: 'user', label: 'Account' }
   ].filter(Boolean);
 }
 
@@ -44,11 +44,11 @@ export function AppShell({ active, children }) {
   const items = navItems(user);
   return html`
     <div class="shell">
-      <a class="skip-link" href="#main">İçeriğe geç</a>
+      <a class="skip-link" href="#main">Skip to content</a>
       <header class="topbar">
         <div class="topbar__inner">
           <a class="brand" href="#/app"><${BrandMark} size=${22} /><span>Retro Runway</span></a>
-          <nav class="topnav" aria-label="Ana menü">
+          <nav class="topnav" aria-label="Main menu">
             ${items.map(item => html`
               <a class=${`topnav__link ${active === item.key ? 'is-active' : ''}`} href=${item.href}
                 aria-current=${active === item.key ? 'page' : undefined}>${item.label}</a>
@@ -58,7 +58,7 @@ export function AppShell({ active, children }) {
         </div>
       </header>
       <main class="page" id="main" tabindex="-1">${children}</main>
-      <nav class="tabbar" aria-label="Ana menü">
+      <nav class="tabbar" aria-label="Main menu">
         ${items.map(item => html`
           <a class=${`tabbar__item ${active === item.key ? 'is-active' : ''}`} href=${item.href}
             aria-current=${active === item.key ? 'page' : undefined}>

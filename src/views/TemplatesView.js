@@ -18,8 +18,8 @@ function TemplateDialog({ template, onClose, onSaved }) {
     e?.preventDefault();
     const cleanName = name.trim();
     const cleanColumns = columns.map(c => c.trim()).filter(Boolean);
-    if (!cleanName) { setError('Şablona bir ad ver.'); return; }
-    if (cleanColumns.length === 0) { setError('En az bir sütun gerekli.'); return; }
+    if (!cleanName) { setError('Give the template a name.'); return; }
+    if (cleanColumns.length === 0) { setError('At least one column is required.'); return; }
     setBusy(true);
     try {
       const saved = template
@@ -33,14 +33,14 @@ function TemplateDialog({ template, onClose, onSaved }) {
   };
 
   return html`
-    <${Dialog} open onClose=${onClose} title=${template ? 'Şablonu düzenle' : 'Yeni şablon'}
+    <${Dialog} open onClose=${onClose} title=${template ? 'Edit template' : 'New template'}
       footer=${html`
-        <${Button} variant="ghost" onClick=${onClose}>Vazgeç<//>
-        <${Button} variant="primary" loading=${busy} onClick=${save}>${template ? 'Kaydet' : 'Şablonu ekle'}<//>
+        <${Button} variant="ghost" onClick=${onClose}>Cancel<//>
+        <${Button} variant="primary" loading=${busy} onClick=${save}>${template ? 'Save' : 'Add template'}<//>
       `}>
       <form class="form" onSubmit=${save}>
-        <${Field} id="template-name-input" label="Şablon adı" maxlength="100" value=${name} data-autofocus
-          placeholder="ör. Start / Stop / Continue" onInput=${(e) => { setName(e.currentTarget.value); setError(''); }} />
+        <${Field} id="template-name-input" label="Template name" maxlength="100" value=${name} data-autofocus
+          placeholder="e.g. Start / Stop / Continue" onInput=${(e) => { setName(e.currentTarget.value); setError(''); }} />
         <${ColumnListEditor} idPrefix="template-col" columns=${columns} onChange=${setColumns} />
         <p class="form-error" role="alert">${error}</p>
       </form>
@@ -59,16 +59,16 @@ export function TemplatesView() {
   const saved = (template, isNew) => {
     setTemplates(list => (isNew ? [...list, template] : list.map(t => (t.id === template.id ? template : t))));
     setEditing(undefined);
-    showToast(isNew ? 'Şablon eklendi.' : 'Şablon kaydedildi.', 'success');
+    showToast(isNew ? 'Template added.' : 'Template saved.', 'success');
   };
 
   const remove = async (t) => {
-    const ok = await confirmDialog({ title: `"${t.name}" silinsin mi?`, body: 'Bu şablonla oluşturulmuş retrolar etkilenmez.', confirmLabel: 'Şablonu sil', danger: true });
+    const ok = await confirmDialog({ title: `Delete "${t.name}"?`, body: 'Retros already created from this template are not affected.', confirmLabel: 'Delete template', danger: true });
     if (!ok) return;
     try {
       await api.deleteTemplate(t.id);
       setTemplates(list => list.filter(x => x.id !== t.id));
-      showToast('Şablon silindi.', 'success');
+      showToast('Template deleted.', 'success');
     } catch (err) {
       showToast(err.message, 'error');
     }
@@ -76,10 +76,10 @@ export function TemplatesView() {
 
   return html`
     <${AppShell} active="templates">
-      <${PageHeader} title="Şablonlar" subtitle="Yeni retro oluştururken herkesin seçebildiği hazır sütun setleri."
-        actions=${html`<${Button} variant="primary" icon="plus" onClick=${() => setEditing(null)}>Yeni şablon<//>`} />
+      <${PageHeader} title="Templates" subtitle="Ready-made column sets anyone can pick when creating a retro."
+        actions=${html`<${Button} variant="primary" icon="plus" onClick=${() => setEditing(null)}>New template<//>`} />
       ${templates === null ? html`<${Spinner} />` : templates.length === 0 ? html`
-        <${EmptyState} icon="columns" title="Şablon yok">İlk şablonu ekleyerek başla.<//>
+        <${EmptyState} icon="columns" title="No templates">Start by adding your first template.<//>
       ` : html`
         <ul class="template-list">
           ${templates.map(t => html`
@@ -91,8 +91,8 @@ export function TemplatesView() {
                 </ul>
               </div>
               <div class="template-card__actions">
-                <${IconButton} icon="pencil" label=${`${t.name} şablonunu düzenle`} onClick=${() => setEditing(t)} />
-                <${IconButton} icon="trash" label=${`${t.name} şablonunu sil`} onClick=${() => remove(t)} />
+                <${IconButton} icon="pencil" label=${`Edit template ${t.name}`} onClick=${() => setEditing(t)} />
+                <${IconButton} icon="trash" label=${`Delete template ${t.name}`} onClick=${() => remove(t)} />
               </div>
             </li>
           `)}

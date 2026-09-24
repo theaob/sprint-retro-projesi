@@ -12,11 +12,11 @@ import { Icon } from '../ui/Icon.js';
 const WHATS_NEW_KEY = 'retro_runway_whats_new_5_0';
 
 const FEATURES = [
-  { icon: 'flag', title: 'Aşamalı retrolar', text: 'Hazırlık → Yaz → Oyla → Tartış → Kapanış. Her aşamayı sen başlatırsın, herkes nerede olduğunu görür.' },
-  { icon: 'eye-off', title: 'Gizli yazım', text: 'Notlar oylamaya kadar sadece yazanına görünür — kimse başkasının notundan etkilenmez.' },
-  { icon: 'thumb', title: 'Bağımsız oylama', text: 'Oy sayıları oylama bitene kadar gizli; öne çıkan not çığ gibi büyümez.' },
-  { icon: 'timer', title: 'Süre ve odak', text: 'Herkesin ekranında aynı sayaç; tartışılan not tüm telefonlarda öne çıkar.' },
-  { icon: 'users', title: 'Telefona göre yeniden tasarlandı', text: 'Tek elle kullanım, büyük dokunma alanları, yeni yazı tipleri ve koyu tema.' }
+  { icon: 'flag', title: 'Staged retros', text: 'Setup → Write → Vote → Discuss → Wrap-up. You start each stage, and everyone can see where the retro is.' },
+  { icon: 'eye-off', title: 'Private writing', text: "Until voting, each note is visible only to its author — nobody is swayed by anyone else's notes." },
+  { icon: 'thumb', title: 'Independent voting', text: "Vote counts stay hidden until voting ends, so an early favourite doesn't snowball." },
+  { icon: 'timer', title: 'Timer and focus', text: 'The same timer on every screen; the note under discussion is front and centre on every phone.' },
+  { icon: 'users', title: 'Redesigned for phones', text: 'One-handed use, large touch targets, new typefaces and a dark theme.' }
 ];
 
 export function WhatsNewDialog() {
@@ -27,8 +27,8 @@ export function WhatsNewDialog() {
   };
   return html`
     <${Dialog} open=${open} onClose=${close} title=${`Retro Runway ${typeof APP_VERSION !== 'undefined' ? APP_VERSION : ''}`}
-      description="Retrolar artık adım adım ilerliyor."
-      footer=${html`<${Button} variant="primary" block onClick=${close}>Harika, başlayalım<//>`}>
+      description="Retros now move step by step."
+      footer=${html`<${Button} variant="primary" block onClick=${close}>Great, let's go<//>`}>
       <ul class="whats-new">
         ${FEATURES.map(f => html`
           <li>

@@ -51,12 +51,12 @@ app.get('/s/:shortCode', (req, res) => {
   const retro = db.prepare('SELECT id FROM retros WHERE short_code = ?').get(shortCode);
   if (!retro) {
     return res.status(404).send(`
-      <html>
-        <head><title>Retro Bulunamadı</title></head>
+      <html lang="en">
+        <head><title>Retro not found</title></head>
         <body style="font-family: sans-serif; text-align: center; padding: 50px; background: #020617; color: #f8fafc;">
-          <h1>😕 Retro Bulunamadı</h1>
-          <p>Aradığınız retro bulunamadı veya silinmiş olabilir.</p>
-          <a href="/" style="color: #4f46e5; text-decoration: none; font-weight: bold;">Ana Sayfaya Git</a>
+          <h1>Retro not found</h1>
+          <p>The link may be wrong, or the retro may have been deleted.</p>
+          <a href="/" style="color: #4f46e5; text-decoration: none; font-weight: bold;">Go to the home page</a>
         </body>
       </html>
     `);
@@ -77,10 +77,10 @@ app.get('*', (req, res) => {
 app.use((err, _req, res, next) => {
   if (res.headersSent) return next(err);
   // Thrown by express.json(): malformed JSON, or a body over its size limit
-  if (err.type === 'entity.parse.failed') return res.status(400).json({ error: 'Geçersiz JSON.' });
-  if (err.type === 'entity.too.large') return res.status(413).json({ error: 'İstek çok büyük.' });
+  if (err.type === 'entity.parse.failed') return res.status(400).json({ error: 'Invalid JSON.' });
+  if (err.type === 'entity.too.large') return res.status(413).json({ error: 'Request too large.' });
   console.error(err);
-  res.status(500).json({ error: 'Beklenmeyen bir sunucu hatası oluştu.' });
+  res.status(500).json({ error: 'Something went wrong on the server.' });
 });
 
 export default app;

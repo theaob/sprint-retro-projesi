@@ -22,19 +22,19 @@ export function ColumnListEditor({ idPrefix, columns, onChange, max = 20 }) {
 
   return html`
     <div class="field">
-      <span class="field__label" id=${`${idPrefix}-label`}>Sütunlar</span>
+      <span class="field__label" id=${`${idPrefix}-label`}>Columns</span>
       <ol class="column-list" ref=${listRef} aria-labelledby=${`${idPrefix}-label`}>
         ${columns.map((name, i) => html`
           <li class=${`column-list__row lane-${i % 4}`} key=${i}>
             <i class="lane-dot" aria-hidden="true"></i>
-            <label class="sr-only" for=${`${idPrefix}-${i}`}>${i + 1}. sütun adı</label>
-            <input id=${`${idPrefix}-${i}`} class="field__input" value=${name} maxlength="100" placeholder="Sütun adı"
+            <label class="sr-only" for=${`${idPrefix}-${i}`}>Column ${i + 1} name</label>
+            <input id=${`${idPrefix}-${i}`} class="field__input" value=${name} maxlength="100" placeholder="Column name"
               onInput=${(e) => update(i, e.currentTarget.value)} />
-            <${IconButton} icon="x" label=${`${i + 1}. sütunu kaldır`} disabled=${columns.length <= 1} onClick=${() => remove(i)} />
+            <${IconButton} icon="x" label=${`Remove column ${i + 1}`} disabled=${columns.length <= 1} onClick=${() => remove(i)} />
           </li>
         `)}
       </ol>
-      <${Button} variant="ghost" icon="plus" class="column-list__add" onClick=${add} disabled=${columns.length >= max}>Sütun ekle<//>
+      <${Button} variant="ghost" icon="plus" class="column-list__add" onClick=${add} disabled=${columns.length >= max}>Add column<//>
     </div>
   `;
 }

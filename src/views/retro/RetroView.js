@@ -20,17 +20,17 @@ function JoinGate({ retro, onJoin }) {
     <main class="join" id="main">
       <div class="join__card">
         <${BrandMark} size=${28} />
-        <p class="join__eyebrow">Retroya davet edildin</p>
+        <p class="join__eyebrow">You're invited to a retro</p>
         <h1 class="join__title">${retro.title}</h1>
         <p class="join__meta">
-          ${lanes} sütun${stage ? html` · Şu an: <strong>${stage}</strong>` : null}${retro.status === 'finished' ? ' · Tamamlandı' : ''}
+          ${lanes} ${lanes === 1 ? 'column' : 'columns'}${stage ? html` · Now: <strong>${stage}</strong>` : null}${retro.status === 'finished' ? ' · Finished' : ''}
         </p>
         <form class="form join__form" onSubmit=${(e) => { e.preventDefault(); setDisplayName(name); onJoin(); }}>
-          <${Field} id="join-name" label="Görünen adın (isteğe bağlı)" placeholder="ör. Ayşe" maxlength="40"
+          <${Field} id="join-name" label="Your display name (optional)" placeholder="e.g. Alex" maxlength="40"
             autocomplete="nickname" value=${name} onInput=${(e) => setName(e.currentTarget.value)}
-            hint="Sadece katılımcı listesinde görünür." />
-          <p class="join__promise"><${Icon} name="eye-off" size=${18} />Notların her zaman anonim — kimin yazdığı hiç kimseye gösterilmez.</p>
-          <${Button} type="submit" variant="primary" size="lg" block iconAfter="arrow-right">Retroya katıl<//>
+            hint="Only shown in the participant list." />
+          <p class="join__promise"><${Icon} name="eye-off" size=${18} />Your notes are always anonymous — nobody is ever shown who wrote what.</p>
+          <${Button} type="submit" variant="primary" size="lg" block iconAfter="arrow-right">Join retro<//>
         </form>
       </div>
     </main>
@@ -50,14 +50,14 @@ export function RetroView({ retroId }) {
     return () => { cancelled = true; };
   }, [retroId]);
 
-  if (state.loading) return html`<main class="page" id="main"><${Spinner} label="Retro yükleniyor…" /></main>`;
+  if (state.loading) return html`<main class="page" id="main"><${Spinner} label="Loading retro…" /></main>`;
 
   if (state.error) {
     return html`
       <main class="page" id="main">
-        <${EmptyState} icon="x" title="Retro bulunamadı"
-          action=${html`<${LinkButton} variant="primary" href=${user ? '#/app' : '#/'} icon="arrow-left">${user ? 'Retrolarıma dön' : 'Ana sayfaya dön'}<//>`}>
-          Bağlantı hatalı olabilir ya da retro silinmiş olabilir.
+        <${EmptyState} icon="x" title="Retro not found"
+          action=${html`<${LinkButton} variant="primary" href=${user ? '#/app' : '#/'} icon="arrow-left">${user ? 'Back to my retros' : 'Back to home'}<//>`}>
+          The link may be wrong, or the retro may have been deleted.
         <//>
       </main>
     `;

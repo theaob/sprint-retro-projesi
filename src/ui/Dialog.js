@@ -90,7 +90,7 @@ function DialogPanel({ onClose, title, description, children, footer, size, dism
         <div class="dialog__grab" aria-hidden="true"></div>
         <div class="dialog__head">
           <h2 class="dialog__title" id=${titleId}>${title}</h2>
-          ${dismissible ? html`<${IconButton} icon="x" label="Kapat" class="dialog__close" onClick=${() => onCloseRef.current?.()} />` : null}
+          ${dismissible ? html`<${IconButton} icon="x" label="Close" class="dialog__close" onClick=${() => onCloseRef.current?.()} />` : null}
         </div>
         ${description ? html`<p class="dialog__desc" id=${descId}>${description}</p>` : null}
         <div class="dialog__body">${children}</div>
@@ -139,8 +139,8 @@ export function ConfirmHost() {
     <${Dialog} open=${!!pending} size="sm" title=${pending?.title} onClose=${() => finish(false)}
       initialFocus=".confirm-cancel"
       footer=${pending && html`
-        <${Button} variant="ghost" class="confirm-cancel" onClick=${() => finish(false)}>${pending.cancelLabel || 'Vazgeç'}<//>
-        <${Button} variant=${pending.danger ? 'danger' : 'primary'} onClick=${() => finish(true)}>${pending.confirmLabel || 'Onayla'}<//>
+        <${Button} variant="ghost" class="confirm-cancel" onClick=${() => finish(false)}>${pending.cancelLabel || 'Cancel'}<//>
+        <${Button} variant=${pending.danger ? 'danger' : 'primary'} onClick=${() => finish(true)}>${pending.confirmLabel || 'Confirm'}<//>
       `}>
       ${pending?.body ? html`<p class="confirm-body">${pending.body}</p>` : null}
     <//>

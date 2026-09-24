@@ -4,7 +4,7 @@ Sprint Retro is a full-stack, real-time web application to help agile teams cond
 
 ## Features
 
-- **Staged retros (optional)**: The facilitator moves everyone through *Hazırlık → Yaz → Oyla → Tartış → Kapanış* (setup, write, vote, discuss, wrap-up). A progress strip shows the current stage on every screen.
+- **Staged retros (optional)**: The facilitator moves everyone through *Setup → Write → Vote → Discuss → Wrap-up*. A progress strip shows the current stage on every screen.
   - **Hidden writing**: while writing, each person sees only their own notes; everyone else's appear as placeholders until voting starts. The note text never reaches other browsers, not even the facilitator's.
   - **Independent voting**: vote counts stay hidden until voting ends, so early leaders don't snowball.
   - **Discussion focus and timer**: the note being discussed and a shared countdown are shown on every participant's screen.

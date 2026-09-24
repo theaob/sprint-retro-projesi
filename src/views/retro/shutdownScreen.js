@@ -18,11 +18,11 @@ export function showRetroShutdownScreen(onComplete) {
       </div>
       <div class="win95-dialog-body">
         <span class="win95-hourglass">⏳</span>
-        <p>Retro kapatılıyor, lütfen bekleyin...</p>
+        <p>Retro is shutting down, please wait...</p>
       </div>
     </div>
     <div class="win95-black-screen">
-      <p class="win95-safe-text">Bu retroyu şimdi kapatmak güvenli.</p>
+      <p class="win95-safe-text">It's now safe to turn off your retro.</p>
     </div>
   `;
   document.body.appendChild(overlay);

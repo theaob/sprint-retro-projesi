@@ -391,9 +391,9 @@ if (!adminExists) {
 const templateCount = db.prepare('SELECT COUNT(*) as count FROM templates').get().count;
 if (templateCount === 0) {
   const defaultTemplates = [
-    { name: 'Standart', cols: ['İyi Giden', 'Geliştirilmeli', 'Aksiyon'] },
+    { name: 'Standard', cols: ['Went well', 'To improve', 'Action items'] },
     { name: 'GBI', cols: ['Good', 'Bad', 'Improvement'] },
-    { name: 'Mad/Sad/Glad', cols: ['Mad 😠', 'Sad 😢', 'Glad 😃', 'Aksiyon 🚀'] },
+    { name: 'Mad/Sad/Glad', cols: ['Mad 😠', 'Sad 😢', 'Glad 😃', 'Actions 🚀'] },
     { name: 'Start/Stop/Continue', cols: ['Start 🟢', 'Stop 🔴', 'Continue 🟡'] },
     { name: '4Ls', cols: ['Liked 👍', 'Learned 🧠', 'Lacked 👎', 'Longed For 🥺'] }
   ];
@@ -460,6 +460,38 @@ if (schemaVersion < 3) {
   }
 
   db.pragma('user_version = 3');
+}
+
+// Step 4
+if (schemaVersion < 4) {
+  // Migration: the UI switched to English, and so did the seeded templates.
+  // Translate a built-in template only while it is still exactly as the
+  // Turkish seed created it — anything an admin renamed or edited is theirs
+  // and stays as it is. Existing retros keep their column names.
+  try {
+    const translations = [
+      {
+        from: { name: 'Standart', columns: ['İyi Giden', 'Geliştirilmeli', 'Aksiyon'] },
+        to: { name: 'Standard', columns: ['Went well', 'To improve', 'Action items'] }
+      },
+      {
+        from: { name: 'Mad/Sad/Glad', columns: ['Mad 😠', 'Sad 😢', 'Glad 😃', 'Aksiyon 🚀'] },
+        to: { name: 'Mad/Sad/Glad', columns: ['Mad 😠', 'Sad 😢', 'Glad 😃', 'Actions 🚀'] }
+      }
+    ];
+    const update = db.prepare('UPDATE templates SET name = ?, columns = ? WHERE name = ? AND columns = ?');
+    let translated = 0;
+    for (const { from, to } of translations) {
+      translated += update.run(to.name, JSON.stringify(to.columns), from.name, JSON.stringify(from.columns)).changes;
+    }
+    if (translated > 0) {
+      console.log(`✅ Migration applied: translated ${translated} built-in template(s) to English.`);
+    }
+  } catch (err) {
+    console.error('Migration error (English templates):', err);
+  }
+
+  db.pragma('user_version = 4');
 }
 
 export default db;

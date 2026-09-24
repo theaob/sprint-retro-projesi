@@ -33,22 +33,22 @@ export function Composer({ columnId, columnName, onSubmit, onTyping, docked, som
     <form class=${`composer ${docked ? 'composer--docked' : ''}`} onSubmit=${(e) => { e.preventDefault(); submit(); }}>
       ${docked ? html`
         <div class="composer__hint">
-          <label for=${id}><strong>${columnName}</strong> sütununa not ekle</label>
-          ${someoneTyping ? html`<span class="typing">Birisi yazıyor…</span>` : null}
+          <label for=${id}>Add a note to <strong>${columnName}</strong></label>
+          ${someoneTyping ? html`<span class="typing">Someone is typing…</span>` : null}
         </div>
-      ` : html`<label class="sr-only" for=${id}>${columnName} sütununa not ekle</label>`}
+      ` : html`<label class="sr-only" for=${id}>Add a note to ${columnName}</label>`}
       <div class="composer__row">
         <${GrowingTextarea}
           id=${id}
           textareaRef=${inputRef}
           value=${text}
-          placeholder=${docked ? 'Notunu yaz…' : 'Not ekle…'}
+          placeholder=${docked ? 'Write your note…' : 'Add a note…'}
           maxlength="1000"
           enterkeyhint="send"
           onInput=${(e) => { setText(e.currentTarget.value); onTyping?.(columnId); }}
           onSubmitKey=${submit}
         />
-        <${IconButton} type="submit" icon="send" label="Notu gönder" variant="primary" class="composer__send"
+        <${IconButton} type="submit" icon="send" label="Send note" variant="primary" class="composer__send"
           disabled=${sending || !text.trim()} />
       </div>
     </form>

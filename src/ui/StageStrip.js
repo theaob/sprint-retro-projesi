@@ -2,11 +2,11 @@ import { html } from './html.js';
 
 /** The stages of a staged retro, in order (server: RETRO_PHASES + finished). */
 export const STAGES = [
-  { key: 'setup', label: 'Hazırlık' },
-  { key: 'writing', label: 'Yaz' },
-  { key: 'voting', label: 'Oyla' },
-  { key: 'discussing', label: 'Tartış' },
-  { key: 'finished', label: 'Kapanış' }
+  { key: 'setup', label: 'Setup' },
+  { key: 'writing', label: 'Write' },
+  { key: 'voting', label: 'Vote' },
+  { key: 'discussing', label: 'Discuss' },
+  { key: 'finished', label: 'Wrap-up' }
 ];
 
 export function stageKey(retro) {
@@ -32,7 +32,7 @@ export function previousStage(key) {
 export function StageStrip({ current, compact }) {
   const currentIdx = STAGES.findIndex(s => s.key === current);
   return html`
-    <ol class=${`stage-strip ${compact ? 'stage-strip--compact' : ''}`} aria-label="Retro aşamaları">
+    <ol class=${`stage-strip ${compact ? 'stage-strip--compact' : ''}`} aria-label="Retro stages">
       ${STAGES.map((s, i) => html`
         <li class=${`stage-strip__step ${i < currentIdx ? 'is-done' : ''} ${i === currentIdx ? 'is-now' : ''}`}
           aria-current=${i === currentIdx ? 'step' : undefined}>

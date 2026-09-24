@@ -9,7 +9,7 @@ export async function exportRetroToExcel(retro) {
 
   // Header row: column names
   const headers = retro.columns.map(col => col.name);
-  const voteHeaders = retro.columns.map(col => `${col.name} (Oy)`);
+  const voteHeaders = retro.columns.map(col => `${col.name} (Votes)`);
 
   // Find max entries across all columns
   const maxEntries = Math.max(...retro.columns.map(col => col.entries.length), 0);
@@ -18,7 +18,7 @@ export async function exportRetroToExcel(retro) {
   const allHeaders = [];
   retro.columns.forEach(col => {
     allHeaders.push(col.name);
-    allHeaders.push('Oy');
+    allHeaders.push('Votes');
   });
   worksheetData.push(allHeaders);
 

@@ -121,15 +121,15 @@ export function Stepper({ id, label, value, min, max, onChange, unit }) {
     <div class="field">
       <span class="field__label" id=${`${id}-label`}>${label}</span>
       <div class="stepper" role="group" aria-labelledby=${`${id}-label`}>
-        <${IconButton} icon="minus" label="Azalt" class="stepper__btn" disabled=${value <= min} onClick=${() => set(value - 1)} />
+        <${IconButton} icon="minus" label="Decrease" class="stepper__btn" disabled=${value <= min} onClick=${() => set(value - 1)} />
         <output class="stepper__value" id=${id} aria-live="polite">${value}${unit ? html` <span>${unit}</span>` : null}</output>
-        <${IconButton} icon="plus" label="Artır" class="stepper__btn" disabled=${value >= max} onClick=${() => set(value + 1)} />
+        <${IconButton} icon="plus" label="Increase" class="stepper__btn" disabled=${value >= max} onClick=${() => set(value + 1)} />
       </div>
     </div>
   `;
 }
 
-export function Spinner({ label = 'Yükleniyor…' }) {
+export function Spinner({ label = 'Loading…' }) {
   return html`<div class="spinner" role="status"><span class="sr-only">${label}</span></div>`;
 }
 

@@ -19,7 +19,7 @@ function ForcedPasswordChange({ user }) {
 
   const submit = async (e) => {
     e.preventDefault();
-    if (password.length < 6) { setError('Şifre en az 6 karakter olmalıdır.'); return; }
+    if (password.length < 6) { setError('Password must be at least 6 characters.'); return; }
     setBusy(true);
     try {
       await api.changePassword(user.id, password);
@@ -37,14 +37,14 @@ function ForcedPasswordChange({ user }) {
   };
 
   return html`
-    <${Dialog} open dismissible=${false} size="sm" title="Şifreni değiştir"
-      description="Hesabın varsayılan bir şifre kullanıyor. Devam etmeden önce yeni bir şifre belirle.">
+    <${Dialog} open dismissible=${false} size="sm" title="Change your password"
+      description="Your account uses a default password. Set a new one before you continue.">
       <form class="form" onSubmit=${submit}>
-        <${Field} id="force-pwd-input" type="password" label="Yeni şifre" autocomplete="new-password" minlength="6"
-          placeholder="En az 6 karakter" value=${password} data-autofocus
+        <${Field} id="force-pwd-input" type="password" label="New password" autocomplete="new-password" minlength="6"
+          placeholder="At least 6 characters" value=${password} data-autofocus
           onInput=${(e) => { setPassword(e.currentTarget.value); setError(''); }} error=${error} />
-        <${Button} type="submit" variant="primary" block loading=${busy} id="force-pwd-save-btn">Kaydet ve devam et<//>
-        <${Button} variant="ghost" block onClick=${signOut}>Çıkış yap<//>
+        <${Button} type="submit" variant="primary" block loading=${busy} id="force-pwd-save-btn">Save and continue<//>
+        <${Button} variant="ghost" block onClick=${signOut}>Sign out<//>
       </form>
     <//>
   `;
@@ -65,8 +65,8 @@ export function LoginView({ startInRegister = false }) {
   const submit = async (e) => {
     e.preventDefault();
     setError('');
-    if (!username.trim() || !password) { setError('Kullanıcı adı ve şifre gerekli.'); return; }
-    if (registering && password.length < 6) { setError('Şifre en az 6 karakter olmalıdır.'); return; }
+    if (!username.trim() || !password) { setError('Username and password are required.'); return; }
+    if (registering && password.length < 6) { setError('Password must be at least 6 characters.'); return; }
     setBusy(true);
     try {
       const { token, user } = registering
@@ -94,31 +94,31 @@ export function LoginView({ startInRegister = false }) {
       </header>
       <main class="auth__main" id="main">
         <div class="auth__card">
-          <h1>${registering ? 'Hesap oluştur' : 'Giriş yap'}</h1>
-          <p class="auth__sub">${registering ? 'Retrolarını oluşturmak ve yönetmek için bir hesap aç.' : 'Retrolarını yönetmek için giriş yap. Retroya katılmak için hesap gerekmez.'}</p>
+          <h1>${registering ? 'Create account' : 'Sign in'}</h1>
+          <p class="auth__sub">${registering ? 'Create an account to set up and run your retros.' : "Sign in to manage your retros. You don't need an account to join one."}</p>
           <form class="form" onSubmit=${submit} novalidate>
-            <${Field} id="login-username" label="Kullanıcı adı" autocomplete="username" autocapitalize="none" spellcheck="false"
+            <${Field} id="login-username" label="Username" autocomplete="username" autocapitalize="none" spellcheck="false"
               value=${username} onInput=${(e) => setUsername(e.currentTarget.value)} maxlength="50" />
             <div class="field">
-              <label class="field__label" for="login-password">Şifre</label>
+              <label class="field__label" for="login-password">Password</label>
               <div class="input-with-action">
                 <input id="login-password" class="field__input" type=${showPassword ? 'text' : 'password'}
                   autocomplete=${registering ? 'new-password' : 'current-password'}
-                  placeholder=${registering ? 'En az 6 karakter' : ''}
+                  placeholder=${registering ? 'At least 6 characters' : ''}
                   value=${password} onInput=${(e) => setPassword(e.currentTarget.value)} />
-                <${IconButton} icon=${showPassword ? 'eye-off' : 'eye'} label=${showPassword ? 'Şifreyi gizle' : 'Şifreyi göster'}
+                <${IconButton} icon=${showPassword ? 'eye-off' : 'eye'} label=${showPassword ? 'Hide password' : 'Show password'}
                   id="toggle-pwd" onClick=${() => setShowPassword(v => !v)} />
               </div>
             </div>
             <p class="form-error" role="alert">${error}</p>
             <${Button} type="submit" variant="primary" size="lg" block loading=${busy} id="login-btn">
-              ${registering ? 'Hesap oluştur' : 'Giriş yap'}
+              ${registering ? 'Create account' : 'Sign in'}
             <//>
           </form>
           <p class="auth__switch">
             ${registering
-              ? html`Zaten hesabın var mı? <a href="#/login" id="switch-to-login">Giriş yap</a>`
-              : html`Hesabın yok mu? <a href="#/register" id="switch-to-register">Hesap oluştur</a>`}
+              ? html`Already have an account? <a href="#/login" id="switch-to-login">Sign in</a>`
+              : html`Don't have an account? <a href="#/register" id="switch-to-register">Create account</a>`}
           </p>
         </div>
         <p class="auth__version">Retro Runway v${typeof APP_VERSION !== 'undefined' ? APP_VERSION : ''}</p>

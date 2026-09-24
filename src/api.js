@@ -19,18 +19,18 @@ async function request(url, options = {}) {
     localStorage.removeItem('retro_token');
     localStorage.removeItem('retro_user');
     window.location.hash = '#/login';
-    throw new Error('Oturum süresi doldu. Lütfen tekrar giriş yapın.');
+    throw new Error('Your session has expired. Please sign in again.');
   }
 
   if (!res.ok) {
-    const err = await res.json().catch(() => ({ error: 'İstek başarısız.' }));
+    const err = await res.json().catch(() => ({ error: 'Request failed.' }));
     // The account still has to replace its default password — back to the prompt
     if (res.status === 403 && err.must_change_password) {
       const user = api.getUser();
       if (user) api.saveSession(token, { ...user, must_change_password: true });
       window.location.hash = '#/login';
     }
-    throw new Error(err.error || 'İstek başarısız.');
+    throw new Error(err.error || 'Request failed.');
   }
   return res.json();
 }
