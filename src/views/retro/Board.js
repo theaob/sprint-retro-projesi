@@ -9,7 +9,10 @@ import { useCountdown, useMediaQuery, formatClock } from '../../ui/hooks.js';
 import { api } from '../../api.js';
 import { createRetroSocket } from '../../ws.js';
 import { exportRetroToExcel } from '../../export.js';
-import { showToast, spawnVoteCelebration, announce, getDisplayName } from '../../utils.js';
+import {
+  showToast, spawnVoteCelebration, announce, getDisplayName,
+  wasOnRetro, markOnRetro, hasSeenEnding, setEndingSeen
+} from '../../utils.js';
 import { retroReducer, initialRetroState } from './reducer.js';
 import { playRetroEndAnimation } from './retroEndAnimations.js';
 import { Note } from './Note.js';
@@ -45,8 +48,9 @@ export function Board({ initialRetro, user }) {
   const typingTimers = useRef({});
   const lanesRef = useRef(null);
   // Whether this finish's ending has already played here — the facilitator
-  // gets both its own API response and the WebSocket echo
-  const endingPlayed = useRef(initialRetro.status === 'finished');
+  // gets both its own API response and the WebSocket echo. Whether to play
+  // it on opening an already-finished retro is decided by the effect below.
+  const endingPlayed = useRef(false);
   const wide = useMediaQuery('(min-width: 768px)');
 
   const staged = !!retro.phase;
@@ -79,13 +83,48 @@ export function Board({ initialRetro, user }) {
     }
   };
 
-  // Plays the retro-end animation once per finish, then loads the summary
+  // Plays the retro-end animation once per finish, then loads the summary.
+  // A finish that arrives while the page is in the background waits until
+  // it's looked at again, so the animation isn't played to nobody.
   const playEnding = () => {
     if (endingPlayed.current) return;
     endingPlayed.current = true;
-    announce('Retro finished.');
-    playRetroEndAnimation(refetch);
+    setEndingSeen(retro.id, true);
+    const start = () => {
+      announce('Retro finished.');
+      playRetroEndAnimation(refetch);
+    };
+    if (!document.hidden) { start(); return; }
+    const onVisible = () => {
+      if (document.hidden) return;
+      document.removeEventListener('visibilitychange', onVisible);
+      start();
+    };
+    document.addEventListener('visibilitychange', onVisible);
   };
+
+  // People often add their notes and leave. Remember that this browser was
+  // on the retro while it ran; if it has finished since, play the ending
+  // once when they're back (opening the link again, or returning to the
+  // tab). Someone who never took part, like an admin browsing old retros,
+  // just gets the summary.
+  useEffect(() => {
+    if (retro.status !== 'finished') {
+      markOnRetro(retro.id);
+      setEndingSeen(retro.id, false); // a reopened retro gets a new ending
+    } else if (wasOnRetro(retro.id) && !hasSeenEnding(retro.id)) {
+      playEnding();
+    }
+  }, [retro.status]);
+
+  // Back on a tab that sat in the background: the socket may have been
+  // dropped without noticing, so fetch the board — a finish that happened
+  // meanwhile then plays the ending through the effect above
+  useEffect(() => {
+    const onVisible = () => { if (!document.hidden) refetch(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => document.removeEventListener('visibilitychange', onVisible);
+  }, []);
 
   // WebSocket — bound once on mount; handlers only dispatch, so they never
   // read stale state.

@@ -34,6 +34,29 @@ export function markJoined(retroId) {
   localStorage.setItem(`retro_joined:${retroId}`, '1');
 }
 
+/*
+ * Retro-end bookkeeping, so someone who wrote their notes and left still
+ * gets the ending when they come back: "was here while the retro ran" and
+ * "has seen this finish's ending". Storage failures only cost the replay.
+ */
+function readFlag(key) {
+  try { return localStorage.getItem(key) === '1'; } catch { return false; }
+}
+
+function writeFlag(key, on) {
+  try {
+    if (on) localStorage.setItem(key, '1');
+    else localStorage.removeItem(key);
+  } catch {
+    // nothing to do: the ending just won't be replayed
+  }
+}
+
+export const wasOnRetro = (retroId) => readFlag(`retro_was_here:${retroId}`);
+export const markOnRetro = (retroId) => writeFlag(`retro_was_here:${retroId}`, true);
+export const hasSeenEnding = (retroId) => readFlag(`retro_ending_seen:${retroId}`);
+export const setEndingSeen = (retroId, seen) => writeFlag(`retro_ending_seen:${retroId}`, seen);
+
 /**
  * Sizes a textarea to fit its content, so a one-line note stays one line
  * and a longer one grows instead of scrolling inside a tiny box. Call on
