@@ -5,8 +5,7 @@
  * from generic CSS shapes (a shaded sphere, a starfield gradient, radial
  * particles) and an adapted phrase, not reproduced film assets or the
  * actual crawl typeface. One of the pool of retro-end animations in
- * retroEndAnimations.js, which is the only caller and already handles the
- * prefers-reduced-motion check before picking one to play.
+ * retroEndAnimations.js (its only caller).
  */
 const EXPLODE_AT_MS = 1400;
 const CRAWL_AT_MS = 1900;

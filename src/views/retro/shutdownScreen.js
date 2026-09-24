@@ -1,7 +1,6 @@
 /**
  * A Windows 95-shutdown-styled transition — one of the pool of retro-end
- * animations in retroEndAnimations.js, which is the only caller and already
- * handles the prefers-reduced-motion check before picking one to play.
+ * animations in retroEndAnimations.js (its only caller).
  */
 export function showRetroShutdownScreen(onComplete) {
   const overlay = document.createElement('div');

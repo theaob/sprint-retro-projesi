@@ -48,36 +48,13 @@
   100% { transform: translateY(-115vh) rotate(25deg); opacity: 0; }
 }
 
-/* ── Still Ending ────────────────────────────────────────────────
-   The reduced-motion stand-in for the animations above (stillEnding.js):
-   the shutdown screen's final frame, with no animation at all. */
-.still-ending {
-  position: fixed;
-  inset: 0;
-  z-index: 3000;
-  background: #000;
-  color: #fff;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  padding: 24px;
-  text-align: center;
-  font-family: Tahoma, 'Segoe UI', sans-serif;
-  cursor: pointer;
-}
-
-.still-ending__text { margin: 0; font-size: 1.125rem; letter-spacing: 0.3px; }
-.still-ending__hint { margin: 0; font-size: 0.875rem; color: #bdbdbd; }
-
 /* ── Retro Shutdown Screen ───────────────────────────────────────
    A Windows 95-shutdown pastiche shown to every client when a retro
    finishes (see shutdownScreen.js), right before the page reload that
    picks up the finished-state UI. Deliberately its own fixed visual
    world — hardcoded colors, not the app's theme tokens — since it's a
-   one-off homage, not a themed surface. Not played under
-   prefers-reduced-motion; the still ending above stands in for it. */
+   one-off homage, not a themed surface. Plays even under
+   prefers-reduced-motion (see retroEndAnimations.js). */
 .win95-overlay {
   position: fixed;
   inset: 0;

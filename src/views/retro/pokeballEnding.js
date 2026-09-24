@@ -4,9 +4,8 @@
  * classic dialogue textbox typing out battle-style lines. Built from
  * generic shapes (a red/white ball, a round creature silhouette) and
  * adapted text, not reproduced game sprites or verbatim dialogue. One of
- * the pool of retro-end animations in retroEndAnimations.js, which is the
- * only caller and already handles the prefers-reduced-motion check before
- * picking one to play.
+ * the pool of retro-end animations in retroEndAnimations.js (its only
+ * caller).
  */
 const THROW_DURATION_MS = 950;
 const TEXTBOX_SETTLE_MS = 650;

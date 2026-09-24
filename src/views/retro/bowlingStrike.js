@@ -3,8 +3,7 @@
  * all ten pins on impact, and "STRIKE!" pops in. Built from generic
  * shapes (a lane, pin silhouettes, a ball), not any licensed game/brand
  * assets. One of the pool of retro-end animations in
- * retroEndAnimations.js, which is the only caller and already handles
- * the prefers-reduced-motion check before picking one to play.
+ * retroEndAnimations.js (its only caller).
  */
 const ROLL_DURATION_MS = 1400;
 const TOTAL_DURATION_MS = 4800;

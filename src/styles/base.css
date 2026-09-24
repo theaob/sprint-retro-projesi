@@ -50,8 +50,12 @@
     overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
   }
 
+  /* Lifted while a retro-end animation plays (the .is-retro-ending class
+     from retroEndAnimations.js), which deliberately ignores this setting */
   @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after {
+    :root:not(.is-retro-ending) *,
+    :root:not(.is-retro-ending) *::before,
+    :root:not(.is-retro-ending) *::after {
       animation-duration: 0.01ms !important;
       animation-iteration-count: 1 !important;
       transition-duration: 0.01ms !important;

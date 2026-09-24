@@ -4,9 +4,7 @@
  * "your goal is in another castle" punchline types out NES-scroll-style.
  * Built from generic shapes and adapted text, not reproduced game sprites
  * — the reference is in the joke, not the artwork. One of the pool of
- * retro-end animations in retroEndAnimations.js, which is the only caller
- * and already handles the prefers-reduced-motion check before picking one
- * to play.
+ * retro-end animations in retroEndAnimations.js (its only caller).
  */
 const MESSAGE = 'THANK YOU RETRO MASTER!\nYOUR SPRINT IS COMPLETE.\nBUT THE NEXT SPRINT IS\nIN ANOTHER CASTLE!';
 const WALK_DURATION_MS = 1300;

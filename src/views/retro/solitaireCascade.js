@@ -2,8 +2,7 @@
  * A Windows 98 Solitaire-win-style cascade — cards spawn from the top of
  * the screen and bounce down under simple gravity, echoing the classic
  * "you won" animation. One of the pool of retro-end animations in
- * retroEndAnimations.js, which is the only caller and already handles the
- * prefers-reduced-motion check before picking one to play.
+ * retroEndAnimations.js (its only caller).
  */
 const SUITS = [
   { symbol: '♠', color: '#1a1a1a' },

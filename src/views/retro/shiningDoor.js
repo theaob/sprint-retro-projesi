@@ -4,9 +4,7 @@
  * an adapted line appears. Built from generic shapes (a wood-grain panel,
  * a simple wedge-shaped axe head), not any film stills or likeness — kept
  * deliberately cartoonish, no gore. One of the pool of retro-end
- * animations in retroEndAnimations.js, which is the only caller and
- * already handles the prefers-reduced-motion check before picking one to
- * play.
+ * animations in retroEndAnimations.js (its only caller).
  */
 const IMPACT_AT_MS = 900;
 const TOTAL_DURATION_MS = 4600;

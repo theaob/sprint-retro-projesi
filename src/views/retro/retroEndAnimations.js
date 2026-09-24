@@ -5,7 +5,6 @@ import { showDeathStarEnding } from './deathStarEnding.js';
 import { showPokeballEnding } from './pokeballEnding.js';
 import { showBowlingStrike } from './bowlingStrike.js';
 import { showShiningDoor } from './shiningDoor.js';
-import { showStillEnding } from './stillEnding.js';
 
 /**
  * Pool of nostalgic OS/game/film-moment animations shown to every client
@@ -26,14 +25,18 @@ const ANIMATIONS = [
 /**
  * Plays one randomly-chosen retro-end animation, then calls onComplete —
  * Board.js uses this to show the wrap-up summary only once the animation
- * has played. Under prefers-reduced-motion none of these play; a still
- * ending screen (stillEnding.js) marks the moment instead, with no motion.
+ * has played. Plays regardless of prefers-reduced-motion: the ending is
+ * the one moment the product wants everyone to see, so it deliberately
+ * doesn't follow that setting. The .is-retro-ending class lifts base.css's
+ * reduced-motion rule (which cuts every CSS animation to ~0ms) for as long
+ * as the animation runs.
  */
 export function playRetroEndAnimation(onComplete) {
-  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    showStillEnding(onComplete);
-    return;
-  }
+  const root = document.documentElement;
+  root.classList.add('is-retro-ending');
   const animation = ANIMATIONS[Math.floor(Math.random() * ANIMATIONS.length)];
-  animation(onComplete);
+  animation(() => {
+    root.classList.remove('is-retro-ending');
+    onComplete?.();
+  });
 }
