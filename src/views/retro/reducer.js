@@ -3,125 +3,116 @@
  * every WebSocket event, and every local optimistic update funnel through
  * this reducer. Centralizing it means WS handlers (bound once, on mount)
  * never read stale closed-over state — they just dispatch.
+ *
+ * Many cases are idempotent (upsert rather than append) because a client's
+ * own API response and the WebSocket echo of the same change can both
+ * arrive, in either order.
  */
+
+/**
+ * Combines what we already know about a note with a newer copy of it.
+ * In a staged retro the room broadcast is a placeholder (hidden: true) for
+ * everyone but the author, so a placeholder must never overwrite a note
+ * whose text we already have — only its column can change.
+ */
+function mergeEntry(existing, incoming) {
+  if (incoming.hidden && !existing.hidden) return { ...existing, column_id: incoming.column_id };
+  return {
+    ...existing,
+    ...incoming,
+    mine: existing.mine || incoming.mine,
+    // A redacted count (null, while votes are hidden) never replaces a real one we hold locally
+    votes: incoming.votes ?? existing.votes
+  };
+}
+
+function findEntry(columns, entryId) {
+  for (const col of columns) {
+    const entry = col.entries.find(e => e.id === entryId);
+    if (entry) return entry;
+  }
+  return null;
+}
+
+/** Puts `entry` into its column_id's list (removing it from any other). */
+function placeEntry(columns, entry) {
+  return columns.map(c => {
+    const without = c.entries.filter(e => e.id !== entry.id);
+    if (c.id !== entry.column_id) return without.length === c.entries.length ? c : { ...c, entries: without };
+    const idx = c.entries.findIndex(e => e.id === entry.id);
+    if (idx === -1) return { ...c, entries: [...without, entry] };
+    const entries = [...c.entries];
+    entries[idx] = entry;
+    return { ...c, entries };
+  });
+}
+
+function upsert(state, incoming) {
+  const existing = findEntry(state.columns, incoming.id);
+  const entry = existing ? mergeEntry(existing, incoming) : incoming;
+  return { ...state, columns: placeEntry(state.columns, entry) };
+}
+
 export function retroReducer(state, action) {
   switch (action.type) {
-    case 'entry:added': {
-      const entry = action.entry;
-      // Idempotent: guards against the WS broadcast arriving for an entry
-      // this same client just optimistically added from its own POST.
-      const alreadyExists = state.columns.some(c => c.entries.some(e => e.id === entry.id));
-      if (alreadyExists) return state;
-      return {
-        ...state,
-        columns: state.columns.map(c =>
-          c.id === entry.column_id ? { ...c, entries: [...c.entries, entry] } : c
-        ),
-        flashColumnId: entry.column_id
-      };
-    }
+    case 'refresh':
+      return initialRetroState(action.retro);
+
+    case 'entry:added':
+    case 'entry:edited':
+    case 'entry:moved':
+      return upsert(state, action.entry);
 
     case 'entry:voted': {
-      const entry = action.entry;
+      const existing = findEntry(state.columns, action.entry.id);
+      if (!existing || action.entry.votes == null) return state;
+      return { ...state, columns: placeEntry(state.columns, { ...existing, votes: action.entry.votes }) };
+    }
+
+    case 'entry:deleted':
       return {
         ...state,
-        columns: state.columns.map(c => ({
-          ...c,
-          entries: c.entries.map(e => (e.id === entry.id ? { ...e, votes: entry.votes } : e))
-        }))
+        columns: state.columns.map(c => ({ ...c, entries: c.entries.filter(e => e.id !== action.entryId) })),
+        votedEntryIds: state.votedEntryIds.filter(id => id !== action.entryId),
+        focus_entry_id: state.focus_entry_id === action.entryId ? null : state.focus_entry_id
       };
-    }
 
-    case 'entry:edited': {
-      const entry = action.entry;
-      return {
-        ...state,
-        columns: state.columns.map(c => ({
-          ...c,
-          entries: c.entries.map(e => (e.id === entry.id ? { ...e, text: entry.text } : e))
-        }))
-      };
-    }
+    case 'column:renamed':
+      return { ...state, columns: state.columns.map(c => (c.id === action.columnId ? { ...c, name: action.name } : c)) };
 
-    case 'entry:moved': {
-      const entry = action.entry;
-      // Filter-then-add per column, keyed on the entry's *current* column_id —
-      // naturally idempotent (unlike an append), so no separate dedup guard is
-      // needed against the local dispatch + WS echo landing twice.
-      return {
-        ...state,
-        columns: state.columns.map(c => {
-          const withoutEntry = c.entries.filter(e => e.id !== entry.id);
-          return c.id === entry.column_id
-            ? { ...c, entries: [...withoutEntry, entry] }
-            : { ...c, entries: withoutEntry };
-        })
-      };
-    }
-
-    case 'entry:deleted': {
-      const { entryId } = action;
-      return {
-        ...state,
-        columns: state.columns.map(c => ({
-          ...c,
-          entries: c.entries.filter(e => e.id !== entryId)
-        }))
-      };
-    }
-
-    case 'column:renamed': {
-      const { columnId, name } = action;
-      return {
-        ...state,
-        columns: state.columns.map(c => (c.id === columnId ? { ...c, name } : c))
-      };
-    }
-
-    case 'status:changed':
-      return { ...state, status: action.status };
-
-    case 'column:added': {
-      // Same idempotency concern as entry:added.
-      const exists = state.columns.some(c => c.id === action.column.id);
-      if (exists) return state;
-      return { ...state, columns: [...state.columns, action.column] };
-    }
+    case 'column:added':
+      if (state.columns.some(c => c.id === action.column.id)) return state;
+      return { ...state, columns: [...state.columns, { ...action.column, entries: action.column.entries || [] }] };
 
     case 'column:deleted':
       return { ...state, columns: state.columns.filter(c => c.id !== action.columnId) };
 
-    // Local, optimistic — fired the instant the vote button is clicked, before
-    // the API call resolves. The authoritative *count* still only ever comes
-    // from the entry:voted broadcast; this only tracks "did I vote for this".
-    case 'vote:optimistic': {
-      const { entryId, voted } = action;
-      const votedEntryIds = voted
-        ? [...state.votedEntryIds, entryId]
-        : state.votedEntryIds.filter(id => id !== entryId);
-      return { ...state, votedEntryIds };
-    }
+    case 'status':
+      return { ...state, status: action.status };
 
-    case 'vote:rollback':
-      return { ...state, votedEntryIds: action.votedEntryIds };
+    case 'phase':
+      return { ...state, phase: action.phase, focus_entry_id: action.focusEntryId ?? null };
 
-    case 'flash:clear':
-      return { ...state, flashColumnId: null };
+    case 'focus':
+      return { ...state, focus_entry_id: action.entryId };
 
-    // Full replace — used after an onReconnect re-fetch to catch up on
-    // anything missed while the socket was down. Also re-syncs status and
-    // votedEntryIds: a status change (e.g. the retro finishing) missed
-    // during a brief disconnect used to get silently dropped here, since
-    // this only ever touched columns — the client would keep showing a
-    // stale 'active' board indefinitely with no further signal to correct
-    // it.
-    case 'refresh':
+    case 'timer':
       return {
         ...state,
-        columns: action.retro.columns,
-        status: action.retro.status,
-        votedEntryIds: action.retro.voted_entry_ids || state.votedEntryIds
+        timer_ends_at: action.endsAt,
+        clockOffset: action.serverNow ? Date.parse(action.serverNow) - Date.now() : state.clockOffset
       };
+
+    case 'voters':
+      return { ...state, voter_count: action.voters };
+
+    // Local, optimistic — fired the instant the vote button is pressed,
+    // before the API call resolves. Only tracks "did I vote for this";
+    // counts come from the server.
+    case 'vote:optimistic': {
+      const without = state.votedEntryIds.filter(id => id !== action.entryId);
+      return { ...state, votedEntryIds: action.voted ? [...without, action.entryId] : without };
+    }
 
     default:
       return state;
@@ -132,6 +123,7 @@ export function initialRetroState(retro) {
   return {
     ...retro,
     votedEntryIds: [...(retro.voted_entry_ids || [])],
-    flashColumnId: null
+    // Server clock minus ours, so every client counts a timer down to the same second
+    clockOffset: retro.server_now ? Date.parse(retro.server_now) - Date.now() : 0
   };
 }

@@ -4,26 +4,27 @@ Sprint Retro is a full-stack, real-time web application to help agile teams cond
 
 ## Features
 
-- **Real-Time Collaboration**: Built with WebSockets, allowing multiple team members to interact with the board simultaneously.
-- **Authentication**: Secure access via simple authentication with a minimum 6-character password limit.
-- **Short URL Redirection**: Generates clean, short sharing links (`/s/:code`) for retrospectives to make sharing with the team extremely simple.
-- **Mobile-First Optimizations**: Tailored layouts for mobile devices including:
-  - Sticky bottom navigation bar for main sections on mobile viewports.
-  - Interactive board column tabs with smooth scrolling and scroll sync (active tab updates as you swipe columns).
-  - Card-based responsive table layouts for easy user management on small screens.
-  - Touch-friendly controls: entry edit/delete actions and larger tap targets are always reachable on touchscreens, not just on hover.
-  - Theme toggle accessible from the header on all screen sizes.
-- **Vote & Feedback Gathering**: Add items to your retro board and allow the team to vote on priority.
-- **Configurable Vote Limits**: Admins can configure the maximum number of votes each participant is allowed to cast (locally enforced on devices).
-- **Export Data**: Easily export retro results to Excel (`.xlsx`) format.
-- **Responsive Design**: Clean and modern UI with modern typography (Inter).
+- **Staged retros (optional)**: The facilitator moves everyone through *Hazırlık → Yaz → Oyla → Tartış → Kapanış* (setup, write, vote, discuss, wrap-up). A progress strip shows the current stage on every screen.
+  - **Hidden writing**: while writing, each person sees only their own notes; everyone else's appear as placeholders until voting starts. The note text never reaches other browsers, not even the facilitator's.
+  - **Independent voting**: vote counts stay hidden until voting ends, so early leaders don't snowball.
+  - **Discussion focus and timer**: the note being discussed and a shared countdown are shown on every participant's screen.
+  - Simple retros (everything open at once, as in earlier versions) remain the default.
+- **Phone-first board**: one lane at a time with swipe and lane tabs, a writing box docked above the keyboard, 44px tap targets, and pinch-zoom kept on.
+- **Anonymous by default**: participants join from a short link without an account; the optional display name is only used in the "who's here" list, never on notes.
+- **Real-time collaboration** over WebSockets: notes, votes, stages, focus and timer update live for everyone.
+- **Facilitator controls** in one sheet: share link, next stage, timer, lanes, finish or reopen, Excel export.
+- **Templates**: Standart, GBI, Mad/Sad/Glad, Start/Stop/Continue, 4Ls, or admin-defined templates.
+- **Export** retro results to Excel (`.xlsx`).
+- **Accessible**: light and dark themes (or follow the system) checked to WCAG AA contrast, keyboard- and screen-reader-friendly dialogs, and a Back gesture that closes the open dialog.
+- **Secure by default**: rate-limited sign-in, forced change of the default admin password, sessions revoked on password change.
 
 ## Tech Stack
 
 ### Frontend
-- **Vanilla JavaScript** (ES Modules)
-- **Vite** for fast, optimized builds
-- **CSS3** (Responsive, modern styling)
+- **Preact** + **htm** (JSX-like tagged templates, no compile step) for every view
+- **Vite** for builds
+- **CSS cascade layers** with design tokens (`src/styles/`)
+- Fonts: Bricolage Grotesque, Atkinson Hyperlegible Next, JetBrains Mono
 
 ### Backend
 - **Node.js** with **Express**
@@ -33,7 +34,7 @@ Sprint Retro is a full-stack, real-time web application to help agile teams cond
 
 ## Prerequisites
 
-- [Node.js](https://nodejs.org/en/) (v16.0 or newer recommended)
+- [Node.js](https://nodejs.org/en/) 22 or newer
 - `npm` (comes with Node)
 
 ## Getting Started
@@ -91,7 +92,12 @@ An automated GitHub Actions workflow (`release-docker.yml`) is provided out-of-t
 ```text
 sprint-retro-projesi/
 ├── server/            # Backend (Express / WS / SQLite logic)
-├── src/               # Frontend (Vanilla JS / CSS logic)
+├── src/               # Frontend
+│   ├── App.js         #   hash router
+│   ├── ui/            #   shared components (buttons, fields, dialogs, icons, app shell)
+│   ├── views/         #   pages; views/retro/ is the retro board
+│   └── styles/        #   CSS in cascade layers (tokens, base, components, views, effects)
+├── test/              # Vitest + supertest API tests
 ├── Dockerfile         # Docker configuration
 ├── index.html         # Frontend entry point
 ├── package.json       # Project dependencies & scripts

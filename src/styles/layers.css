@@ -1,0 +1,8 @@
+/*
+ * Cascade layer order. A later layer beats an earlier one regardless of
+ * selector specificity, so a component style never has to out-specify a
+ * base rule, and a view can adjust a component without !important.
+ * Imported first (see main.js); every other stylesheet wraps its rules in
+ * one of these layers.
+ */
+@layer reset, tokens, base, components, views, effects;

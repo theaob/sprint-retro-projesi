@@ -1,0 +1,122 @@
+@layer views {
+  .muted { color: var(--muted); }
+  .page-note { margin-top: var(--s-5); color: var(--muted); font-size: var(--text-sm); }
+  .card--flat { padding: var(--s-3) var(--s-4); background: var(--ground); }
+  @media (max-width: 767px) { .hide-on-phone { display: none; } }
+  @media (max-width: 400px) { .hide-on-small { display: none; } }
+
+  /* ── Sign in ─────────────────────────────────────────────── */
+  .auth { min-height: 100dvh; display: flex; flex-direction: column; }
+  .auth__top { display: flex; align-items: center; justify-content: space-between; padding: calc(var(--s-2) + env(safe-area-inset-top, 0px)) var(--gutter) var(--s-2); }
+  .auth__main { flex: 1; display: grid; place-items: center; align-content: center; gap: var(--s-4); padding: var(--s-4) var(--gutter) var(--s-7); }
+  .auth__card { width: min(100%, 420px); display: grid; gap: var(--s-3); }
+  @media (min-width: 640px) {
+    .auth__card { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r-sheet); padding: var(--s-6); box-shadow: var(--shadow); }
+  }
+  .auth__sub { color: var(--muted); margin-bottom: var(--s-2); }
+  .auth__switch { text-align: center; color: var(--muted); }
+  .auth__switch a { display: inline-flex; align-items: center; min-height: var(--control); padding: 0 var(--s-2); color: var(--accent); font-weight: 700; }
+  .theme-midnight .auth__switch a { color: var(--accent-hover); }
+  .auth__version { color: var(--faint); font: 500 var(--text-xs) var(--font-mono); }
+
+  /* ── My retros ───────────────────────────────────────────── */
+  .card-section { display: grid; gap: var(--s-3); margin-bottom: var(--s-6); }
+  .retro-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); gap: var(--s-3); }
+  .retro-card {
+    position: relative;
+    display: grid;
+    gap: var(--s-3);
+    padding: var(--s-4) var(--s-4) var(--s-2);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--r-sheet);
+    transition: border-color var(--t-fast), box-shadow var(--t-fast);
+  }
+  @media (hover: hover) { .retro-card:hover { border-color: var(--line-strong); box-shadow: var(--shadow); } }
+  .retro-card:focus-within { border-color: var(--accent); }
+  .retro-card__top { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--s-3); }
+  .retro-card__title { font-size: var(--text-lg); overflow-wrap: anywhere; }
+  .retro-card__link { text-decoration: none; color: inherit; }
+  .retro-card__link:focus-visible { outline: none; }
+  /* Stretched link: the whole card is the tap target */
+  .retro-card__link::after { content: ''; position: absolute; inset: 0; border-radius: inherit; }
+  .retro-card__meta { display: flex; align-items: center; justify-content: space-between; gap: var(--s-2); color: var(--muted); font-size: var(--text-sm); }
+  .retro-card__more { position: relative; z-index: 1; margin-right: -8px; }
+  .live-dot { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
+  .lane-bars { display: flex; gap: 3px; height: 6px; }
+  .lane-bars i { border-radius: 3px; background: var(--lane); min-width: 6px; }
+
+  .fab {
+    position: fixed;
+    right: var(--gutter);
+    bottom: calc(var(--tabbar-h) + var(--s-4) + env(safe-area-inset-bottom, 0px));
+    z-index: 55;
+    display: inline-flex;
+    align-items: center;
+    gap: var(--s-2);
+    min-height: 56px;
+    padding: 0 var(--s-5);
+    border-radius: 18px;
+    background: var(--accent);
+    color: var(--accent-ink);
+    font: 700 var(--text-md) / 1 var(--font-display);
+    box-shadow: var(--shadow);
+  }
+  @media (min-width: 768px) { .fab { display: none; } }
+
+  .action-list { display: grid; }
+  .action-list__item {
+    display: flex;
+    align-items: center;
+    gap: var(--s-3);
+    min-height: 52px;
+    padding: 0 var(--s-1);
+    border-bottom: 1px solid var(--line);
+    text-decoration: none;
+    color: var(--ink);
+    font-weight: 600;
+    text-align: left;
+    width: 100%;
+  }
+  .action-list__item:last-child { border-bottom: none; }
+  .action-list__item--danger { color: var(--danger); }
+
+  /* ── Create retro / templates ────────────────────────────── */
+  .column-list { display: grid; gap: var(--s-2); }
+  .column-list__row { display: flex; align-items: center; gap: var(--s-2); }
+  .column-list__row .field__input { flex: 1; }
+  .column-list__add { justify-self: start; }
+
+  .whats-new { display: grid; gap: var(--s-4); }
+  .whats-new li { display: flex; gap: var(--s-3); align-items: flex-start; color: var(--muted); }
+  .whats-new strong { color: var(--ink); }
+  .whats-new__icon { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); flex: none; }
+
+  .template-list, .user-list { display: grid; gap: var(--s-3); }
+  .template-card, .user-card {
+    display: flex;
+    align-items: center;
+    gap: var(--s-3);
+    padding: var(--s-4);
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--r-sheet);
+  }
+  .template-card__body, .user-card__body { flex: 1; min-width: 0; display: grid; gap: var(--s-2); }
+  .template-card__name, .user-card__name { font-size: var(--text-lg); display: flex; align-items: center; gap: var(--s-2); flex-wrap: wrap; }
+  .template-card__cols { display: flex; flex-wrap: wrap; gap: var(--s-1) var(--s-3); }
+  .template-card__cols li { display: inline-flex; align-items: center; gap: 6px; font-size: var(--text-sm); color: var(--muted); }
+  .template-card__actions, .user-card__actions { display: flex; gap: var(--s-1); flex: none; }
+  .user-card__meta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-1) var(--s-3); color: var(--muted); font-size: var(--text-sm); overflow-wrap: anywhere; }
+  .avatar--lg { width: 44px; height: 44px; font-size: var(--text-lg); }
+  @media (max-width: 520px) {
+    .user-card { flex-wrap: wrap; }
+    .user-card__actions { width: 100%; justify-content: flex-end; border-top: 1px solid var(--line); padding-top: var(--s-2); }
+  }
+
+  /* ── Account ─────────────────────────────────────────────── */
+  .account { display: grid; gap: var(--s-4); max-width: 560px; }
+  .account__profile { display: flex; align-items: center; gap: var(--s-4); }
+  .account__title { font-size: var(--text-lg); margin-bottom: var(--s-3); }
+  .account__version { color: var(--faint); font: 500 var(--text-xs) var(--font-mono); text-align: center; }
+}

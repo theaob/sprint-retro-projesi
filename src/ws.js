@@ -7,6 +7,11 @@
  *     onColumnRenamed: ({ columnId, name }) => {},
  *     onPresenceUpdate: (users) => {},      // users: array of (name | null)
  *     onTyping: (columnId) => {},      // someone else is typing there (never who)
+ *     onPhase: ({ phase, focusEntryId }) => {},
+ *     onFocus: (entryId) => {},
+ *     onTimer: ({ endsAt, serverNow }) => {},
+ *     onVoteProgress: (voters) => {},  // while vote counts are hidden
+ *     onConnectionChange: (connected) => {},
  *     onReconnect: () => {},
  *   });
  *   ws.sendTyping(columnId); // throttled client-side, safe to call on every keystroke
@@ -32,6 +37,7 @@ export function createRetroSocket(retroId, displayName, handlers = {}) {
     ws = new WebSocket(url);
 
     ws.onopen = () => {
+      handlers.onConnectionChange?.(true);
       // Join the retro room
       ws.send(JSON.stringify({ type: 'join', retroId, name: displayName || null }));
       // If this is a reconnection, notify so the page can refresh stale data
@@ -78,6 +84,18 @@ export function createRetroSocket(retroId, displayName, handlers = {}) {
           case 'typing':
             handlers.onTyping?.(msg.columnId);
             break;
+          case 'retro:phase':
+            handlers.onPhase?.(msg);
+            break;
+          case 'retro:focus':
+            handlers.onFocus?.(msg.entryId);
+            break;
+          case 'retro:timer':
+            handlers.onTimer?.(msg);
+            break;
+          case 'vote:progress':
+            handlers.onVoteProgress?.(msg.voters);
+            break;
         }
       } catch (e) {
         // ignore
@@ -85,6 +103,7 @@ export function createRetroSocket(retroId, displayName, handlers = {}) {
     };
 
     ws.onclose = () => {
+      handlers.onConnectionChange?.(false);
       if (!closed) {
         // Reconnect after 3 seconds
         reconnectTimer = setTimeout(connect, 3000);

@@ -13,8 +13,9 @@ async function request(url, options = {}) {
 
   const res = await fetch(`${BASE}${url}`, { ...options, headers });
 
-  if (res.status === 401) {
-    // Expired / invalid session — clear and redirect to login
+  // Only a request that carried a token can have an expired session — a
+  // 401 without one (e.g. a wrong password at login) is just an error.
+  if (res.status === 401 && token) {
     localStorage.removeItem('retro_token');
     localStorage.removeItem('retro_user');
     window.location.hash = '#/login';
@@ -23,6 +24,12 @@ async function request(url, options = {}) {
 
   if (!res.ok) {
     const err = await res.json().catch(() => ({ error: 'İstek başarısız.' }));
+    // The account still has to replace its default password — back to the prompt
+    if (res.status === 403 && err.must_change_password) {
+      const user = api.getUser();
+      if (user) api.saveSession(token, { ...user, must_change_password: true });
+      window.location.hash = '#/login';
+    }
     throw new Error(err.error || 'İstek başarısız.');
   }
   return res.json();
@@ -66,8 +73,8 @@ export const api = {
 
   // Retros
   listRetros: () => request('/retros'),
-  createRetro: (title, columns, maxVotes) => request('/retros', {
-    method: 'POST', body: JSON.stringify({ title, columns, max_votes: maxVotes })
+  createRetro: (title, columns, maxVotes, staged = false) => request('/retros', {
+    method: 'POST', body: JSON.stringify({ title, columns, max_votes: maxVotes, staged })
   }),
   getRetro: (id) => request(`/retros/${id}?participant_id=${getParticipantId()}`),
   deleteRetro: (id) => request(`/retros/${id}`, { method: 'DELETE' }),
@@ -84,8 +91,10 @@ export const api = {
   }),
 
   // Entries
-  addEntry: (retroId, columnId, text, author) => request(`/retros/${retroId}/entries`, {
-    method: 'POST', body: JSON.stringify({ column_id: columnId, text, author })
+  // participant_id tells the server who wrote the note, so a staged retro
+  // can show it to its author while hiding it from everyone else
+  addEntry: (retroId, columnId, text) => request(`/retros/${retroId}/entries`, {
+    method: 'POST', body: JSON.stringify({ column_id: columnId, text, participant_id: getParticipantId() })
   }),
   editEntry: (retroId, entryId, text) => request(`/retros/${retroId}/entries/${entryId}`, {
     method: 'PUT', body: JSON.stringify({ text })
@@ -103,9 +112,18 @@ export const api = {
     method: 'POST', body: JSON.stringify({ participant_id: getParticipantId() })
   }),
 
-  // Status
+  // Status and facilitation (owner/admin)
   updateRetroStatus: (retroId, status) => request(`/retros/${retroId}/status`, {
     method: 'PUT', body: JSON.stringify({ status })
+  }),
+  setPhase: (retroId, phase) => request(`/retros/${retroId}/phase`, {
+    method: 'PUT', body: JSON.stringify({ phase })
+  }),
+  setFocus: (retroId, entryId) => request(`/retros/${retroId}/focus`, {
+    method: 'PUT', body: JSON.stringify({ entry_id: entryId })
+  }),
+  setTimer: (retroId, seconds) => request(`/retros/${retroId}/timer`, {
+    method: 'PUT', body: JSON.stringify({ seconds })
   }),
 
   // Auth helpers

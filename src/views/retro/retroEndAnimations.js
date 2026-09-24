@@ -24,10 +24,10 @@ const ANIMATIONS = [
 
 /**
  * Plays one randomly-chosen retro-end animation, then calls onComplete —
- * RetroBoard.js uses this to delay its post-finish reload just long enough
- * for the animation to play. Skipped entirely under prefers-reduced-motion
- * (onComplete fires immediately, no overlay at all), since these are purely
- * decorative and the reload is the only functionally necessary part.
+ * Board.js uses this to show the wrap-up summary only once the animation
+ * has played. Skipped entirely under prefers-reduced-motion (onComplete
+ * fires immediately, no overlay at all), since these are purely decorative
+ * and loading the summary is the only functionally necessary part.
  */
 export function playRetroEndAnimation(onComplete) {
   if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {

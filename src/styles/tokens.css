@@ -1,0 +1,139 @@
+/*
+ * Design tokens. Light values on :root; the dark theme redefines only the
+ * color tokens. Theme classes on <html> come from applyTheme() in utils.js
+ * (theme-daylight / theme-midnight); with no stored choice it follows the
+ * OS setting.
+ *
+ * Lane colors are the three bars of the Retro Runway logo plus a fourth
+ * (sky); --accent is a deeper violet used only for actions, so it passes
+ * WCAG AA on both grounds.
+ */
+@layer tokens {
+  :root {
+    color-scheme: light;
+
+    /* Grounds and text */
+    --ground: #f5f4fa;
+    --surface: #ffffff;
+    --surface-raised: #ffffff;
+    --sunken: #eeecf6;
+    --ink: #1b1830;
+    --muted: #5b5672;
+    --faint: #67627e;
+    --line: #e2dfee;
+    --line-strong: #cbc6dd;
+    --scrim: rgba(18, 16, 25, 0.45);
+    --glass: rgba(245, 244, 250, 0.86);
+
+    /* Actions */
+    --accent: #5a45c8;
+    --accent-hover: #4a37b0;
+    --accent-ink: #ffffff;
+    --accent-soft: #ece8fd;
+    --focus-ring: #5a45c8;
+
+    /* Lanes (logo colors) — solid, tint, and readable text on the tint */
+    --lane-0: #8b7cf0;  --lane-0-soft: #efecfd;  --lane-0-ink: #4b3bb0;
+    --lane-1: #93cc6b;  --lane-1-soft: #edf7e5;  --lane-1-ink: #3b6a1c;
+    --lane-2: #ec9cc0;  --lane-2-soft: #fcedf4;  --lane-2-ink: #983c68;
+    --lane-3: #86c1ea;  --lane-3-soft: #e9f4fc;  --lane-3-ink: #235d88;
+
+    /* Semantic */
+    --vote: #a15f00;
+    --vote-soft: #fdf1dc;
+    --vote-ink: #ffffff;
+    --danger: #c2334a;
+    --danger-hover: #a8283d;
+    --danger-soft: #fdebee;
+    --ok: #2f7a3a;
+    --ok-soft: #e6f4e7;
+
+    /* Type */
+    --font-display: 'Bricolage Grotesque', 'Segoe UI', system-ui, sans-serif;
+    --font-body: 'Atkinson Hyperlegible Next', 'Segoe UI', system-ui, -apple-system, sans-serif;
+    --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+    --text-xs: 0.75rem;   /* 12px — the floor for anything readable */
+    --text-sm: 0.875rem;  /* 14px */
+    --text-md: 1rem;      /* 16px — body and every form field */
+    --text-lg: 1.125rem;
+    --text-xl: 1.375rem;
+    --text-2xl: 1.75rem;
+    --text-3xl: 2.25rem;
+
+    /* Space (4px scale) */
+    --s-1: 4px; --s-2: 8px; --s-3: 12px; --s-4: 16px; --s-5: 24px; --s-6: 32px; --s-7: 48px;
+    --gutter: 16px;
+
+    /* Shape and depth: two radii, one floating shadow */
+    --r-control: 12px;
+    --r-sheet: 20px;
+    --r-pill: 999px;
+    --shadow: 0 1px 2px rgba(27, 24, 48, 0.06), 0 8px 24px rgba(27, 24, 48, 0.1);
+    --shadow-sheet: 0 -8px 32px rgba(27, 24, 48, 0.18);
+
+    /* Controls: 44px everywhere; a denser 40px only for fine pointers */
+    --control: 44px;
+
+    /* Motion */
+    --t-fast: 150ms ease;
+    --t-med: 250ms cubic-bezier(0.2, 0.8, 0.2, 1);
+
+    /* Layout */
+    --tabbar-h: 64px;
+    --appbar-h: 56px;
+    --content-max: 1120px;
+  }
+
+  @media (pointer: fine) {
+    :root { --control: 40px; }
+  }
+
+  @media (min-width: 768px) {
+    :root { --gutter: 24px; }
+  }
+
+  /* Dark palette — its own design, not an inversion */
+  :root.theme-midnight {
+    color-scheme: dark;
+    --ground: #121019;
+    --surface: #1b1826;
+    --surface-raised: #221e30;
+    --sunken: #16131f;
+    --ink: #eeebf9;
+    --muted: #a7a1be;
+    --faint: #918ca8;
+    --line: #2d2940;
+    --line-strong: #413b58;
+    --scrim: rgba(0, 0, 0, 0.6);
+    --glass: rgba(18, 16, 25, 0.86);
+
+    --accent: #a594ff;
+    --accent-hover: #b8abff;
+    --accent-ink: #15121f;
+    --accent-soft: #2a2447;
+    --focus-ring: #b8abff;
+
+    --lane-0: #9d90f4;  --lane-0-soft: #26213f;  --lane-0-ink: #c9c1ff;
+    --lane-1: #9fd67a;  --lane-1-soft: #1f2a1a;  --lane-1-ink: #b9e39c;
+    --lane-2: #f0a8c8;  --lane-2-soft: #33202b;  --lane-2-ink: #f7c3da;
+    --lane-3: #93caef;  --lane-3-soft: #1a2833;  --lane-3-ink: #b5dbf5;
+
+    --vote: #f0b454;
+    --vote-soft: #33260f;
+    --vote-ink: #1b1306;
+    --danger: #f08a99;
+    --danger-hover: #f6a6b2;
+    --danger-soft: #3a1c23;
+    --ok: #8fd18a;
+    --ok-soft: #1c2b1d;
+
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.4);
+    --shadow-sheet: 0 -8px 32px rgba(0, 0, 0, 0.5);
+  }
+
+  /* Lane rotation classes — the same 4 colors, whatever the column count */
+  .lane-0 { --lane: var(--lane-0); --lane-soft: var(--lane-0-soft); --lane-ink: var(--lane-0-ink); }
+  .lane-1 { --lane: var(--lane-1); --lane-soft: var(--lane-1-soft); --lane-ink: var(--lane-1-ink); }
+  .lane-2 { --lane: var(--lane-2); --lane-soft: var(--lane-2-soft); --lane-ink: var(--lane-2-ink); }
+  .lane-3 { --lane: var(--lane-3); --lane-soft: var(--lane-3-soft); --lane-ink: var(--lane-3-ink); }
+}

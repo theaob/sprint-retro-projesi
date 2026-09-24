@@ -140,7 +140,7 @@ describe('live updates in a staged retro', () => {
   it('broadcasts placeholders while writing and vote progress (not counts) while voting', async () => {
     const { setBroadcast } = await import('../server/routes.js');
     const sent = [];
-    setBroadcast((retroId, payload) => sent.push(payload));
+    setBroadcast((_retroId, payload) => sent.push(payload));
     try {
       const owner = await registerUser('broadcast-owner');
       const asOwner = (req) => req.set('Authorization', `Bearer ${owner.token}`);

@@ -1,75 +1,21 @@
-import './style.css';
-import { renderAdmin } from './views/admin.js';
-import { renderRetro } from './views/retro/index.js';
-import { renderLogin } from './views/login.js';
-import { renderUsers } from './views/users.js';
-import { renderLanding } from './views/landing.js';
-import { api } from './api.js';
+// Stylesheets, in cascade-layer order (layers.css declares the order;
+// each file wraps its rules in its own layer)
+import './styles/layers.css';
+import './styles/tokens.css';
+import './styles/base.css';
+import './styles/components.css';
+import './styles/app.css';
+import './styles/board.css';
+import './styles/landing.css';
+import './styles/effects.css';
+
+import { render } from 'preact';
+import { html } from './ui/html.js';
+import { App } from './App.js';
 import { applyTheme } from './utils.js';
 
 applyTheme();
 
-const app = document.getElementById('app');
-
-/**
- * Hash-based router:
- * #/           → Public landing page (logged-in visitors bounce to #/app)
- * #/app        → Retro management dashboard (requires login)
- * #/login      → Login page
- * #/register   → Same login page, opened straight into register mode
- * #/users      → User management (requires admin)
- * #/retro/:id  → Retro board (public)
- */
-function router() {
-  // Dialogs are appended to <body>, outside the view that opened them, so
-  // nothing else removes them on navigation — without this, going Back
-  // with a dialog open leaves it floating over the next page. (The forced
-  // password prompt is re-opened by the login view when still needed.)
-  for (const el of document.querySelectorAll('.modal-overlay')) el.remove();
-
-  const hash = window.location.hash || '#/';
-  // An account still on a default password stays on the login page (which
-  // re-opens the forced password-change prompt) until it's changed — the
-  // server refuses its other requests anyway.
-  const mustChangePassword = !!api.getUser()?.must_change_password;
-  const retroMatch = hash.match(/^#\/retro\/(.+)$/);
-
-  if (retroMatch) {
-    renderRetro(app, retroMatch[1]);
-  } else if (hash === '#/login') {
-    renderLogin(app);
-  } else if (hash === '#/register') {
-    renderLogin(app, { startInRegister: true });
-  } else if (hash === '#/users') {
-    if (!api.isAdmin() || mustChangePassword) {
-      window.location.hash = '#/login';
-      return;
-    }
-    renderUsers(app);
-  } else if (hash === '#/app') {
-    if (!api.getUser() || mustChangePassword) {
-      window.location.hash = '#/login';
-      return;
-    }
-    renderAdmin(app);
-  } else {
-    // '#/' and any unrecognized hash both fall back here — an
-    // already-authenticated visitor is bounced straight to the dashboard
-    // so they never see marketing copy right after logging in.
-    if (api.getUser()) {
-      window.location.hash = '#/app';
-      return;
-    }
-    renderLanding(app);
-  }
-}
-
-// No DOMContentLoaded listener needed: module scripts are deferred by spec —
-// they run after the document is fully parsed, before DOMContentLoaded fires
-// — so this synchronous call already has a ready DOM. Registering both used
-// to double-invoke router() on every initial load (harmless for the old
-// innerHTML-based views' "last write wins" rendering, but it corrupts
-// Preact's mount bookkeeping when two renders race on the same container).
-window.addEventListener('hashchange', router);
-router();
-
+// Module scripts are deferred, so the DOM is ready here without waiting
+// for DOMContentLoaded.
+render(html`<${App} />`, document.getElementById('app'));

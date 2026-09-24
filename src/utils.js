@@ -1,36 +1,9 @@
-export function escapeHtml(text) {
-  if (!text) return '';
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
-}
-
-/**
- * The Retro Runway brand mark — three lane bars (violet/green/pink) with
- * runway strip-mark dashes, per the logo's Turn 6a primary lockup. Colors
- * are fixed hex (not theme tokens) since the mark is the one constant across
- * both themes, matching the design's "on dark" lockup.
- */
-export function renderBrandMark(className = 'brand-mark') {
-  const lanes = [
-    { x: 0, fill: '#8b7cf0' },
-    { x: 19, fill: '#a8d987' },
-    { x: 38, fill: '#f0a8c8' }
-  ];
-  const bars = lanes.map(({ x, fill }) => `
-    <rect x="${x}" y="0" width="16" height="44" rx="6" fill="${fill}"/>
-    <rect x="${x + 6}" y="7" width="4" height="7" rx="1.5" fill="rgba(255,255,255,0.85)"/>
-    <rect x="${x + 6}" y="18.5" width="4" height="7" rx="1.5" fill="rgba(255,255,255,0.85)"/>
-    <rect x="${x + 6}" y="30" width="4" height="7" rx="1.5" fill="rgba(255,255,255,0.85)"/>
-  `).join('');
-  return `<svg class="${className}" viewBox="0 0 54 44" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">${bars}</svg>`;
-}
-
 /**
  * A persistent, anonymous identity for this browser, used so the server can
- * enforce per-retro vote limits for guests who aren't logged in. Not a
- * security boundary — clearing localStorage or using another browser gets a
- * fresh identity — but it closes the "just call the API in a loop" gap.
+ * enforce per-retro vote limits for guests who aren't logged in, and show
+ * each person their own notes while a staged retro hides everyone else's.
+ * Not a security boundary — clearing localStorage or using another browser
+ * gets a fresh identity — but it closes the "just call the API in a loop" gap.
  */
 export function getParticipantId() {
   let id = localStorage.getItem('retro_participant_id');
@@ -39,6 +12,26 @@ export function getParticipantId() {
     localStorage.setItem('retro_participant_id', id);
   }
   return id;
+}
+
+/** The optional name a guest chose on the join screen (used for presence only). */
+export function getDisplayName() {
+  return localStorage.getItem('retro_display_name') || '';
+}
+
+export function setDisplayName(name) {
+  const trimmed = (name || '').trim().slice(0, 40);
+  if (trimmed) localStorage.setItem('retro_display_name', trimmed);
+  else localStorage.removeItem('retro_display_name');
+}
+
+/** Whether this browser has already been through a retro's join screen. */
+export function hasJoined(retroId) {
+  return localStorage.getItem(`retro_joined:${retroId}`) === '1';
+}
+
+export function markJoined(retroId) {
+  localStorage.setItem(`retro_joined:${retroId}`, '1');
 }
 
 /**
@@ -52,14 +45,74 @@ export function autoGrow(textarea) {
   textarea.style.height = `${textarea.scrollHeight}px`;
 }
 
+/**
+ * Brief status message at the bottom of the screen. Lives in one polite
+ * live region, so screen readers announce it without stealing focus.
+ */
 export function showToast(message, type = 'success') {
-  const existing = document.querySelector('.toast');
-  if (existing) existing.remove();
+  let region = document.getElementById('toast-region');
+  if (!region) {
+    region = document.createElement('div');
+    region.id = 'toast-region';
+    region.className = 'toast-region';
+    region.setAttribute('role', 'status');
+    region.setAttribute('aria-live', 'polite');
+    document.body.appendChild(region);
+  }
+  region.replaceChildren();
   const toast = document.createElement('div');
-  toast.className = `toast toast-${type}`;
+  toast.className = `toast toast--${type}`;
   toast.textContent = message;
-  document.body.appendChild(toast);
-  setTimeout(() => toast.remove(), 3000);
+  region.appendChild(toast);
+  clearTimeout(showToast.timer);
+  showToast.timer = setTimeout(() => toast.remove(), 3200);
+}
+
+/** Announces something to screen readers without showing it. */
+export function announce(message) {
+  let region = document.getElementById('sr-announcer');
+  if (!region) {
+    region = document.createElement('div');
+    region.id = 'sr-announcer';
+    region.className = 'sr-only';
+    region.setAttribute('aria-live', 'polite');
+    document.body.appendChild(region);
+  }
+  region.textContent = '';
+  // A separate tick so repeated identical messages are still read out
+  setTimeout(() => { region.textContent = message; }, 50);
+}
+
+/** Copies text, reporting success with a toast; falls back to a prompt-free selection. */
+export async function copyText(text, successMessage = 'Bağlantı kopyalandı.') {
+  try {
+    await navigator.clipboard.writeText(text);
+    showToast(successMessage, 'success');
+  } catch {
+    const input = document.createElement('textarea');
+    input.value = text;
+    input.setAttribute('readonly', '');
+    input.style.position = 'fixed';
+    input.style.opacity = '0';
+    document.body.appendChild(input);
+    input.select();
+    const ok = document.execCommand?.('copy');
+    input.remove();
+    showToast(ok ? successMessage : 'Kopyalanamadı — bağlantıyı elle seçin.', ok ? 'success' : 'error');
+  }
+}
+
+/** "23 Eyl 2026" from an SQLite UTC datetime string. */
+export function formatDate(sqliteDate) {
+  const date = new Date(`${sqliteDate.replace(' ', 'T')}Z`);
+  return date.toLocaleDateString('tr-TR', { year: 'numeric', month: 'short', day: 'numeric' });
+}
+
+/** The share link for a retro: the short /s/ link when it has one. */
+export function shareLink(retro) {
+  return retro.short_code
+    ? `${window.location.origin}/s/${retro.short_code}`
+    : `${window.location.origin}${window.location.pathname}#/retro/${retro.id}`;
 }
 
 /**
@@ -73,6 +126,7 @@ export function spawnVoteCelebration() {
 
   const burst = document.createElement('div');
   burst.className = 'vote-celebration';
+  burst.setAttribute('aria-hidden', 'true');
   const count = 10;
   for (let i = 0; i < count; i++) {
     const emoji = document.createElement('span');
@@ -88,130 +142,39 @@ export function spawnVoteCelebration() {
   setTimeout(() => burst.remove(), 3000);
 }
 
-/* ── Theme Management ────────────────────────────────────────── */
+/* ── Theme ─────────────────────────────────────────────────────
+   'daylight' | 'midnight' | 'system' (default). The resolved theme is a
+   class on <html> (theme-daylight / theme-midnight) that tokens.css keys
+   the dark palette off. */
 
-const THEMES = ['midnight', 'daylight'];
+const THEME_KEY = 'app-theme';
+const THEME_CHOICES = ['system', 'daylight', 'midnight'];
+const darkQuery = window.matchMedia('(prefers-color-scheme: dark)');
 
-export function getTheme() {
-  return localStorage.getItem('app-theme') || 'daylight';
+export function getThemeChoice() {
+  const stored = localStorage.getItem(THEME_KEY);
+  return THEME_CHOICES.includes(stored) ? stored : 'system';
 }
 
-export function setTheme(theme) {
-  if (!THEMES.includes(theme)) theme = 'midnight';
-  localStorage.setItem('app-theme', theme);
+export function resolvedTheme() {
+  const choice = getThemeChoice();
+  if (choice !== 'system') return choice;
+  return darkQuery.matches ? 'midnight' : 'daylight';
+}
+
+export function setTheme(choice) {
+  localStorage.setItem(THEME_KEY, THEME_CHOICES.includes(choice) ? choice : 'system');
   applyTheme();
 }
 
 export function applyTheme() {
-  const theme = getTheme();
+  const theme = resolvedTheme();
   const root = document.documentElement;
-  THEMES.forEach(t => { root.classList.remove(`theme-${t}`); });
-  root.classList.add(`theme-${theme}`);
-
-  // Update any toggle buttons on the page — a page can legitimately render
-  // more than one (e.g. the admin sidebar's + the mobile top bar's, only
-  // one of which is visible at a given viewport width), so this updates
-  // every match rather than assuming a single unique id.
-  document.querySelectorAll('[data-theme-toggle]').forEach(toggleBtn => {
-    toggleBtn.textContent = theme === 'midnight' ? '☀️' : '🌙';
-    toggleBtn.title = theme === 'midnight' ? 'Açık Tema' : 'Koyu Tema';
-  });
+  root.classList.toggle('theme-midnight', theme === 'midnight');
+  root.classList.toggle('theme-daylight', theme === 'daylight');
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme === 'midnight' ? '#121019' : '#f5f4fa');
+  window.dispatchEvent(new CustomEvent('themechange', { detail: theme }));
 }
 
-export function renderThemeToggle() {
-  const current = getTheme();
-  return `<button class="btn btn-ghost btn-icon theme-toggle" data-theme-toggle title="${current === 'midnight' ? 'Açık Tema' : 'Koyu Tema'}">${current === 'midnight' ? '☀️' : '🌙'}</button>`;
-}
-
-export function bindThemeEvents() {
-  document.querySelectorAll('[data-theme-toggle]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const next = getTheme() === 'midnight' ? 'daylight' : 'midnight';
-      setTheme(next);
-    });
-  });
-}
-
-/* ── Shared admin-area chrome (retros / users) ────────
-   One source of truth for the header + mobile nav so the pages'
-   link lists can't drift out of sync with each other. */
-
-const NAV_ITEMS = [
-  { key: 'retros', href: '#/app', icon: '📋', label: 'Retrolar', adminOnly: false },
-  { key: 'users', href: '#/users', icon: '👥', label: 'Kullanıcılar', adminOnly: true }
-];
-
-/**
- * Sidebar replaces the top header-account cluster (theme toggle, logout)
- * for admin-area pages, but it's desktop-only (see .sidebar-nav's media
- * query) — without this, mobile visitors would have no way to reach
- * either control, since the bottom mobile-nav-bar only carries page
- * links + logout, not theme.
- */
-export function renderMobileTopbar() {
-  return `
-    <div class="mobile-topbar">
-      <div class="mobile-topbar-brand">${renderBrandMark()}<span>Retro Runway</span></div>
-      ${renderThemeToggle()}
-    </div>
-  `;
-}
-
-export function renderSidebarNav(user, active) {
-  const items = NAV_ITEMS.filter(item => !item.adminOnly || user?.role === 'admin');
-  const links = items.map(item =>
-    `<a href="${item.href}" class="sidebar-nav-item${active === item.key ? ' active' : ''}">${item.icon} ${item.label}</a>`
-  ).join('');
-
-  return `
-    <aside class="sidebar-nav">
-      <div class="sidebar-brand">${renderBrandMark()}<span>Retro Runway</span></div>
-      <nav class="sidebar-nav-links">${links}</nav>
-      <div class="sidebar-account">
-        <div class="sidebar-user-avatar">${user?.username?.[0]?.toUpperCase() || '?'}</div>
-        <div>
-          <div class="sidebar-user-name">${escapeHtml(user?.username || '')}</div>
-          <div class="sidebar-user-role">${user?.role === 'admin' ? 'Admin' : 'Kullanıcı'}</div>
-        </div>
-        <div class="sidebar-account-actions">
-          ${renderThemeToggle()}
-          <button id="logout-btn" title="Çıkış">🚪</button>
-        </div>
-      </div>
-    </aside>
-  `;
-}
-
-export function renderMobileNav(user, active) {
-  const items = NAV_ITEMS.filter(item => !item.adminOnly || user?.role === 'admin');
-  const links = items.map(item => `
-    <a href="${item.href}" class="mobile-nav-item${active === item.key ? ' active' : ''}">
-      <span class="mobile-nav-icon">${item.icon}</span>
-      <span class="mobile-nav-label">${item.label}</span>
-    </a>
-  `).join('');
-
-  return `
-    <div class="mobile-nav-bar">
-      ${links}
-      <button class="mobile-nav-item" id="mobile-logout-btn">
-        <span class="mobile-nav-icon">🚪</span>
-        <span class="mobile-nav-label">Çıkış</span>
-      </button>
-    </div>
-  `;
-}
-
-export function bindLogoutEvents(api) {
-  const handleLogout = async () => {
-    try { await api.logout(); } catch {}
-    api.clearSession();
-    window.location.hash = '#/login';
-  };
-  document.getElementById('logout-btn')?.addEventListener('click', handleLogout);
-  // On phones logout sits in the bottom tab bar, right beside the page
-  // tabs, where a mis-tap is easy — so that one asks first.
-  document.getElementById('mobile-logout-btn')?.addEventListener('click', () => {
-    if (confirm('Çıkış yapmak istediğinize emin misiniz?')) handleLogout();
-  });
-}
+// Follow the OS while the choice is "system"
+darkQuery.addEventListener?.('change', () => { if (getThemeChoice() === 'system') applyTheme(); });
