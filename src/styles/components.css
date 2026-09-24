@@ -120,7 +120,7 @@
   }
   .field__input::placeholder { color: var(--faint); }
   .field__input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-soft); }
-  .field__input--area { resize: none; overflow-y: auto; max-height: 40vh; display: block; }
+  .field__input--area { resize: none; overflow-y: hidden; max-height: 40vh; display: block; }
   .field__input--select { appearance: none; padding-right: 40px; background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%); background-position: calc(100% - 20px) 50%, calc(100% - 15px) 50%; background-size: 5px 5px; background-repeat: no-repeat; }
   .field__hint { font-size: var(--text-sm); color: var(--muted); }
   .field.has-error .field__input { border-color: var(--danger); }

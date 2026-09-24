@@ -65,7 +65,13 @@ export const setEndingSeen = (retroId, seen) => writeFlag(`retro_ending_seen:${r
 export function autoGrow(textarea) {
   if (!textarea) return;
   textarea.style.height = 'auto';
-  textarea.style.height = `${textarea.scrollHeight}px`;
+  // scrollHeight leaves out the borders, and with border-box sizing the
+  // height includes them — without adding them back the box comes out a
+  // few pixels short and shows a scrollbar for them
+  const borders = textarea.offsetHeight - textarea.clientHeight;
+  textarea.style.height = `${textarea.scrollHeight + borders}px`;
+  // Only scroll once the note is taller than the CSS max-height allows
+  textarea.style.overflowY = textarea.scrollHeight > textarea.clientHeight + 1 ? 'auto' : 'hidden';
 }
 
 /**
