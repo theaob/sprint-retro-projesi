@@ -44,6 +44,9 @@ export function Board({ initialRetro, user }) {
   const socketRef = useRef(null);
   const typingTimers = useRef({});
   const lanesRef = useRef(null);
+  // Whether this finish's ending has already played here — the facilitator
+  // gets both its own API response and the WebSocket echo
+  const endingPlayed = useRef(initialRetro.status === 'finished');
   const wide = useMediaQuery('(min-width: 768px)');
 
   const staged = !!retro.phase;
@@ -76,6 +79,14 @@ export function Board({ initialRetro, user }) {
     }
   };
 
+  // Plays the retro-end animation once per finish, then loads the summary
+  const playEnding = () => {
+    if (endingPlayed.current) return;
+    endingPlayed.current = true;
+    announce('Retro finished.');
+    playRetroEndAnimation(refetch);
+  };
+
   // WebSocket — bound once on mount; handlers only dispatch, so they never
   // read stale state.
   useEffect(() => {
@@ -90,9 +101,9 @@ export function Board({ initialRetro, user }) {
       onColumnDeleted(columnId) { dispatch({ type: 'column:deleted', columnId }); },
       onStatusChanged(status) {
         if (status === 'finished') {
-          announce('Retro finished.');
-          playRetroEndAnimation(refetch);
+          playEnding();
         } else {
+          endingPlayed.current = false;
           dispatch({ type: 'status', status });
           refetch();
         }
@@ -180,8 +191,9 @@ export function Board({ initialRetro, user }) {
     await guard(async () => {
       await api.updateRetroStatus(retro.id, 'finished');
       setSheetOpen(false);
-      // The WebSocket echo plays the ending; without a connection, just refresh
-      if (!connected) await refetch();
+      // Usually the WebSocket echo has already played it; this covers a
+      // facilitator whose connection is down or reconnecting
+      playEnding();
     });
   };
 
@@ -194,6 +206,7 @@ export function Board({ initialRetro, user }) {
     if (!ok) return;
     await guard(async () => {
       await api.updateRetroStatus(retro.id, 'active');
+      endingPlayed.current = false;
       setSheetOpen(false);
       await refetch();
     });
