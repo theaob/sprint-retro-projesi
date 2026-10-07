@@ -131,9 +131,10 @@ export async function copyText(text, successMessage = 'Link copied.') {
   }
 }
 
-/** "23 Eyl 2026" from an SQLite UTC datetime string. */
-export function formatDate(sqliteDate) {
-  const date = new Date(`${sqliteDate.replace(' ', 'T')}Z`);
+/** "Sep 23, 2026" from an SQLite UTC datetime string or an ISO timestamp. */
+export function formatDate(value) {
+  // SQLite's CURRENT_TIMESTAMP ("2026-09-23 14:05:00") is UTC without saying so
+  const date = new Date(value.includes('T') ? value : `${value.replace(' ', 'T')}Z`);
   return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
 }
 

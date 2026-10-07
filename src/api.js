@@ -122,6 +122,8 @@ export const api = {
   setFocus: (retroId, entryId) => request(`/retros/${retroId}/focus`, {
     method: 'PUT', body: JSON.stringify({ entry_id: entryId })
   }),
+  // Claude writes a summary of a finished retro (owner/admin); can take a while
+  summarizeRetro: (retroId) => request(`/retros/${retroId}/summary`, { method: 'POST' }),
   setTimer: (retroId, seconds) => request(`/retros/${retroId}/timer`, {
     method: 'PUT', body: JSON.stringify({ seconds })
   }),

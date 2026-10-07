@@ -494,4 +494,26 @@ if (schemaVersion < 4) {
   db.pragma('user_version = 4');
 }
 
+// Step 5
+if (schemaVersion < 5) {
+  // Migration: AI summary of a finished retro (server/ai.js), stored as the
+  // JSON the model returned plus when it was generated, so it's made once
+  // and shown to everyone instead of re-generated per viewer.
+  try {
+    const retrosInfo = db.pragma('table_info(retros)');
+    if (!retrosInfo.some((col) => col.name === 'ai_summary')) {
+      db.exec('ALTER TABLE retros ADD COLUMN ai_summary TEXT;');
+      console.log('✅ Migration applied: added ai_summary to retros table.');
+    }
+    if (!retrosInfo.some((col) => col.name === 'ai_summary_at')) {
+      db.exec('ALTER TABLE retros ADD COLUMN ai_summary_at TEXT;');
+      console.log('✅ Migration applied: added ai_summary_at to retros table.');
+    }
+  } catch (err) {
+    console.error('Migration error (AI summary):', err);
+  }
+
+  db.pragma('user_version = 5');
+}
+
 export default db;

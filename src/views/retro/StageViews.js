@@ -1,7 +1,9 @@
+import { useState } from 'preact/hooks';
 import { html } from '../../ui/html.js';
 import { Button } from '../../ui/controls.js';
 import { Icon } from '../../ui/Icon.js';
 import { formatClock } from '../../ui/hooks.js';
+import { formatDate } from '../../utils.js';
 
 /** Every note on the board with its lane, most-voted first. */
 export function notesByVotes(columns) {
@@ -92,7 +94,76 @@ export function DiscussView({ columns, focusId, timeLeft, canFacilitate, onFocus
 }
 
 /** Wrap-up after the retro finishes: the numbers, the top notes, the export. */
-export function SummaryView({ retro, canFacilitate, onExport, onReopen }) {
+/** A titled list in the AI summary, left out when empty. */
+function SummaryList({ title, items }) {
+  if (!items?.length) return null;
+  return html`
+    <div class="ai-summary__group">
+      <h4>${title}</h4>
+      <ul>${items.map((item, i) => html`<li key=${i}>${item}</li>`)}</ul>
+    </div>
+  `;
+}
+
+/**
+ * Claude's summary of the finished retro. Everyone sees it once it exists;
+ * the facilitator can create it (or redo it) when the server has AI
+ * summaries enabled.
+ */
+function AiSummary({ retro, canFacilitate, onSummarize }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const summary = retro.ai_summary;
+  const canRun = canFacilitate && retro.ai_summary_available && retro.columns.some(c => c.entries.length > 0);
+  if (!summary && !canRun) return null;
+
+  const run = async () => {
+    setBusy(true);
+    setError('');
+    try { await onSummarize(); } catch (err) { setError(err.message); } finally { setBusy(false); }
+  };
+
+  return html`
+    <section class="card ai-summary" aria-labelledby="ai-summary-title" aria-busy=${busy ? 'true' : 'false'}>
+      <div class="ai-summary__head">
+        <${Icon} name="sparkle" size=${20} />
+        <h3 id="ai-summary-title">AI summary</h3>
+      </div>
+
+      ${summary ? html`
+        <p class="ai-summary__overview">${summary.overview}</p>
+        ${summary.themes?.length ? html`
+          <div class="ai-summary__group">
+            <h4>Themes</h4>
+            <ul class="ai-summary__themes">
+              ${summary.themes.map((t, i) => html`<li key=${i}><strong>${t.title}</strong> ${t.detail}</li>`)}
+            </ul>
+          </div>
+        ` : null}
+        <${SummaryList} title="Went well" items=${summary.went_well} />
+        <${SummaryList} title="To improve" items=${summary.to_improve} />
+        <${SummaryList} title="Action items" items=${summary.action_items} />
+        <p class="ai-summary__meta">Written by Claude${retro.ai_summary_at ? ` · ${formatDate(retro.ai_summary_at)}` : ''}. Check it against the notes before sharing.</p>
+      ` : html`
+        <p class="ai-summary__intro">Get the themes, what went well, what to improve and suggested action items, written from the notes and their votes.</p>
+      `}
+
+      ${canRun ? html`
+        <div class="ai-summary__actions">
+          <${Button} variant=${summary ? 'ghost' : 'primary'} icon="sparkle" loading=${busy} onClick=${run}>
+            ${summary ? 'Regenerate' : 'Summarize with AI'}
+          <//>
+          <p class="ai-summary__note" aria-live="polite">
+            ${busy ? 'Summarizing… this can take a minute.' : "The notes are sent to Anthropic's API to write the summary."}
+          </p>
+        </div>
+        ${error ? html`<p class="form-error" role="alert">${error}</p>` : null}
+      ` : null}
+    </section>
+  `;
+}
+
+export function SummaryView({ retro, canFacilitate, onExport, onReopen, onSummarize }) {
   const ranked = notesByVotes(retro.columns);
   const noteCount = ranked.length;
   const top = ranked.filter(r => (r.entry.votes ?? 0) > 0).slice(0, 5);
@@ -114,6 +185,7 @@ export function SummaryView({ retro, canFacilitate, onExport, onReopen }) {
         <${Button} variant="primary" icon="download" onClick=${onExport}>Download Excel<//>
         ${canFacilitate ? html`<${Button} variant="secondary" icon="reopen" onClick=${onReopen}>Reopen<//>` : null}
       </div>
+      <${AiSummary} retro=${retro} canFacilitate=${canFacilitate} onSummarize=${onSummarize} />
       ${top.length > 0 ? html`
         <h3 class="section-title">Most voted</h3>
         <ol class="queue">

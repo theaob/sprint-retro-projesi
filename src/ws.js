@@ -11,6 +11,7 @@
  *     onFocus: (entryId) => {},
  *     onTimer: ({ endsAt, serverNow }) => {},
  *     onVoteProgress: (voters) => {},  // while vote counts are hidden
+ *     onSummary: ({ summary, generatedAt }) => {},  // AI summary ready
  *     onConnectionChange: (connected) => {},
  *     onReconnect: () => {},
  *   });
@@ -95,6 +96,9 @@ export function createRetroSocket(retroId, displayName, handlers = {}) {
             break;
           case 'vote:progress':
             handlers.onVoteProgress?.(msg.voters);
+            break;
+          case 'retro:summary':
+            handlers.onSummary?.(msg);
             break;
         }
       } catch (e) {

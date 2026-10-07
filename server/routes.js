@@ -4,12 +4,21 @@ import { randomUUID } from 'node:crypto';
 import bcrypt from 'bcryptjs';
 import db from './db.js';
 import { requireAuth, requireAuthAllowPending, requireAdmin } from './auth.js';
+import { aiSummaryAvailable, summarizeRetro, SummaryError } from './ai.js';
 
 const router = Router();
 
 // Broadcaster — injected from index.js after WS setup
 let broadcast = () => {};
 export function setBroadcast(fn) { broadcast = fn; }
+
+// AI summarizer — swappable so tests don't call the real API
+let summarize = summarizeRetro;
+let summaryAvailable = aiSummaryAvailable;
+export function setSummarizer(fn, available = () => true) {
+  summarize = fn ?? summarizeRetro;
+  summaryAvailable = fn ? available : aiSummaryAvailable;
+}
 
 const SESSION_LIFETIME_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
@@ -520,11 +529,13 @@ router.get('/retros/:id', (req, res) => {
 
   // The owner's user id stays server-side — the board only needs to know
   // whether *this* caller owns it.
-  const { created_by, ...publicRetro } = retro;
+  const { created_by, ai_summary, ...publicRetro } = retro;
   const isOwner = !!req.user && req.user.id === created_by;
 
   res.json({
     ...publicRetro,
+    ai_summary: ai_summary ? JSON.parse(ai_summary) : null,
+    ai_summary_available: summaryAvailable(),
     is_owner: isOwner,
     columns: columnData,
     voted_entry_ids: votedEntryIds,
@@ -877,6 +888,39 @@ router.put('/retros/:id/timer', requireAuth, (req, res) => {
   db.prepare('UPDATE retros SET timer_ends_at = ? WHERE id = ?').run(endsAt, retro.id);
   broadcast(retro.id, { type: 'retro:timer', endsAt, serverNow: new Date().toISOString() });
   res.json({ success: true, timer_ends_at: endsAt });
+});
+
+// POST /api/retros/:id/summary  — have Claude summarize a finished retro
+// (admin or owner). Stored on the retro and broadcast, so everyone on the
+// board sees the same summary; calling it again regenerates it.
+const summariesInFlight = new Set();
+router.post('/retros/:id/summary', requireAuth, async (req, res) => {
+  const retro = loadRetroForFacilitator(req, res, "You don't have permission to summarize this retro.");
+  if (!retro) return;
+  if (!summaryAvailable()) return res.status(503).json({ error: "AI summaries aren't enabled on this server." });
+  if (retro.status !== 'finished') return res.status(409).json({ error: 'A retro can be summarized once it has finished.' });
+  if (summariesInFlight.has(retro.id)) return res.status(409).json({ error: 'A summary is already being generated.' });
+
+  const columns = db.prepare('SELECT * FROM columns WHERE retro_id = ? ORDER BY sort_order').all(retro.id);
+  const entries = db.prepare('SELECT text, votes, column_id FROM entries WHERE retro_id = ? ORDER BY votes DESC, created_at').all(retro.id);
+  if (entries.length === 0) return res.status(400).json({ error: 'There are no notes to summarize.' });
+  const columnsWithEntries = columns.map(c => ({ ...c, entries: entries.filter(e => e.column_id === c.id) }));
+
+  summariesInFlight.add(retro.id);
+  try {
+    const summary = await summarize(retro, columnsWithEntries);
+    const generatedAt = new Date().toISOString();
+    db.prepare('UPDATE retros SET ai_summary = ?, ai_summary_at = ? WHERE id = ?')
+      .run(JSON.stringify(summary), generatedAt, retro.id);
+    broadcast(retro.id, { type: 'retro:summary', summary, generatedAt });
+    res.json({ ai_summary: summary, ai_summary_at: generatedAt });
+  } catch (err) {
+    if (err instanceof SummaryError) return res.status(err.status).json({ error: err.message });
+    console.error('AI summary failed:', err);
+    res.status(502).json({ error: "Couldn't generate the summary. Try again in a moment." });
+  } finally {
+    summariesInFlight.delete(retro.id);
+  }
 });
 
 export default router;

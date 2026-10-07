@@ -13,7 +13,8 @@ Sprint Retro is a full-stack, real-time web application to help agile teams cond
 - **Anonymous by default**: participants join from a short link without an account; the optional display name is only used in the "who's here" list, never on notes.
 - **Real-time collaboration** over WebSockets: notes, votes, stages, focus and timer update live for everyone.
 - **Facilitator controls** in one sheet: share link, next stage, timer, lanes, finish or reopen, Excel export.
-- **Templates**: Standart, GBI, Mad/Sad/Glad, Start/Stop/Continue, 4Ls, or admin-defined templates.
+- **AI summary (optional)**: once a retro has finished, the facilitator can have Claude summarize it: an overview, the main themes, what went well, what to improve and suggested action items, weighted by the votes. The summary is saved on the retro and shown to everyone. Needs an Anthropic API key on the server (see [AI summary](#ai-summary)).
+- **Templates**: Standard, GBI, Mad/Sad/Glad, Start/Stop/Continue, 4Ls, or admin-defined templates.
 - **Export** retro results to Excel (`.xlsx`).
 - **Accessible**: light and dark themes (or follow the system) checked to WCAG AA contrast, keyboard- and screen-reader-friendly dialogs, and a Back gesture that closes the open dialog.
 - **Secure by default**: rate-limited sign-in, forced change of the default admin password, sessions revoked on password change.
@@ -81,6 +82,9 @@ docker run -d \
 ```
 
 The server runs as the unprivileged `node` user (uid 1000). On startup the container gives the data directory to that user, so a directory created by an older image, which ran as root, keeps working with no manual step. If you start the container with `--user`, it skips that step, and the directory must already be writable by the user you chose.
+
+#### AI summary
+The AI summary is off until the server has an Anthropic API key. Pass it as an environment variable, e.g. `-e ANTHROPIC_API_KEY=sk-ant-...` with `docker run` (or `export ANTHROPIC_API_KEY=...` before `npm start`). The summary is written by Claude (`claude-opus-5-5`) from the note text and vote counts only (no names or participant ids), which are sent to Anthropic's API; the button says so. Each summary is one API request, made only when a facilitator asks for one.
 
 #### Behind a reverse proxy
 If the app sits behind a reverse proxy (nginx, Traefik, a cloud load balancer), set `TRUST_PROXY` to the number of proxy hops, e.g. `-e TRUST_PROXY=1`. Rate limiting then uses the client IP from `X-Forwarded-For`. Leave it unset when the container is exposed directly, as in the command above: otherwise clients could set their own IP in that header and get around the login rate limit. Without it behind a proxy, every visitor shares the proxy's IP and one rate-limit budget.

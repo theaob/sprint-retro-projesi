@@ -156,6 +156,7 @@ export function Board({ initialRetro, user }) {
       onFocus(entryId) { dispatch({ type: 'focus', entryId }); },
       onTimer({ endsAt, serverNow }) { dispatch({ type: 'timer', endsAt, serverNow }); },
       onVoteProgress(voters) { dispatch({ type: 'voters', voters }); },
+      onSummary({ summary, generatedAt }) { dispatch({ type: 'summary', summary, generatedAt }); },
       onPresenceUpdate(users) { setPresence(users); },
       onConnectionChange(isConnected) { setConnected(isConnected); },
       onTyping(columnId) {
@@ -260,6 +261,12 @@ export function Board({ initialRetro, user }) {
     await api.setFocus(retro.id, entryId);
     dispatch({ type: 'focus', entryId });
   });
+
+  // Throws so SummaryView can show the error next to its button
+  const summarize = async () => {
+    const res = await api.summarizeRetro(retro.id);
+    dispatch({ type: 'summary', summary: res.ai_summary, generatedAt: res.ai_summary_at });
+  };
 
   const exportExcel = async () => {
     try {
@@ -382,7 +389,8 @@ export function Board({ initialRetro, user }) {
     body = html`<${SetupView} columns=${retro.columns} canFacilitate=${canFacilitate} busy=${busy}
       onStart=${() => setPhase('writing')} onEditColumns=${() => setColumnsOpen(true)} />`;
   } else if (finished && view === 'stage') {
-    body = html`<${SummaryView} retro=${retro} canFacilitate=${canFacilitate} onExport=${exportExcel} onReopen=${reopen} />`;
+    body = html`<${SummaryView} retro=${retro} canFacilitate=${canFacilitate} onExport=${exportExcel} onReopen=${reopen}
+      onSummarize=${summarize} />`;
   } else if (staged && retro.phase === 'discussing' && view === 'stage') {
     body = html`<${DiscussView} columns=${retro.columns} focusId=${retro.focus_entry_id} timeLeft=${timeLeft}
       canFacilitate=${canFacilitate} onFocus=${focusOn} />`;

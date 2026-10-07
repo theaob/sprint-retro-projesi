@@ -106,6 +106,9 @@ export function retroReducer(state, action) {
     case 'voters':
       return { ...state, voter_count: action.voters };
 
+    case 'summary':
+      return { ...state, ai_summary: action.summary, ai_summary_at: action.generatedAt };
+
     // Local, optimistic — fired the instant the vote button is pressed,
     // before the API call resolves. Only tracks "did I vote for this";
     // counts come from the server.
